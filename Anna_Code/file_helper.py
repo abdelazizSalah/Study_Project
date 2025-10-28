@@ -28,13 +28,16 @@ def list_files_by_filetype(root_path, filetype):
 
 #for each pcap file create a csv file using the pcap_extract_values function
 #no csv created for empty files
-def create_csv_files():
+def create_csv_files( 
+        attack_path = "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks",
+        control_path="/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set",
+        output_base_path_attack="/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/attacks/",
+        output_base_path_control = "/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/control/"
+  
+        ):
 
-    pcap_files_attack=list_files_by_filetype("/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks","pcap")
-    pcap_files_control=list_files_by_filetype("/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set","pcap")
-
-    output_base_path_attack="/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/attacks/"
-    output_base_path_control = "/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/control/"
+    pcap_files_attack=list_files_by_filetype(attack_path,"pcap")
+    pcap_files_control=list_files_by_filetype(control_path,"pcap")
     print(len(pcap_files_attack))
     print(len(pcap_files_control))
 
@@ -53,7 +56,7 @@ def create_csv_files():
         try:
             filename=os.path.basename(path)
             df_pcap = pcap_extract_values(path, 1)
-            #save_df_to_csv(df_pcap, output_base_path_attack+filename+".csv")
+            save_df_to_csv(df_pcap, output_base_path_attack+filename+".csv")
             print(f"File {path} done.")
         except Exception as e:
             print(f"Exception in {path}:\n{e}")
@@ -64,10 +67,11 @@ def create_csv_files():
 
 #load all csv files into one dataframe
 #used forQUT S7Comm
-def load_all_csvs():
+# Abdelaziz Comment: It would be better if we added the path as parameter, so I can also use them
+def load_all_csvs(attack_path = "/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/attacks/", control_path="/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/control/"):
     # Get all .csv files recursively (or non-recursively)
-    csv_files_attack = list_files_by_filetype("/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/attacks/","csv")
-    csv_files_control = list_files_by_filetype("/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/control/","csv")
+    csv_files_attack = list_files_by_filetype(attack_path,"csv")
+    csv_files_control = list_files_by_filetype(control_path,"csv")
     csv_files=csv_files_attack+csv_files_control
     dfs = []
 

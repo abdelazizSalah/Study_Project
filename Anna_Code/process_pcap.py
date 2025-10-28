@@ -180,8 +180,8 @@ def pcap_extract_values(pcap_path, attack):
                 "total_header_len": header_len,
                 "app_payload_len": app_len,
                 "pair_id": pair_id,
-                "iat_pair": iat_pair,
-                "iat_proto_pair": iat_proto_pair,
+                "iat_pair": iat_pair, # is this the inter-arrival time between packets? 
+                "iat_proto_pair": iat_proto_pair, # what is the difference between this and the previous one?
                 "label_attack": int(attack),
                 "filename": filename
             })
