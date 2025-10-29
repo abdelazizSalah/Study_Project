@@ -2,7 +2,7 @@ import os
 from traceback import print_stack
 
 import numpy as np
-from scapy.all import PcapReader, rdpcap, IP, IPv6, TCP, UDP
+from scapy.all import PcapReader, rdpcap, IP, IPv6, TCP, UDP, Ether
 import pandas as pd
 from scapy.layers.sctp import SCTP
 from known_ports import KNOWN_PORTS
@@ -24,12 +24,11 @@ def get_app_proto(srcport,dstport):
 
     #todo complete mapping
     #toDo what if there is no application layer -> return "none"
-    return(f"undetected:{srcport}:{dstport}")
+    return(f"unknown")
 
 
-#length of payload and header of each packet
+#whole application layer (including header) counted as payload!
 def header_and_payload_len(pkt):
-    #toDo: fix (currently everything inside l4 is counted as "payload")
 
     try:
         frame_len = len(pkt.original)  # on-wire bytes
@@ -53,10 +52,10 @@ def header_and_payload_len(pkt):
 
 
 #creates pair_id for host pair (two hosts that communicate with each other)
-def host_pair_id(src_ip,dst_ip):
+def host_pair_id(src,dst):
     # replace with empty string if None
-    a = src_ip or ""
-    b = dst_ip or ""
+    a = src or ""
+    b = dst or ""
     return "__".join(sorted([a, b]))
 
 
@@ -86,7 +85,7 @@ def pcap_extract_values(pcap_path, attack):
     last_ts_by_proto_pair = {}
     pkt_index=0
 
-    first_timestamp=None
+    first_ts=None
 
     filename=os.path.basename(pcap_path)
     with (PcapReader(pcap_path) as pcap):
@@ -97,7 +96,7 @@ def pcap_extract_values(pcap_path, attack):
                 if first_ts is None:
                     first_ts = ts
                 ts_rel = ts - first_ts  # relative seconds since first packet
-
+                ts_rel=round(ts_rel)
             except Exception:
                 # if timestamp missing, set 0.0 (row still recorded)
                 ts = 0.0
@@ -109,6 +108,12 @@ def pcap_extract_values(pcap_path, attack):
                 src_ip = ""
                 dst_ip = ""
 
+            if Ether in pkt:
+                src_mac = pkt[Ether].src
+                dst_mac = pkt[Ether].dst
+            else:
+                src_mac =""
+                dst_mac=""
 
             #(protocols that don't reach transport layer do not use port numbers)
             try:
@@ -153,7 +158,10 @@ def pcap_extract_values(pcap_path, attack):
                 raise ValueError(f"Invalid total_header_len: {header_len} ")
 
             #host pairs and inter arrival time
-            pair_id = host_pair_id(src_ip, dst_ip)
+            if not src_ip == "":
+                pair_id = host_pair_id(src_ip, dst_ip)
+            else:
+                pair_id = host_pair_id(src_mac, dst_mac)
 
             #for calculations per proto-hostpair combinarion
             proto_pair_key = f"{pair_id}__{app_proto}"
@@ -176,9 +184,11 @@ def pcap_extract_values(pcap_path, attack):
                 last_ts_by_proto_pair[proto_pair_key] = ts
 
             records.append({
-                "timestamp": ts,
+                "timestamp": ts_rel,
                 "src_ip": src_ip,
                 "dst_ip": dst_ip,
+                "src_mac": src_mac,
+                "dst_mac": dst_mac,
                 "src_port": src_port,
                 "dst_port": dst_port,
                 "l4_proto": l4_proto,

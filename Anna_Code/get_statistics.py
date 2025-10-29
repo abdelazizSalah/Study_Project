@@ -4,7 +4,7 @@ import pandas as pd
 
 def preprocess(df):
     out = df.copy()
-    out['app_proto'] = out['app_proto'].replace('undetected:-1:-1', 'none')
+    out['app_proto'] = out['app_proto'].replace('unknown', 'none')
     return out
 
 
