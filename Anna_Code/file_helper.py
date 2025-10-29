@@ -1,11 +1,12 @@
 import os
 import pandas as pd
+from pathlib import Path
 
 from process_pcap import pcap_extract_values
 
 
-def save_df_to_csv(df,output_path):
-    df.to_csv(output_path, index=False)
+def save_df_to_csv(df,output_path, mode, header ):
+    df.to_csv(output_path, mode=mode, header=header, index=False)
     return 0
 
 
@@ -25,27 +26,106 @@ def list_files_by_filetype(root_path, filetype):
     return pcap_files
 
 
+#used for QUT_S7Comm
+#one large file for attack dataset pcap files
+#one large file for control dataset pcap files
+def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_pcap,output_csv_file_attack,output_csv_file_control):
 
-#for each pcap file create a csv file using the pcap_extract_values function
-#no csv created for empty files
-def create_csv_files( 
-        attack_path = "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks",
-        control_path="/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set",
-        output_base_path_attack="/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/attacks/",
-        output_base_path_control = "/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/control/"
-  
-        ):
+    pcap_files_attack=list_files_by_filetype(input_path_attack_pcap,"pcap")
+    pcap_files_control=list_files_by_filetype(input_path_control_pcap,"pcap")
 
-    pcap_files_attack=list_files_by_filetype(attack_path,"pcap")
-    pcap_files_control=list_files_by_filetype(control_path,"pcap")
-    print(len(pcap_files_attack))
-    print(len(pcap_files_control))
+    first_control_file=1
+    for path in pcap_files_control:
+
+        filename = os.path.basename(path)
+        try:
+            write_header = first_control_file
+
+            if first_control_file:
+                file_mode = 'w'
+                first_control_file=0
+            else: file_mode='a'
+
+            df_pcap=pcap_extract_values(path, 0)
+            save_df_to_csv(df_pcap, output_csv_file_control, mode=file_mode, header=write_header)
+            print(f"File {path} done.")
+        except Exception as e:
+            print(f"Exception in {filename}:\n{e}")
+
+    print("\n\nControl dataset done\n\n")
+
+    first_attack_file = 1
+    for path in pcap_files_attack:
+        filename = os.path.basename(path)
+
+        try:
+            write_header=first_attack_file
+
+            if first_attack_file:
+                file_mode = 'w'
+                first_attack_file=0
+            else: file_mode='a'
+            df_pcap = pcap_extract_values(path, 1)
+            save_df_to_csv(df_pcap, output_csv_file_attack, mode=file_mode, header=write_header)
+            print(f"File {path} done.")
+        except Exception as e:
+            print(f"Exception in {filename}:\n{e}")
+
+
+    return 0
+
+
+#load all csv files from directory into one dataframe (or single csv file)
+#output/2017QUT_S7comm/attacks/
+#output/2017QUT_S7comm/control/
+def load_all_csvs(attack_path, control_path):
+    # Get all .csv files recursively (or non-recursively)
+    if Path(attack_path).is_file():
+        csv_files_attack = [str(attack_path)]
+    else: csv_files_attack = list_files_by_filetype(attack_path,"csv")
+
+    if Path(control_path).is_file():
+        csv_files_control=[str(control_path)]
+        print("yes")
+    else: csv_files_control = list_files_by_filetype(control_path,"csv")
+    csv_files=csv_files_attack+csv_files_control
+    dfs = []
+
+
+    #print(len(csv_files_attack))
+
+    for f in csv_files:
+        try:
+            df = pd.read_csv(f)
+            dfs.append(df)
+        except Exception as e:
+            print(f"Skipping {f}: {e}")
+
+
+    combined = pd.concat(dfs, ignore_index=True)
+    print(f"Combined DataFrame shape: {combined.shape}")
+    return combined
+
+
+
+#used for QUT_S7Comm
+#creates csv file for each PCAP file using the pcap_extract_values function
+#(no csv created for empty files)
+# 2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks
+# 2017QUT_S7comm/LabelledDataset/20161219132813_control_set
+# output/2017QUT_S7comm/attacks/
+# output/2017QUT_S7comm/control/
+def create_csv_file_for_each_pcap(input_path_attack_pcap,input_path_control_pcap,output_path_attack,output_path_control):
+
+    pcap_files_attack=list_files_by_filetype(input_path_attack_pcap,"pcap")
+    pcap_files_control=list_files_by_filetype(input_path_control_pcap,"pcap")
+
 
     for path in pcap_files_control:
         try:
             filename = os.path.basename(path)
             df_pcap=pcap_extract_values(path, 0)
-            save_df_to_csv(df_pcap, output_base_path_control+filename+".csv")
+            save_df_to_csv(df_pcap, output_path_control+filename+".csv", mode='w', header=1)
             print(f"File {path} done.")
         except Exception as e:
             print(f"Exception in {filename}:\n{e}")
@@ -56,34 +136,10 @@ def create_csv_files(
         try:
             filename=os.path.basename(path)
             df_pcap = pcap_extract_values(path, 1)
-            save_df_to_csv(df_pcap, output_base_path_attack+filename+".csv")
+            save_df_to_csv(df_pcap, output_path_attack+filename+".csv", mode='w', header=1)
             print(f"File {path} done.")
         except Exception as e:
             print(f"Exception in {path}:\n{e}")
             os.path.getsize(path)
 
     return 0
-
-
-#load all csv files into one dataframe
-#used forQUT S7Comm
-# Abdelaziz Comment: It would be better if we added the path as parameter, so I can also use them
-def load_all_csvs(attack_path = "/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/attacks/", control_path="/home/dW5kZWFk/uni/study_project/datasets/output/2017QUT_S7comm/control/"):
-    # Get all .csv files recursively (or non-recursively)
-    csv_files_attack = list_files_by_filetype(attack_path,"csv")
-    csv_files_control = list_files_by_filetype(control_path,"csv")
-    csv_files=csv_files_attack+csv_files_control
-    dfs = []
-
-
-    for f in csv_files:
-        try:
-            df = pd.read_csv(f)
-            dfs.append(df)
-        except Exception as e:
-            print(f"⚠️  Skipping {f}: {e}")
-
-
-    combined = pd.concat(dfs, ignore_index=True)
-    print(f"✅ Combined DataFrame shape: {combined.shape}")
-    return combined
