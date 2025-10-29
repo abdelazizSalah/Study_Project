@@ -2,49 +2,74 @@ import gc
 
 import pandas as pd
 
+from Anna_Code.file_helper import save_df_to_csv
+from process_pcap import host_pair_id
+
 #todo: create one csv file for attacks and one for control, so that existing functions can be used
 #
 def electra_df_extract_values(df):
-    records=[]
 
-    filename="electra_s7comm.csv"
+    records = []
+    last_ts_by_pair = {}
+
+    header_len=14+20+20+4+3 #assume ethernet+ip+tcp+rfc+cotp
     for index, row in df.iterrows():
-        print(index, row['column_name'])
-        sip=row["sip"]
-        dip=row["dip"]
+        src_ip=row["sip"]
+        dst_ip=row["dip"]
 
-        #if no IP address use mac address instead
-        if pd.isna() or str().strip() == '':
-            sip=row["smac"]
-            dip=row["dmac"]
+        src_mac=row["smac"]
+        dst_mac=row["dmac"]
+        ts=row["Time"]
 
-    app_len=10+12
-    records.append({
-        "timestamp": df["Time"],
-        "src_ip": row["sip"],
-        "dst_ip": row["sip"],
-        "src_mac": row["smac"],
-        "dst_mac": row["dmac"],
-        "src_port": src_port,   #none
-        "dst_port": dst_port,   #none
-        "l4_proto": "TCP",
-        "app_proto": "s7comm",
-        "frame_len": 68+app_len,
-        "total_header_len": 68, #standardized for expected stack:  Ethernet → IP → TCP → S7Comm (excluding S7Comm)
-        "app_payload_len": app_len, #s7comm header + payload to be comparable with QUT statistics
-        "pair_id": pair_id,
-        "iat_pair": iat_pair,  # is this the inter-arrival time between packets?
-        "iat_proto_pair": iat_proto_pair,  # what is the difference between this and the previous one?
-        "label_attack": int(attack),
-        "filename": filename
-    })
+        # host pairs and inter arrival time
+        if not src_ip == "":
+            pair_id = host_pair_id(src_ip, dst_ip)
+        else:
+            pair_id = host_pair_id(src_mac, dst_mac)
 
+        proto_pair_key = f"{pair_id}__s7comm"
 
+        #calculate iat for pair only:
+        if pair_id:
+            if pair_id in last_ts_by_pair:
+                iat_pair = ts - last_ts_by_pair[pair_id]
+            else:
+                iat_pair = pd.NA
+            last_ts_by_pair[pair_id] = ts
+
+        #in electra the app protocol is always s7comm, so the following is true;
+        iat_proto_pair=iat_pair
+
+        attack=1
+        if row["label"]=="NORMAL":
+            attack=0
+
+        app_len=int(row["data"])+10 #payload length + s7comm header
+
+        records.append({
+            "timestamp": ts,
+            "src_ip": src_ip,
+            "dst_ip": dst_ip,
+            "src_mac": src_mac,
+            "dst_mac": dst_mac,
+            "l4_proto": "TCP",
+            "app_proto": "s7comm",
+            "frame_len": header_len+app_len,
+            "total_header_len": header_len, #standardized for expected stack:  Ethernet → IP → TCP → S7Comm (excluding S7Comm)
+            "app_payload_len": app_len, #s7comm header + payload to be comparable with QUT statistics
+            "pair_id": pair_id,
+            "iat_pair": iat_pair,  # is this the inter-arrival time between packets?
+            "iat_proto_pair": iat_proto_pair,  # what is the difference between this and the previous one?
+            "label_attack": attack,
+            "filename": "electra_s7comm.csv"
+        })
+
+    #toDo: removed src_port and dst_port: fix in getStatistics!
     #write directly to csv
-    return
+    return pd.DataFrame(records)
 
 
-def read_electra(csv_path):
+def read_electra_to_csv(csv_input_path,csv_output_path):
     usecols = ["Time", "smac", "dmac", "sip", "dip", "request", "fc", "error", "address", "data", "label"]
     dtypes = {
         "smac": "string", "dmac": "string",
@@ -55,14 +80,12 @@ def read_electra(csv_path):
 
     chunksize=500_000
 
-    chunks = pd.read_csv(csv_path, chunksize=chunksize,
+    chunks = pd.read_csv(csv_input_path, chunksize=chunksize,
                              usecols=usecols, sep=",", dtype=dtypes,
                              low_memory=False, on_bad_lines="skip")
 
     first_chunk=next(chunks)
-    print(first_chunk)
-
-    for i in first_chunk:
-        print(first_chunk["Time"])
-        if (pd.isna(first_chunk["sip"] ) or str(first_chunk["sip"] ).strip() == ''):
-            print(first_chunk["dmac"])
+    df=electra_df_extract_values(first_chunk)
+    save_df_to_csv(df, csv_output_path, mode='w',header=1)
+    return 0
+    print("")
