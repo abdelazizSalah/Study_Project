@@ -17,3 +17,10 @@
   - I showed the src_ip and the dst_ip.
 - How do I know if my results are correct or not?
 - Should we also include the direction in terms of MAC addresses, or only on level of IP. 
+- Should we try to understand the differnce between the used protocols in each dataset?
+- In spectra, the timestamp is strings, and when I looked into it, I found that it is in this form [0, 330, 654, ..., 200434218], and in the papers I read, it was not mentioned whether these are microseconds, but it was mentioned that the traffic is captured for more than 12 hours, 
+
+### Task2.b
+- By  "your piece of code should compute
+ the Chebyshev distance between every two generated flows per time interval", do you mean for window size 2min for example, we should compute the Chebyshev distance for all flows? or should we compute the Chebyshev distance between 2mins from electra and 2mins from QUT?
+- Also we have selected three features "packet size", "direction", and "inter-arrival time", and Chebyshev is computing the maximum of the features difference, however, each of these features is completly different, so what makes sense for me is to compute the Chebyshev on the "packet size", so this is what you want? or should we perform normalization for example to make the features similar - but in this case we may drop the direction I think, because it is Nominal level, correct?
