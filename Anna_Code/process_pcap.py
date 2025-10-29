@@ -85,12 +85,19 @@ def pcap_extract_values(pcap_path, attack):
     last_ts_by_pair = {}
     last_ts_by_proto_pair = {}
     pkt_index=0
+
+    first_timestamp=None
+
     filename=os.path.basename(pcap_path)
     with (PcapReader(pcap_path) as pcap):
         for pkt in pcap:
             # timestamp (always try to keep)
             try:
                 ts = float(pkt.time)
+                if first_ts is None:
+                    first_ts = ts
+                ts_rel = ts - first_ts  # relative seconds since first packet
+
             except Exception:
                 # if timestamp missing, set 0.0 (row still recorded)
                 ts = 0.0

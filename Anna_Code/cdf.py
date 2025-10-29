@@ -68,7 +68,7 @@ def plot_cdf_per_proto(sub_df, column, dataset_label):
 
 #for each value x in the dataset it shows how likely it is that a value <=x occurs
 #eg for x=5: add all datapoints that have smaller or equal values together and divide by total number of values
-def print_cdf_task1d(df):
+def create_cdf_plots_task1d(df):
     """Plot CDS for header length  per application layer protocol for control dataset and attack dataset.
         Plot CDF for application payload length per application layer protocol for control dataset and attack dataset. """
 
