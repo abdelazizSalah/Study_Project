@@ -96,7 +96,7 @@ def pcap_extract_values(pcap_path, attack):
                 if first_ts is None:
                     first_ts = ts
                 ts_rel = ts - first_ts  # relative seconds since first packet
-                ts_rel=round(ts_rel)
+                ts_rel=ts_rel
             except Exception:
                 # if timestamp missing, set 0.0 (row still recorded)
                 ts = 0.0
