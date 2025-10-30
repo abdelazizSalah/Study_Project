@@ -6,7 +6,7 @@ from Anna_Code.file_helper import save_df_to_csv
 from process_pcap import host_pair_id
 
 #todo: create one csv file for attacks and one for control, so that existing functions can be used
-#
+
 def electra_df_extract_values(df):
 
     records = []
@@ -14,6 +14,13 @@ def electra_df_extract_values(df):
 
     header_len=14+20+20+4+3 #assume ethernet+ip+tcp+rfc+cotp
     for index, row in df.iterrows():
+
+        #####################
+        #print huge packets
+        #if int(row["data"])>=680327:
+        #    print(row[["data", "label", "Time", "error"]])
+        ###################
+
         src_ip=row["sip"]
         dst_ip=row["dip"]
 
@@ -69,7 +76,8 @@ def electra_df_extract_values(df):
     return pd.DataFrame(records)
 
 
-def read_electra_to_csv(csv_input_path,csv_output_path):
+#extract values from electra into a new csv
+def read_electra_create_csv(csv_input_path,csv_output_path):
     usecols = ["Time", "smac", "dmac", "sip", "dip", "request", "fc", "error", "address", "data", "label"]
     dtypes = {
         "smac": "string", "dmac": "string",
@@ -86,6 +94,9 @@ def read_electra_to_csv(csv_input_path,csv_output_path):
 
     first_chunk=next(chunks)
     df=electra_df_extract_values(first_chunk)
+
+
+
     save_df_to_csv(df, csv_output_path, mode='w',header=1)
     return 0
     print("")

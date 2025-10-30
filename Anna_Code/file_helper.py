@@ -27,9 +27,9 @@ def list_files_by_filetype(root_path, filetype):
 
 
 #used for QUT_S7Comm
-#one large file for attack dataset pcap files
-#one large file for control dataset pcap files
-def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_pcap,output_csv_file_attack,output_csv_file_control):
+#one large file for attack dataset and control dataset
+def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_pcap,output_csv_file):
+#assumes that control set is not empty, otherwise it will crash!
 
     pcap_files_attack=list_files_by_filetype(input_path_attack_pcap,"pcap")
     pcap_files_control=list_files_by_filetype(input_path_control_pcap,"pcap")
@@ -47,7 +47,7 @@ def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_p
             else: file_mode='a'
 
             df_pcap=pcap_extract_values(path, 0)
-            save_df_to_csv(df_pcap, output_csv_file_control, mode=file_mode, header=write_header)
+            save_df_to_csv(df_pcap, output_csv_file, mode=file_mode, header=write_header)
             print(f"File {path} done.")
         except Exception as e:
             print(f"Exception in {filename}:\n{e}")
@@ -59,14 +59,9 @@ def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_p
         filename = os.path.basename(path)
 
         try:
-            write_header=first_attack_file
-
-            if first_attack_file:
-                file_mode = 'w'
-                first_attack_file=0
-            else: file_mode='a'
+            file_mode='a'
             df_pcap = pcap_extract_values(path, 1)
-            save_df_to_csv(df_pcap, output_csv_file_attack, mode=file_mode, header=write_header)
+            save_df_to_csv(df_pcap, output_csv_file, mode=file_mode, header=0)
             print(f"File {path} done.")
         except Exception as e:
             print(f"Exception in {filename}:\n{e}")
@@ -74,6 +69,9 @@ def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_p
 
     return 0
 
+
+
+###################################################### not used anymore:
 
 #load all csv files from directory into one dataframe (or single csv file)
 #output/2017QUT_S7comm/attacks/
