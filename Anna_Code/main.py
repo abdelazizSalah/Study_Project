@@ -85,6 +85,8 @@ def save_statistics_to_file(df, output_dir, dataset_name):
 
 
 def release_main():
+    start = time.time()   # ⏱️ start timer
+
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -179,6 +181,9 @@ def release_main():
             save_statistics_to_file(df, str(stats_output_dir), "Electra")
         else:
             sys.exit("Unknown dataset for stats (expected 'qut' or 'electra').")
+    end = time.time()  # ⏹️ end timer
+    elapsed = end - start
+    print(f"⏱️ main() executed in {elapsed:.2f} seconds")
 
 if __name__ == "__main__":
     release_main()

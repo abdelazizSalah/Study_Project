@@ -2,10 +2,9 @@ import gc
 
 import pandas as pd
 
-from file_helper import save_df_to_csv
+from file_helper import save_df_to_csv, read_df_from_csv
 from process_pcap import host_pair_id
 
-#todo: create one csv file for attacks and one for control, so that existing functions can be used
 
 def electra_df_extract_values(df):
 
@@ -76,8 +75,15 @@ def electra_df_extract_values(df):
     return pd.DataFrame(records)
 
 
-#extract values from electra into a new csv
 def read_electra_create_csv(csv_input_path,csv_output_path):
+    df_in=read_df_from_csv(csv_input_path)
+    df_out=electra_df_extract_values(df_in)
+    save_df_to_csv(df_out, csv_output_path, mode='w',header=1)
+    return 0
+
+
+#extract values from electra into a new csv
+def read_electra_create_csv_chunks(csv_input_path,csv_output_path):
     usecols = ["Time", "smac", "dmac", "sip", "dip", "request", "fc", "error", "address", "data", "label"]
     dtypes = {
         "smac": "string", "dmac": "string",
