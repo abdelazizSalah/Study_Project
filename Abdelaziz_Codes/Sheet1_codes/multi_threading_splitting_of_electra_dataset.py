@@ -8,8 +8,6 @@ output_dir = Path('../../DataSets/electra_s7comm/output')
 (output_dir / 'normal').mkdir(parents=True, exist_ok=True)
 (output_dir / 'attacked').mkdir(parents=True, exist_ok=True)
 
-def compute_packet_size(row):
-    return 4*3 + 1*2  # we have 3 integer values each of 4 bytes, and 2 booleans
 
 def create_pair_ip(row):
     try:
@@ -27,6 +25,9 @@ def create_pair_mac(row):
     except Exception:
         return None
 
+def compute_packet_size(row):
+    return 6*2 + 4*2 + 2*1 + row['data'] 
+
 
 def process_chunk(chunk_id, chunk):
     chunk.Time = chunk.Time / 1_000_000
@@ -38,19 +39,19 @@ def process_chunk(chunk_id, chunk):
     normal = chunk_final[chunk_final['label']=="NORMAL"]
     attacked = chunk_final[chunk_final['label']!="NORMAL"]
 
-    normal.to_csv(output_dir / f'normal/normal_data_{chunk_id}.csv', index=False)
-    attacked.to_csv(output_dir / f'attacked/attacked_data_{chunk_id}.csv', index=False)
-    return f"Chunk {chunk_id} done"
+    normal.to_csv(output_dir / f'normal/normal_data_{chunk_id}.csv', index=False, header=False)
+    attacked.to_csv(output_dir / f'attacked/attacked_data_{chunk_id}.csv', index=False, header=False)
+    return True
 
 def main():
-    start = Time.time()
+    start = time.time()
     chunks = pd.read_csv(input_file, chunksize=1_000_000)
+    print("processing started")
     with ProcessPoolExecutor() as executor:
         futures = {executor.submit(process_chunk, i, c): i for i, c in enumerate(chunks)}
-        for f in as_completed(futures):
-            print(f.result())
-    end = Time.time()
+
+    end = time.time()
     print(f"total time: {end - start}")
-if __name__ == "__main__":
-    main()
+
+main()
 
