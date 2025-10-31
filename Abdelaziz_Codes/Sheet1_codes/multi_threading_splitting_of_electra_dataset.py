@@ -31,7 +31,7 @@ def compute_packet_size(row):
 
 def process_chunk(chunk_id, chunk):
     chunk.Time = chunk.Time / 1_000_000
-    chunk["packet_size"] = chunk.apply(compute_packet_size, axis=1)
+    chunk["packet_size"] = chunk['data']
     chunk["pair_ip"] = chunk.apply(create_pair_ip, axis=1)
     chunk["pair_mac"] = chunk.apply(create_pair_mac, axis=1)
     chunk_final = chunk[["Time","sip","dip","pair_ip","smac", "dmac", "pair_mac", "packet_size","label","request"]].sort_values("Time")

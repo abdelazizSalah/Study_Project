@@ -68,19 +68,31 @@ def plot_cdf_per_proto(sub_df, column, dataset_label):
 
 #for each value x in the dataset it shows how likely it is that a value <=x occurs
 #eg for x=5: add all datapoints that have smaller or equal values together and divide by total number of values
-def create_cdf_plots_task1d(df):
-    """Plot CDS for header length  per application layer protocol for control dataset and attack dataset.
-        Plot CDF for application payload length per application layer protocol for control dataset and attack dataset. """
+def create_cdf_plots_task1d(df, output_dir, dataset_name):
+    """Plot CDFs for header length and application payload length per application-layer protocol,
+       and save them into the given output directory.
+    """
 
-    #filter out packets without application layer protocol
-    df = df[df['app_proto'] != 'undetected:-1:-1']
+    # filter out packets without application layer protocol
+    df = df[df['app_proto'] != 'unknown']
 
-    #header length
-    plot_cdf_per_proto(df[df['label_attack'] == 0],"total_header_len","Control Dataset in QUT_S7Comm")
-    plot_cdf_per_proto(df[df['label_attack'] == 1],"total_header_len","Attack Dataset in QUT_S7Comm")
+    # header length
+    plot_cdf_per_proto(df[df['label_attack'] == 0], "total_header_len", f"Control Dataset in {dataset_name}")
+    plt.savefig(output_dir / f"{dataset_name}_control_header_len_cdf.png", bbox_inches="tight")
+    plt.close()
 
-    #application payload length
-    plot_cdf_per_proto(df[df['label_attack'] == 0], "app_payload_len", "Control Dataset in QUT_S7Comm")
-    plot_cdf_per_proto(df[df['label_attack'] == 1], "app_payload_len", "Attack Dataset in QUT_S7Comm")
+    plot_cdf_per_proto(df[df['label_attack'] == 1], "total_header_len", f"Attack Dataset in {dataset_name}")
+    plt.savefig(output_dir / f"{dataset_name}_attack_header_len_cdf.png", bbox_inches="tight")
+    plt.close()
+
+    # application payload length
+    plot_cdf_per_proto(df[df['label_attack'] == 0], "app_payload_len", f"Control Dataset in {dataset_name}")
+    plt.savefig(output_dir / f"{dataset_name}_control_payload_len_cdf.png", bbox_inches="tight")
+    plt.close()
+
+    plot_cdf_per_proto(df[df['label_attack'] == 1], "app_payload_len", f"Attack Dataset in {dataset_name}")
+    plt.savefig(output_dir / f"{dataset_name}_attack_payload_len_cdf.png", bbox_inches="tight")
+    plt.close()
+
     return 0
 
