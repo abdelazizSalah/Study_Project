@@ -69,25 +69,28 @@ def task2a_preprocessing_QUT(df_path, label):
     return flows_2min, flows_4min, flows_6min
 
 def task2a_preprocessing_Electra(df_path, label):
+    # Time,smac,dmac,sip,dip,request,fc,error,address,data,label -> headers
     # loading the attack and normal datasets from csv files
     loaded_df = multithreading_loading(df_path)
 
+    # change column name Time to timestamp
+    loaded_df.rename(columns={'Time': 'timestamp'}, inplace=True)
+
     # selecting the important features
-    df_selected_features = loaded_df[['Time', 'sip', 'dip', 'frame_len', 'pair_id']]
+    df_selected_features = loaded_df[['timestamp', 'sip', 'dip', 'frame_len', 'pair_id']]
 
     # drop any packet with undefined app_proto and any packet with no src_ip or dst_ip
-    df_selected_features = df_selected_features[df_selected_features['app_proto'] != 'undetected:-1:-1']
-    df_selected_features = df_selected_features[df_selected_features['src_ip'].notna() & df_selected_features['dst_ip'].notna()]
+    df_selected_features = df_selected_features[df_selected_features['sip'].notna() & df_selected_features['dip'].notna()]
     # group packets by application protocol
-    df_grouped = df_selected_features.groupby(['app_proto', 'pair_id'])
+    df_grouped = df_selected_features.groupby('pair_id')
 
-    # selecting interesting features and sorting them by timestamp
-    flows = df_grouped.apply(lambda x: x[['timestamp', 'src_ip', 'dst_ip', 'frame_len']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
+    # selecting interesting features and sorting them by timestampstamp
+    flows = df_grouped.apply(lambda x: x[['timestamp', 'sip', 'dip', 'frame_len']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
 
-    # converting timestamp to datetime
-    flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s')
+    # converting timestamp to datetimestamp
+    flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s') # not sure if this will be a good idea.
     
-    # adding inter-arrival time between packets in the same flow
+    # adding inter-arrival timestamp between packets in the same flow
     flows['iat'] = flows.groupby(level=[0,1])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups
 
     # creating time_widnowed_flows with 2, 4, and 6 mins
@@ -147,6 +150,15 @@ def task2c(chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances
 def processing_QUT_loaded_dataframe(df_path ='../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', label='normal'): 
     ### Task 2.a: Creating the flows
     flows_2min, flows_4min, flows_6min = task2a_preprocessing_QUT(df_path, label)
+    ### Task2.b: Computing Chebyshev Distance between flows. 
+    chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len = task2b(flows_2min, flows_4min, flows_6min )
+    ### Task2.c Visualizing Histograms    
+    task2c (chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len, label)
+
+
+def processing_Electra_loaded_dataframe(df_path ='../../DataSets/electra_s7comm/output/attacked', label='normal'):
+    ### Task 2.a: Creating the flows
+    flows_2min, flows_4min, flows_6min = task2a_preprocessing_Electra(df_path, label)
     ### Task2.b: Computing Chebyshev Distance between flows. 
     chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len = task2b(flows_2min, flows_4min, flows_6min )
     ### Task2.c Visualizing Histograms    
@@ -226,4 +238,7 @@ def main():
     processing_QUT_loaded_dataframe(    '../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/','attacked')
     processing_QUT_loaded_dataframe(    '../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/control/', 'control')
 
+    # processing of Electra S7Comm dataset
+    processing_Electra_loaded_dataframe(    '../../DataSets/electra_s7comm/output/attacked', 'attacked')
+    processing_Electra_loaded_dataframe(    '../../DataSets/electra_s7comm/output/normal', 'normal')
 main()
