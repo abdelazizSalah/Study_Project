@@ -80,11 +80,11 @@ def task2a_preprocessing_Electra(df_path, label):
     print(f'loading dataset in {end - start} secs')
     print(loaded_df.head())    
     # change column name Time to timestamp
-    loaded_df.rename(columns={'Time': 'timestamp'}, inplace=True)
+    loaded_df.rename(columns={'Time': 'timestamp', ' packet_size':'frame_len'}, inplace=True)
     print(loaded_df.columns)
 
     # selecting the important features
-    df_selected_features = loaded_df[['timestamp', 'sip', 'dip', ' packet_size', 'pair_ip']]
+    df_selected_features = loaded_df[['timestamp', 'sip', 'dip', 'frame_len', 'pair_ip']]
     print('after selecting the features')
     # drop any packet with undefined app_proto and any packet with no src_ip or dst_ip
     # df_selected_features = df_selected_features[df_selected_features['sip'].notna() & df_selected_features['dip'].notna()]
@@ -93,7 +93,7 @@ def task2a_preprocessing_Electra(df_path, label):
     print(df_grouped.head())
     print('before grouping')
     # selecting interesting features and sorting them by timestampstamp
-    flows = df_grouped.apply(lambda x: x[['timestamp', 'sip', 'dip', ' packet_size']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
+    flows = df_grouped.apply(lambda x: x[['timestamp', 'sip', 'dip', 'frame_len']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
 
     # converting timestamp to datetimestamp
     flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s') # not sure if this will be a good idea.
