@@ -2,7 +2,7 @@ import pandas as pd
 import sys, time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 sys.path.append('../../Anna_Code')
-from file_helper import *
+from Anna_Code.file_helper import *
 
 def load_csv(file):
     # Use fast C parser and low_memory=False for better chunk merging

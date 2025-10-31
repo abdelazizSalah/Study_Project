@@ -19,8 +19,8 @@ import argparse
 
 from toolz import excepts
 
-from Anna_Code.cdf import create_cdf_plots_task1d
-from Anna_Code.process_electra import read_electra_create_csv
+from cdf import create_cdf_plots_task1d
+from process_electra import read_electra_create_csv
 from get_statistics import *
 from process_pcap import *
 from file_helper import *
@@ -67,21 +67,21 @@ def save_statistics_to_file(df, output_dir, dataset_name):
     log_path = Path(output_dir) / f"{dataset_name}_statistics.txt"
 
 
-    try:
-        with open(log_path, "w") as f, contextlib.redirect_stdout(f):
-            print(f"--- Statistics for dataset: {dataset_name} ---\n")
+#try:
+    with open(log_path, "w") as f, contextlib.redirect_stdout(f):
+        print(f"--- Statistics for dataset: {dataset_name} ---\n")
 
-            print_packet_distribution_task1A(df)
-            print_packet_length_distribution_and_iat_task1B(df)
-            print_packet_distribution_task1C(df)
+        print_packet_distribution_task1A(df)
+        print_packet_length_distribution_and_iat_task1B(df)
+        print_packet_distribution_task1C(df)
 
-            print(f"\n--- Creating plots ---\n")
+        print(f"\n--- Creating plots ---\n")
 
-        create_cdf_plots_task1d(df, output_dir)
+    create_cdf_plots_task1d(df, output_dir, dataset_name)
 
-        print(f"Statistics successfully written to {log_path}")
-    except Exception as e:
-        print(f"Error during retrieving statistics for {dataset_name}: {e}")
+    print(f"Statistics successfully written to {log_path}")
+#except Exception as e:
+#    print(f"Error during retrieving statistics for {dataset_name}: {e}")
 
 
 def release_main():

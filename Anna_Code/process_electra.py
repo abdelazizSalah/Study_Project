@@ -2,7 +2,7 @@ import gc
 
 import pandas as pd
 
-from Anna_Code.file_helper import save_df_to_csv
+from file_helper import save_df_to_csv
 from process_pcap import host_pair_id
 
 #todo: create one csv file for attacks and one for control, so that existing functions can be used
