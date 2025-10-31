@@ -1,7 +1,9 @@
 # adding Anna's utility functions
 import sys, time
 import matplotlib.pyplot as plt
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor, as_completed
+
+
 import numpy as np
 sys.path.append('../../Anna_Code')  
 from file_helper import *
@@ -253,30 +255,76 @@ def create_time_windowed_flows(flows, time_window_minutes):
     return df
 
 
-# create traffic flows with time window 2 minutes, 4 minutes, and finally 6 minutes
-def create_time_windowed_flows_electra(flows, time_window_minutes):
+
+
+def process_single_pair(pair):
+    pair_id, group, time_delta = pair
     time_windowed_flows = {}
-    print(time_window_minutes)
+    start_time = group['timestamp'].min()
+    end_time = group['timestamp'].max()
+
+    current_window_start = start_time
+    while current_window_start < end_time:
+        current_window_end = current_window_start + time_delta
+        window_group = group[
+            (group['timestamp'] >= current_window_start) &
+            (group['timestamp'] < current_window_end)
+        ]
+        if not window_group.empty:
+            key = (pair_id, current_window_start)
+            time_windowed_flows[key] = window_group.reset_index(drop=True)
+        current_window_start = current_window_end
+
+    return time_windowed_flows
+
+def create_time_windowed_flows_electra(flows, time_window_minutes):
+    print(f"⏱️ Creating {time_window_minutes}-minute windows...")
     time_delta = pd.Timedelta(minutes=time_window_minutes)
-    
-    for (pair_id), group in flows.groupby(level=[0]):
-        start_time = group['timestamp'].min()
-        end_time = group['timestamp'].max()
-        
-        current_window_start = start_time
-        while current_window_start < end_time:
-            current_window_end = current_window_start + time_delta
-            window_group = group[(group['timestamp'] >= current_window_start) & (group['timestamp'] < current_window_end)]
-            
-            if not window_group.empty:
-                key = (pair_id, current_window_start)
-                time_windowed_flows[key] = window_group.reset_index(drop=True)
-            
-            current_window_start = current_window_end
-            
-    # convert the result to a DataFrame with MultiIndex
+    time_windowed_flows = {}
+
+    grouped = list(flows.groupby(level=[0]))  # [(pair_id, group_df), ...]
+
+    # Use parallel processing
+    max_workers = max(1, os.cpu_count() // 2)
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(process_single_pair, (pid, g, time_delta)): pid for pid, g in grouped}
+        for f in as_completed(futures):
+            try:
+                result = f.result()
+                time_windowed_flows.update(result)
+            except Exception as e:
+                print(f"⚠️ Error processing pair {futures[f]}: {e}")
+
+    # Merge all processed results into a single DataFrame
     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
+    print(f"✅ Completed {time_window_minutes}-minute flow creation using {max_workers} cores.")
     return df
+
+
+# # create traffic flows with time window 2 minutes, 4 minutes, and finally 6 minutes
+# def create_time_windowed_flows_electra(flows, time_window_minutes):
+#     time_windowed_flows = {}
+#     print(time_window_minutes)
+#     time_delta = pd.Timedelta(minutes=time_window_minutes)
+    
+#     for pair_id, group in flows.groupby(level=[0]):
+#         start_time = group['timestamp'].min()
+#         end_time = group['timestamp'].max()
+        
+#         current_window_start = start_time
+#         while current_window_start < end_time:
+#             current_window_end = current_window_start + time_delta
+#             window_group = group[(group['timestamp'] >= current_window_start) & (group['timestamp'] < current_window_end)]
+            
+#             if not window_group.empty:
+#                 key = (pair_id, current_window_start)
+#                 time_windowed_flows[key] = window_group.reset_index(drop=True)
+            
+#             current_window_start = current_window_end
+            
+#     # convert the result to a DataFrame with MultiIndex
+#     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
+#     return df
 
 
 def main(): 
