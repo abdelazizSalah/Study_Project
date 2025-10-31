@@ -332,7 +332,8 @@ def main():
     processing_QUT_loaded_dataframe(    '../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/control/', 'control')
     '''
     # processing of Electra S7Comm dataset
-    processing_Electra_loaded_dataframe('../../DataSets/electra_s7comm/output/attacked/combined_attacked.csv', 'attacked')
+    # processing_Electra_loaded_dataframe('../../DataSets/electra_s7comm/output/attacked/combined_attacked.csv', 'attacked')
+    processing_Electra_loaded_dataframe('attacked_data_0.csv', 'attacked')
     # processing_Electra_loaded_dataframe('../../DataSets/electra_s7comm/output/normal/combined_normal.csv', 'normal')
 
 print('start task2 processing')
