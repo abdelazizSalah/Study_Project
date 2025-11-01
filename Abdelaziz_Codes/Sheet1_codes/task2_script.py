@@ -1,4 +1,9 @@
-# adding Anna's utility functions
+'''
+    @Author: Abdelaziz Neamatallah
+    @Date: 01.11.25
+    @Desc: This script contains the implementation for Task 2 of Sheet 1.
+'''
+
 from utilities import *
 
 

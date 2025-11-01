@@ -13,12 +13,21 @@ import ipaddress
 from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor,as_completed
 import numpy as np
 from itertools import combinations
+import matplotlib.pyplot as plt
 
 
 output_dir = Path('../../DataSets/electra_s7comm/output')
 
 #################### Multi-threading splitting of Electra dataset into normal and attacked files.
 def create_pair_ip(row):
+    """
+    The function `create_pair_ip` takes a row of data containing source and destination IP addresses,
+    creates a pair of IP addresses, and returns them in a specific format.
+    
+    :param row: The function takes a row of data as input. The row is expected to
+    contain two IP addresses: "sip" (source IP) and "dip" (destination IP). The function then creates a
+    pair of IP addresses in a specific format and returns it as a string.
+    """
     try:
         ip1 = ipaddress.ip_address(row["sip"])
         ip2 = ipaddress.ip_address(row["dip"])
@@ -27,6 +36,9 @@ def create_pair_ip(row):
         return None
 
 def create_pair_mac(row):
+    '''
+    Same as create_pair_ip but for mac addresses
+    '''
     try:
         smac = row["smac"].lower()
         dmac = row["dmac"].lower()
@@ -35,10 +47,32 @@ def create_pair_mac(row):
         return None
 
 def compute_packet_size(row):
+    """
+    The function `compute_packet_size` calculates the total size of a packet based on the data provided
+    in a row from electra Dataset. 
+    
+    :param row: The `row` parameter is a DataFrame row.
+    :return: The function is returning the total size of a packet based on the
+    data provided in the `row` parameter. 
+    The calculation includes 6*2 bytes for a Mac addresses (smac and dmac) of data,
+    4*2 bytes for Ip addresses (sip and dip), 2 bytes for two booleans, and the size of the `data`
+    field in the `row` which is the payload.
+    """
     return 6*2 + 4*2 + 2*1 + row['data'] 
 
 
 def process_chunk(chunk_id, chunk):
+    """
+    The function `process_chunk` processes a chunk of data by manipulating and sorting columns,
+    separating normal and attacked data, and saving the results to CSV files.
+    
+    :param chunk_id: The `chunk_id` parameter is used to identify the specific chunk of data being
+    processed. It is a unique identifier or index for the chunk
+    :param chunk: The `chunk` parameter is a DataFrame containing network packet data. The
+    function processes this chunk of data by performing various operations like
+    converting time units, creating new columns, sorting the data, filtering normal and attacked
+    packets, and then saving the processed data into separate CSV files for
+    """
     chunk.Time = chunk.Time / 1_000_000
     chunk["packet_size"] = chunk['data']
     chunk["pair_ip"] = chunk.apply(create_pair_ip, axis=1)
@@ -50,14 +84,25 @@ def process_chunk(chunk_id, chunk):
 
     normal.to_csv(output_dir / f'normal/normal_data_{chunk_id}.csv', index=False, header=False)
     attacked.to_csv(output_dir / f'attacked/attacked_data_{chunk_id}.csv', index=False, header=False)
-    return True
 
 
 def multi_threading_splitting_electra(input_file='../../DataSets/electra_s7comm/electra_s7comm.csv'):
+    """
+    The function `multi_threading_splitting_electra` reads a CSV file in chunks, processes each chunk
+    using multiple processes, and measures the total processing time.
+    
+    :param input_file: The `input_file` is the file path to the CSV file.
+      
+    """
     start = time.time()
     chunks = pd.read_csv(input_file, chunksize=1_000_000)
     print("processing started")
-    with ProcessPoolExecutor() as executor:
+    '''
+        ProcessPoolExecutor is a method used for parallel processing, it creates many processes based on the maxWorker parameter, and assign each process
+        a chunk to process it, this is useful when we have large data that needs to be processed quickly.
+    '''
+    maxWorkers = max(1, os.cpu_count() // 2)
+    with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
         futures = {executor.submit(process_chunk, i, c): i for i, c in enumerate(chunks)}
 
     end = time.time()
@@ -70,6 +115,18 @@ def load_csv(file):
     return pd.read_csv(file)
 
 def multithreading_loading_QUT(df_path): 
+    """
+    The function `multithreading_loading_QUT` loads multiple CSV files concurrently using multithreading
+    and combines them into a single DataFrame.
+    
+    :param df_path: The `df_path` parameter in the `multithreading_loading_QUT` function is the path to
+    the directory where the CSV files are located. The function reads all CSV files from this directory
+    in parallel using multithreading, combines them into a single DataFrame, and returns the combined
+    DataFrame
+    :return: The function `multithreading_loading_QUT` returns a combined DataFrame that is created by
+    concatenating DataFrames loaded from multiple CSV files in parallel using multithreading. The
+    function also prints the number of files loaded and the total time taken for the operation.
+    """
 
     start = time.time()
 
@@ -77,7 +134,8 @@ def multithreading_loading_QUT(df_path):
     files = list_files_by_filetype(df_path, 'csv')
         
     # parallel read
-    with ThreadPoolExecutor() as executor:
+    maxWorkers = max(1, os.cpu_count() // 2)
+    with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
         normal_futures = {executor.submit(load_csv, f): f for f in files}
 
         normal_dfs = [f.result() for f in as_completed(normal_futures)]
@@ -98,9 +156,22 @@ def load_csv_electra(file):
     # Use fast C parser and low_memory=False for better chunk merging
     return pd.read_csv(file, engine='c', low_memory=False)
 
-def parallel_load(file_list, max_workers=None):
+def parallel_load(file_list, maxWorkers=None):
+    """
+    The function `parallel_load` uses a ProcessPoolExecutor to load multiple CSV files concurrently and
+    returns a list of DataFrames.
+    
+    :param file_list: The `file_list` parameter is a list of file paths that we want to load
+    concurrently using parallel processing. 
+    :param maxWorkers: The `maxWorkers` parameter in the `parallel_load` function specifies the
+    maximum number of worker processes to use for parallel execution. If `maxWorkers` is set to `None`,
+    then the `ProcessPoolExecutor` will use the default number of worker processes, which is typically
+    the number of CPU
+    :return: The function `parallel_load` returns a list of DataFrames that are loaded from CSV files
+    using the `load_csv_electra` function in parallel.
+    """
     dfs = []
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+    with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
         futures = {executor.submit(load_csv_electra, f): f for f in file_list}
         for f in as_completed(futures):
             try:
@@ -113,6 +184,7 @@ def parallel_load(file_list, max_workers=None):
 def multithreading_loading_electra(normal_file_dir='../../DataSets/electra_s7comm/output/normal', attacked_file_dir='../../DataSets/electra_s7comm/output/attacked'):
     start = time.time()
     print('started processing')
+    # I sort the files to be able to read them in order especially the first file which contains the header.
     normal_files = sorted(list_files_by_filetype(normal_file_dir, 'csv'))
     attacked_files = sorted(list_files_by_filetype(attacked_file_dir, 'csv'))
     first_normal_df = load_csv(normal_files[0])
@@ -141,7 +213,7 @@ def multithreading_loading_electra(normal_file_dir='../../DataSets/electra_s7com
         mode = 'w' if i == 0 else 'a' 
         header = (i == 0)
         df.to_csv(output_attacked, mode=mode, header=header, index=False)
-    print('✅ All DataFrames appended successfully.')
+    print(' All DataFrames appended successfully.')
 
 
     print(f"Loaded {len(normal_files)} normal and {len(attacked_files)} attacked files.")
@@ -150,6 +222,18 @@ def multithreading_loading_electra(normal_file_dir='../../DataSets/electra_s7com
 ######################
 
 def manual_histogram(data, bins):
+    """
+    The function `manual_histogram` calculates the histogram of a given dataset by dividing it into
+    specified number of bins.
+    
+    :param data: Data is the list of numerical values for which we want to create a histogram
+    :param bins: The `bins` parameter in the `manual_histogram` function represents the number of
+    intervals (or bins) that you want to divide your data into when creating a histogram. Increasing the
+    number of bins will result in a more detailed histogram with smaller intervals, while decreasing the
+    number of bins will result in a
+    :return: The function `manual_histogram` returns two lists: `bin_edges` which contains the edges of
+    the bins, and `counts` which contains the frequency counts of the data points within each bin.
+    """
     min_val, max_val = min(data), max(data)
     print(min_val, max_val)
     bin_width = (max_val - min_val) / bins
@@ -167,6 +251,18 @@ def manual_histogram(data, bins):
 
 
 def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set'):
+    """
+    This function reads packet data from pcap files, processes them using multithreading, converts them
+    into a NumPy array, and saves the array to a file.
+    
+    :param pcap_files_path: The `pcap_files_path` parameter is the path to the directory containing the
+    pcap files from which you want to generate a bytes array. In this function, the default path is set
+    to `'../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813, defaults to
+    ../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set (optional)
+    :return: The function `generate_bytes_array_from_packet_list` returns the NumPy array
+    `all_packets_array` containing the byte sequences read from the pcap files processed in the
+    function.
+    """
     start = time.time()
     pcap_files = list_files_by_filetype(pcap_files_path, "pcap")
     print(pcap_files)
@@ -215,6 +311,20 @@ def compute_chebyshev_distances_on_frame_len_optimized(flow):
 
 
 def chebyshev_distance_for_raw_bytes(a, b):    
+    """
+    The function calculates the Chebyshev distance between two raw byte arrays by padding them to equal
+    length and finding the maximum absolute difference between corresponding elements.
+    
+    :param a: The `a` parameter in the `chebyshev_distance_for_raw_bytes` function represents one of the
+    raw byte arrays for which you want to calculate the Chebyshev distance
+    :param b: It seems like you have provided the function definition for calculating the Chebyshev
+    distance between two raw byte arrays `a` and `b`. However, you have not provided the value for the
+    variable `b`. Could you please provide the value of `b` so that I can assist you further
+    :return: The function `chebyshev_distance_for_raw_bytes` calculates the Chebyshev distance between
+    two raw byte arrays `a` and `b`. It pads the arrays to equal length, converts them to `int32` data
+    type, calculates the absolute difference element-wise, and then returns the maximum absolute
+    difference between corresponding elements in the two arrays.
+    """
     max_len = max(len(a), len(b))
     a_padded = np.pad(a, (0, max_len - len(a)))
     b_padded = np.pad(b, (0, max_len - len(b)))
@@ -228,6 +338,17 @@ def compute_pair_distance(pair):
 
 
 def normalize_packets(packets):
+    """
+    The function `normalize_packets` takes a list of packets and converts them into normalized numpy
+    arrays of unsigned integers.
+    
+    :param packets: The `packets` parameter is a list containing packets of data. Each packet can be of
+    different types such as bytes, bytearray, list of byte strings, numpy array, or any other data type
+    that can be converted to a numpy array of unsigned integers (uint8). The function `normalize_packets
+    :return: The `normalize_packets` function returns a list of NumPy arrays where each element in the
+    list is a normalized version of the input packets. The normalization process involves converting the
+    packets into NumPy arrays of unsigned 8-bit integers (uint8).
+    """
     normalized = []
     for p in packets:
         if isinstance(p, (bytes, bytearray)):
@@ -264,6 +385,22 @@ def read_pcap_as_byte_sequences(pcap_path):
 
 # create traffic flows with time window 2 minutes, 4 minutes, and finally 6 minutes
 def create_time_windowed_flows(flows, time_window_minutes):
+    """
+    The function `create_time_windowed_flows` takes a DataFrame of flows with timestamps and groups them
+    into time windows of a specified duration, returning a new DataFrame with a MultiIndex.
+    
+    :param flows: The `flows` parameter in the `create_time_windowed_flows` function is likely a
+    DataFrame containing flow data with columns like 'app_proto', 'pair_id', and 'timestamp'. The
+    function processes this data to create time-windowed flows based on the specified time window in
+    minutes
+    :param time_window_minutes: The `time_window_minutes` parameter in the `create_time_windowed_flows`
+    function represents the size of the time window in minutes that you want to use for grouping the
+    flows. This parameter determines the duration of each time window within which the flows will be
+    aggregated and processed
+    :return: The function `create_time_windowed_flows` returns a DataFrame containing time-windowed
+    flows data. The data is grouped based on the specified time window in minutes and includes
+    information such as application protocol, pair ID, and timestamps within each time window.
+    """
     time_windowed_flows = {}
     print(time_window_minutes)
     time_delta = pd.Timedelta(minutes=time_window_minutes)
@@ -288,6 +425,28 @@ def create_time_windowed_flows(flows, time_window_minutes):
     return df
 
 def plot_histogram(bin_edges, counts, title, xlabel, ylabel, filename):
+    """
+    The function `plot_histogram` generates a histogram plot using the provided bin edges, counts,
+    title, x-axis label, y-axis label, and saves the plot to a specified file.
+    
+    :param bin_edges: Bin edges are the boundaries that define the intervals for the histogram bins.
+    Each pair of consecutive bin edges specifies the range for a single bin
+    :param counts: Counts is a list containing the frequency or count of data points within each bin
+    specified by the bin_edges. Each element in the counts list corresponds to a bin and represents the
+    frequency of data points falling within that bin
+    :param title: The `title` parameter is a string that represents the title of the histogram plot. It
+    is typically used to provide a brief description or label for the visualization
+    :param xlabel: The `xlabel` parameter in the `plot_histogram` function is used to specify the label
+    for the x-axis of the histogram plot. It typically describes the data being represented on the
+    x-axis. For example, if you are plotting a histogram of ages, the `xlabel` could be "Age"
+    :param ylabel: The `ylabel` parameter in the `plot_histogram` function is used to specify the label
+    for the y-axis of the histogram plot. It typically describes the quantity or data being represented
+    on the y-axis. For example, if you are plotting a histogram of frequencies, you could set the
+    `ylabel`
+    :param filename: The `filename` parameter in the `plot_histogram` function is a string that
+    represents the file path where the generated histogram plot will be saved. This parameter should
+    include the file name and extension (e.g., "histogram_plot.png") where the plot will be saved
+    """
     plt.bar(
             [ (bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(counts)) ],
             counts,
@@ -301,6 +460,17 @@ def plot_histogram(bin_edges, counts, title, xlabel, ylabel, filename):
 
 
 def process_single_pair(pair):
+    """
+    The function `process_single_pair` takes a pair containing an ID, a group of data, and a time delta,
+    and creates time-windowed flows based on the timestamp within the group data.
+    
+    :param pair: The `process_single_pair` function takes a tuple `pair` as input, which contains three
+    elements: `pair_id`, `group`, and `time_delta`. The function processes the data in the `group`
+    DataFrame by splitting it into time windows based on the `time_delta` value
+    :return: The function `process_single_pair` returns a dictionary `time_windowed_flows` where the
+    keys are tuples of `pair_id` and `current_window_start`, and the values are DataFrames containing
+    the data from the input `group` DataFrame that fall within each time window defined by `time_delta`.
+    """
     pair_id, group, time_delta = pair
     time_windowed_flows = {}
     start_time = group['timestamp'].min()
@@ -321,6 +491,22 @@ def process_single_pair(pair):
     return time_windowed_flows
 
 def create_time_windowed_flows_electra(flows, time_window_minutes):
+    """
+    The function `create_time_windowed_flows_electra` processes flows data in time windows using
+    parallel processing and returns a DataFrame.
+    
+    :param flows: The `flows` parameter in the `create_time_windowed_flows_electra` function is likely a
+    DataFrame containing flow data. This data could represent information about flows between pairs,
+    possibly in a network or system. The function seems to be designed to create time-windowed flows
+    based on the input
+    :param time_window_minutes: The `time_window_minutes` parameter in the
+    `create_time_windowed_flows_electra` function represents the size of the time windows in minutes
+    that you want to create for the flows data. This parameter determines the duration of each time
+    window for grouping the flows data
+    :return: The function `create_time_windowed_flows_electra` returns a DataFrame containing the
+    time-windowed flows data after processing the input flows data using parallel processing with a
+    specified time window in minutes.
+    """
     print(f" Creating {time_window_minutes}-minute windows...")
     time_delta = pd.Timedelta(minutes=time_window_minutes)
     time_windowed_flows = {}
