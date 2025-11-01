@@ -1,0 +1,5 @@
+- Show her your results and ask if they make sense to her. 
+- Ask about the direction, I added the src_ip and the dst_ip, is this what you want by direction, or you want to have a separate column and to be 1 if it is from certain ip to another, also how can I know the direction, do I need to check the first sender, and then determine the direction of the packets? 
+- Does it make sense that the results for the flows of different window sizes are exactly the same ? 
+  - From my prespective I think yes, because it depends on the max distance and this will be the same regardless the size of the window.
+- what does it mean that raw packets are represented as sequence of bytes in task 2.e? 
