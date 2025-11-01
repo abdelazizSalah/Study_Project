@@ -1,14 +1,75 @@
+'''
+    @Author: Abdelaziz Neamatallah
+    @Date: 23/10/2025
+    @Desc: This is a utility file that contains helper functions to be used in the main tasks. 
+
+'''
+
 from scapy.all import rdpcap
 import os, time
-from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
+import pandas as pd
+from pathlib import Path
+import ipaddress
+from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor,as_completed
 import numpy as np
 from itertools import combinations
 
 
+output_dir = Path('../../DataSets/electra_s7comm/output')
+
+#################### Multi-threading splitting of Electra dataset into normal and attacked files.
+def create_pair_ip(row):
+    try:
+        ip1 = ipaddress.ip_address(row["sip"])
+        ip2 = ipaddress.ip_address(row["dip"])
+        return f"{min(ip1, ip2)}_{max(ip1, ip2)}"
+    except:
+        return None
+
+def create_pair_mac(row):
+    try:
+        smac = row["smac"].lower()
+        dmac = row["dmac"].lower()
+        return f"{min(smac, dmac)}_{max(smac, dmac)}"
+    except Exception:
+        return None
+
+def compute_packet_size(row):
+    return 6*2 + 4*2 + 2*1 + row['data'] 
+
+
+def process_chunk(chunk_id, chunk):
+    chunk.Time = chunk.Time / 1_000_000
+    chunk["packet_size"] = chunk['data']
+    chunk["pair_ip"] = chunk.apply(create_pair_ip, axis=1)
+    chunk["pair_mac"] = chunk.apply(create_pair_mac, axis=1)
+    chunk_final = chunk[["Time","sip","dip","pair_ip","smac", "dmac", "pair_mac", "packet_size","label","request"]].sort_values("Time")
+
+    normal = chunk_final[chunk_final['label']=="NORMAL"]
+    attacked = chunk_final[chunk_final['label']!="NORMAL"]
+
+    normal.to_csv(output_dir / f'normal/normal_data_{chunk_id}.csv', index=False, header=False)
+    attacked.to_csv(output_dir / f'attacked/attacked_data_{chunk_id}.csv', index=False, header=False)
+    return True
+
+
+def multi_threading_splitting_electra(input_file='../../DataSets/electra_s7comm/electra_s7comm.csv'):
+    start = time.time()
+    chunks = pd.read_csv(input_file, chunksize=1_000_000)
+    print("processing started")
+    with ProcessPoolExecutor() as executor:
+        futures = {executor.submit(process_chunk, i, c): i for i, c in enumerate(chunks)}
+
+    end = time.time()
+    print(f"total time: {end - start}")
+#####################
+
+
+##################### Multi-threading loading of QUT dataset and Electra dataset
 def load_csv(file):
     return pd.read_csv(file)
 
-def multithreading_loading(df_path): 
+def multithreading_loading_QUT(df_path): 
 
     start = time.time()
 
@@ -31,23 +92,62 @@ def multithreading_loading(df_path):
 
 
 
-def processing_QUT_loaded_dataframe(df_path ='../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', label='normal'): 
-    ### Task 2.a: Creating the flows
-    flows_2min, flows_4min, flows_6min = task2a_preprocessing_QUT(df_path, label)
-    ### Task2.b: Computing Chebyshev Distance between flows. 
-    chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len = task2b(flows_2min, flows_4min, flows_6min )
-    ### Task2.c Visualizing Histograms    
-    task2c (chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len, label)
 
 
-def processing_Electra_loaded_dataframe(df_path ='../../DataSets/electra_s7comm/output/attacked', label='normal'):
-    ### Task 2.a: Creating the flows
-    flows_2min, flows_4min, flows_6min = task2a_preprocessing_Electra(df_path, label)
-    ### Task2.b: Computing Chebyshev Distance between flows. 
-    chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len = task2b(flows_2min, flows_4min, flows_6min )
-    ### Task2.c Visualizing Histograms    
-    task2c (chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances_6min,chebyshev_distances_2min_frame_len,chebyshev_distances_4min_frame_len,chebyshev_distances_6min_frame_len, label)
+def load_csv_electra(file):
+    # Use fast C parser and low_memory=False for better chunk merging
+    return pd.read_csv(file, engine='c', low_memory=False)
 
+def parallel_load(file_list, max_workers=None):
+    dfs = []
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(load_csv_electra, f): f for f in file_list}
+        for f in as_completed(futures):
+            try:
+                dfs.append(f.result())
+                print(f'append succedded from {futures[f]}')
+            except Exception as e:
+                print(f"Error loading {futures[f]}: {e}")
+    return dfs
+
+def multithreading_loading_electra(normal_file_dir='../../DataSets/electra_s7comm/output/normal', attacked_file_dir='../../DataSets/electra_s7comm/output/attacked'):
+    start = time.time()
+    print('started processing')
+    normal_files = sorted(list_files_by_filetype(normal_file_dir, 'csv'))
+    attacked_files = sorted(list_files_by_filetype(attacked_file_dir, 'csv'))
+    first_normal_df = load_csv(normal_files[0])
+    print(first_normal_df.head())
+    first_attacked_df = load_csv(attacked_files[0])
+    print(first_attacked_df.head())
+
+    print('starting parallelization')
+    # Use half available cores to avoid memory contention
+    max_workers = max(1, os.cpu_count() // 2)
+
+    normal_dfs = [first_normal_df] + parallel_load(normal_files[1:], max_workers)
+    attacked_dfs = [first_attacked_df] + parallel_load(attacked_files[1:], max_workers)
+    print(f'end of parallelization: {time.time() - start}:.2f')
+
+    # --- Combine normal dataframes ---
+    output_normal = "../../DataSets/electra_s7comm/output/normal/combined_normal.csv"
+    for i, df in enumerate(normal_dfs):
+        mode = 'w' if i == 0 else 'a'          # write first, append others
+        header = (i == 0)                      # header only once
+        df.to_csv(output_normal, mode=mode, header=header, index=False)
+
+    # --- Combine attacked dataframes ---
+    output_attacked = "../../DataSets/electra_s7comm/output/attacked/combined_attacked.csv"
+    for i, df in enumerate(attacked_dfs):
+        mode = 'w' if i == 0 else 'a' 
+        header = (i == 0)
+        df.to_csv(output_attacked, mode=mode, header=header, index=False)
+    print('✅ All DataFrames appended successfully.')
+
+
+    print(f"Loaded {len(normal_files)} normal and {len(attacked_files)} attacked files.")
+    print(f"Total time: {time.time() - start:.2f} seconds")
+
+######################
 
 def manual_histogram(data, bins):
     min_val, max_val = min(data), max(data)
@@ -91,7 +191,7 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
     print(f'time taken to conver and write all files {time.time() - start}\n now creating pairs')
     start = time.time()
     return all_packets_array
-def compute_chebyshev_distances_memory_safe_on_iat(flow):
+def compute_chebyshev_distances_on_iat_optimized(flow):
     '''
         This is the most optimized way to compute Chebyshev distances, and it works because instead of iterating over each element and compare it with other elements until we find the maximum difference,
         we can simply find the global minimum and maximum of the flow, and then compute the distance of each element to these two extremes. The Chebyshev distance for each element is then the maximum of these two distances.
@@ -102,7 +202,7 @@ def compute_chebyshev_distances_memory_safe_on_iat(flow):
     # For 1D Chebyshev, each distance = max(|x - global_min|, |x - global_max|), and numpy uses the broadcasting feature to compute this for all elements in one go.
     return np.maximum(np.abs(iat - global_min), np.abs(iat - global_max))
 
-def compute_chebyshev_distances_memory_safe_on_frame_len(flow):
+def compute_chebyshev_distances_on_frame_len_optimized(flow):
     '''
         This is the most optimized way to compute Chebyshev distances, and it works because instead of iterating over each element and compare it with other elements until we find the maximum difference,
         we can simply find the global minimum and maximum of the flow, and then compute the distance of each element to these two extremes. The Chebyshev distance for each element is then the maximum of these two distances.
@@ -114,30 +214,12 @@ def compute_chebyshev_distances_memory_safe_on_frame_len(flow):
     return np.maximum(np.abs(frame_len - global_min), np.abs(frame_len - global_max))
 
 
-
-
-#list all files of certain filetype from directory and it's subdirectories
-def list_files_by_filetype(root_path, filetype):
-    pcap_files = []
-    for dirpath, _, filenames in os.walk(root_path):
-        for filename in filenames:
-            if filename.endswith("."+filetype):
-                full_path = os.path.join(dirpath, filename)
-                pcap_files.append(full_path)
-    return pcap_files
-
-def read_pcap_as_byte_sequences(pcap_path):
-    packets = rdpcap(pcap_path)              # Load all packets
-    return [bytes(pkt) for pkt in packets]  # Convert each packet to raw bytes
-    
-    
-
-def chebyshev_distance_for_raw_bytes(a, b):
-    
+def chebyshev_distance_for_raw_bytes(a, b):    
     max_len = max(len(a), len(b))
     a_padded = np.pad(a, (0, max_len - len(a)))
     b_padded = np.pad(b, (0, max_len - len(b)))
     return np.max(np.abs(a_padded.astype(np.int32) - b_padded.astype(np.int32)))
+
 
 def compute_pair_distance(pair):
     a, b = pair
@@ -160,6 +242,24 @@ def normalize_packets(packets):
         normalized.append(arr)
     return normalized
 
+
+
+
+#list all files of certain filetype from directory and it's subdirectories
+def list_files_by_filetype(root_path, filetype):
+    pcap_files = []
+    for dirpath, _, filenames in os.walk(root_path):
+        for filename in filenames:
+            if filename.endswith("."+filetype):
+                full_path = os.path.join(dirpath, filename)
+                pcap_files.append(full_path)
+    return pcap_files
+
+def read_pcap_as_byte_sequences(pcap_path):
+    packets = rdpcap(pcap_path)              # Load all packets
+    return [bytes(pkt) for pkt in packets]  # Convert each packet to raw bytes
+    
+    
 
 
 # create traffic flows with time window 2 minutes, 4 minutes, and finally 6 minutes
@@ -187,7 +287,17 @@ def create_time_windowed_flows(flows, time_window_minutes):
     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
     return df
 
-
+def plot_histogram(bin_edges, counts, title, xlabel, ylabel, filename):
+    plt.bar(
+            [ (bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(counts)) ],
+            counts,
+            width=(bin_edges[1] - bin_edges[0]),
+            edgecolor='black'
+        )
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(filename, dpi=300)
 
 
 def process_single_pair(pair):
