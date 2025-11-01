@@ -5,13 +5,23 @@ from pathlib import Path
 from process_pcap import pcap_extract_values
 
 
+def save_df_as_parquet(df, path):
+    df.to_parquet(path, compression="zstd", index=False)
+    return 0
+
+
+def read_df_from_parquet(path):
+    df = pd.read_parquet(path, engine="pyarrow")
+    return df
+
+
 def save_df_to_csv(df,output_path, mode, header ):
     df.to_csv(output_path, mode=mode, header=header, index=False)
     return 0
 
 
 def read_df_from_csv(path):
-    df=pd.read_csv(path, on_bad_lines="skip")
+    df=pd.read_csv(path, on_bad_lines="skip", engine="pyarrow") #pyarrow can read dfs faster
     return df
 
 

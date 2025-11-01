@@ -1,18 +1,69 @@
 import gc
 
+import numpy as np
 import pandas as pd
 
-from Anna_Code.file_helper import save_df_to_csv
+from file_helper import save_df_to_csv, read_df_from_csv, save_df_as_parquet
 from process_pcap import host_pair_id
 
-#todo: create one csv file for attacks and one for control, so that existing functions can be used
 
+HEADER_LEN = 14 + 20 + 20  # Ethernet+IP+TCP
+
+#using vectorization instead of iterrows for speed improvement
+def electra_df_extract_values_optimized_vectorization(df):
+
+    # assume that every entry has IP -> no MAC address used
+    # Canonical ordering: ensure A|B == B|A
+    a = df["sip"].fillna("")
+    b = df["dip"].fillna("")
+    first = np.where(a <= b, a, b)  #sorting, so that pair id is the same for both directions of communication
+    second = np.where(a <= b, b, a)
+    df["pair_id"] = pd.Series(first, index=df.index) + "__" + pd.Series(second, index=df.index)
+
+    # iat
+    df["iat_pair"] = df.groupby("pair_id")["Time"].diff()   #if rows are identical they stay unless deduplicated
+
+    # Features
+    app_len = df["data"].astype("int32") + 10
+
+    df_out = pd.DataFrame({
+        "timestamp": df["Time"],
+        #"src_ip": df["sip"],
+        #"dst_ip": df["dip"],
+        #"src_mac": df["smac"],
+        #"dst_mac": df["dmac"],
+        "l4_proto": "TCP",
+        "app_proto": "s7comm",
+        "frame_len": HEADER_LEN + app_len,
+        "total_header_len": HEADER_LEN,
+        "app_payload_len": app_len,
+        "pair_id": df["pair_id"],
+        "iat_pair": df["iat_pair"],
+        "iat_proto_pair": df["iat_pair"],  # identisch bei dir
+        "label_attack": (df["label"] != "NORMAL"),
+        "filename": "electra_s7comm.csv"
+    })
+    return df_out
+
+
+
+
+
+def read_electra_create_parquet(csv_input_path,csv_output_path):
+    df_in=read_df_from_csv(csv_input_path)
+    df_out = electra_df_extract_values_optimized_vectorization(df_in)
+    save_df_as_parquet(df_out, csv_output_path)
+    return 0
+
+
+
+##########################################################################UNUSED
 def electra_df_extract_values(df):
 
     records = []
     last_ts_by_pair = {}
 
-    header_len=14+20+20+4+3 #assume ethernet+ip+tcp+rfc+cotp
+
     for index, row in df.iterrows():
 
         #####################
@@ -61,8 +112,8 @@ def electra_df_extract_values(df):
             "dst_mac": dst_mac,
             "l4_proto": "TCP",
             "app_proto": "s7comm",
-            "frame_len": header_len+app_len,
-            "total_header_len": header_len, #standardized for expected stack:  Ethernet → IP → TCP → S7Comm (excluding S7Comm)
+            "frame_len": HEADER_LEN+app_len,
+            "total_header_len": HEADER_LEN, #standardized for expected stack:  Ethernet → IP → TCP → S7Comm (excluding S7Comm)
             "app_payload_len": app_len, #s7comm header + payload to be comparable with QUT statistics
             "pair_id": pair_id,
             "iat_pair": iat_pair,  # is this the inter-arrival time between packets?
@@ -77,7 +128,7 @@ def electra_df_extract_values(df):
 
 
 #extract values from electra into a new csv
-def read_electra_create_csv(csv_input_path,csv_output_path):
+def read_electra_create_csv_chunks(csv_input_path,csv_output_path):
     usecols = ["Time", "smac", "dmac", "sip", "dip", "request", "fc", "error", "address", "data", "label"]
     dtypes = {
         "smac": "string", "dmac": "string",

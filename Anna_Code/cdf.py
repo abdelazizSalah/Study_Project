@@ -1,8 +1,10 @@
+import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from Anna_Code.get_statistics import preprocess
+from get_statistics import preprocess
 
 
 #takes list of values [1,3,5,7]
@@ -49,8 +51,6 @@ def plot_cdf_per_proto(sub_df, column, dataset_label):
         if subset.empty:
             continue
         x, y = compute_manual_cdf(subset[column]) #column: header_length or payload_length
-        if proto=="s7comm":
-            print(f"proto:{proto}-{x}")
         plt.plot(x, y, label=proto)
 
     plt.xlabel(f"{column} (bytes)")
@@ -78,20 +78,20 @@ def create_cdf_plots_task1d(df, output_dir, dataset_name):
 
     # header length
     plot_cdf_per_proto(df[df['label_attack'] == 0], "total_header_len", f"Control Dataset in {dataset_name}")
-    plt.savefig(output_dir / f"{dataset_name}_control_header_len_cdf.png", bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_control_header_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     plot_cdf_per_proto(df[df['label_attack'] == 1], "total_header_len", f"Attack Dataset in {dataset_name}")
-    plt.savefig(output_dir / f"{dataset_name}_attack_header_len_cdf.png", bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_attack_header_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     # application payload length
     plot_cdf_per_proto(df[df['label_attack'] == 0], "app_payload_len", f"Control Dataset in {dataset_name}")
-    plt.savefig(output_dir / f"{dataset_name}_control_payload_len_cdf.png", bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_control_payload_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     plot_cdf_per_proto(df[df['label_attack'] == 1], "app_payload_len", f"Attack Dataset in {dataset_name}")
-    plt.savefig(output_dir / f"{dataset_name}_attack_payload_len_cdf.png", bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_attack_payload_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     return 0
