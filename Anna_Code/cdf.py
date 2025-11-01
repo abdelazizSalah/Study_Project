@@ -82,16 +82,16 @@ def create_cdf_plots_task1d(df, output_dir, dataset_name):
     plt.close()
 
     plot_cdf_per_proto(df[df['label_attack'] == 1], "total_header_len", f"Attack Dataset in {dataset_name}")
-    plt.savefig(os.path.join(output_dir, f"{dataset_name}_control_header_len_cdf.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_attack_header_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     # application payload length
     plot_cdf_per_proto(df[df['label_attack'] == 0], "app_payload_len", f"Control Dataset in {dataset_name}")
-    plt.savefig(os.path.join(output_dir, f"{dataset_name}_control_header_len_cdf.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_control_payload_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     plot_cdf_per_proto(df[df['label_attack'] == 1], "app_payload_len", f"Attack Dataset in {dataset_name}")
-    plt.savefig(os.path.join(output_dir, f"{dataset_name}_control_header_len_cdf.png"), bbox_inches="tight")
+    plt.savefig(os.path.join(output_dir, f"{dataset_name}_attack_payload_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
     return 0
