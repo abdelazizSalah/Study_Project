@@ -1,3 +1,8 @@
+from scapy.all import rdpcap
+import os, time
+from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
+import numpy as np
+from itertools import combinations
 
 
 def load_csv(file):
@@ -61,6 +66,31 @@ def manual_histogram(data, bins):
     return bin_edges, counts
 
 
+def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set'):
+    start = time.time()
+    pcap_files = list_files_by_filetype(pcap_files_path, "pcap")
+    print(pcap_files)
+    all_packets = []
+    print(f'time taken to load all list all files {time.time() - start}')
+    start = time.time()
+    maxWorkers = os.cpu_count() or 4
+    print(f'max workers: {maxWorkers}\n now creating packet list...')
+    with ThreadPoolExecutor(max_workers= maxWorkers) as executor:
+        for packet_lists in executor.map(read_pcap_as_byte_sequences, pcap_files):
+            all_packets.append(packet_lists)
+            print(f'packet len: {len(packet_lists)}')
+            print(packet_lists[:5], sep='\n')
+
+
+    print(f'time taken to process all files {time.time() - start}')
+    start = time.time()
+    # Convert to large NumPy array with dtype=object (packets may differ in length)
+    all_packets_array = np.array(all_packets, dtype=object)
+    np.save('all_packets.npy', all_packets_array)
+
+    print(f'time taken to conver and write all files {time.time() - start}\n now creating pairs')
+    start = time.time()
+    return all_packets_array
 def compute_chebyshev_distances_memory_safe_on_iat(flow):
     '''
         This is the most optimized way to compute Chebyshev distances, and it works because instead of iterating over each element and compare it with other elements until we find the maximum difference,
@@ -84,6 +114,51 @@ def compute_chebyshev_distances_memory_safe_on_frame_len(flow):
     return np.maximum(np.abs(frame_len - global_min), np.abs(frame_len - global_max))
 
 
+
+
+#list all files of certain filetype from directory and it's subdirectories
+def list_files_by_filetype(root_path, filetype):
+    pcap_files = []
+    for dirpath, _, filenames in os.walk(root_path):
+        for filename in filenames:
+            if filename.endswith("."+filetype):
+                full_path = os.path.join(dirpath, filename)
+                pcap_files.append(full_path)
+    return pcap_files
+
+def read_pcap_as_byte_sequences(pcap_path):
+    packets = rdpcap(pcap_path)              # Load all packets
+    return [bytes(pkt) for pkt in packets]  # Convert each packet to raw bytes
+    
+    
+
+def chebyshev_distance_for_raw_bytes(a, b):
+    
+    max_len = max(len(a), len(b))
+    a_padded = np.pad(a, (0, max_len - len(a)))
+    b_padded = np.pad(b, (0, max_len - len(b)))
+    return np.max(np.abs(a_padded.astype(np.int32) - b_padded.astype(np.int32)))
+
+def compute_pair_distance(pair):
+    a, b = pair
+    return chebyshev_distance_for_raw_bytes(a, b)
+
+
+
+def normalize_packets(packets):
+    normalized = []
+    for p in packets:
+        if isinstance(p, (bytes, bytearray)):
+            arr = np.frombuffer(p, dtype=np.uint8)
+        elif isinstance(p, list) and isinstance(p[0], (bytes, bytearray)):
+            # convert list of byte strings → flat uint8 array
+            arr = np.frombuffer(b"".join(p), dtype=np.uint8)
+        elif isinstance(p, np.ndarray):
+            arr = p.astype(np.uint8)
+        else:
+            arr = np.array(p, dtype=np.uint8)
+        normalized.append(arr)
+    return normalized
 
 
 
@@ -157,30 +232,4 @@ def create_time_windowed_flows_electra(flows, time_window_minutes):
     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
     print(f" Completed {time_window_minutes}-minute flow creation using {max_workers} cores.")
     return df
-
-
-# # create traffic flows with time window 2 minutes, 4 minutes, and finally 6 minutes
-# def create_time_windowed_flows_electra(flows, time_window_minutes):
-#     time_windowed_flows = {}
-#     print(time_window_minutes)
-#     time_delta = pd.Timedelta(minutes=time_window_minutes)
-    
-#     for pair_id, group in flows.groupby(level=[0]):
-#         start_time = group['timestamp'].min()
-#         end_time = group['timestamp'].max()
-        
-#         current_window_start = start_time
-#         while current_window_start < end_time:
-#             current_window_end = current_window_start + time_delta
-#             window_group = group[(group['timestamp'] >= current_window_start) & (group['timestamp'] < current_window_end)]
-            
-#             if not window_group.empty:
-#                 key = (pair_id, current_window_start)
-#                 time_windowed_flows[key] = window_group.reset_index(drop=True)
-            
-#             current_window_start = current_window_end
-            
-#     # convert the result to a DataFrame with MultiIndex
-#     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
-#     return df
 

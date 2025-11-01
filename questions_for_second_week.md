@@ -3,3 +3,5 @@
 - Does it make sense that the results for the flows of different window sizes are exactly the same ? 
   - From my prespective I think yes, because it depends on the max distance and this will be the same regardless the size of the window.
 - what does it mean that raw packets are represented as sequence of bytes in task 2.e? 
+- Number of combinations for e and f are crazy large, is this normal ? 
+- Also I can extract the bytes from the pcap in QUT, but I am not sure how to do the same on electra, should I consider it the data field only from the csv file ? 
