@@ -20,7 +20,7 @@ import argparse
 from toolz import excepts
 
 from cdf import create_cdf_plots_task1d
-from process_electra import read_electra_create_csv
+from process_electra import read_electra_create_parquet
 from get_statistics import *
 from process_pcap import *
 from file_helper import *
@@ -48,7 +48,7 @@ def test_main():
     #electra
 
     #create adapted csv out of electra
-    read_electra_create_csv("/home/dW5kZWFk/uni/study_project/datasets/Electra/electra_s7comm.csv", "/home/dW5kZWFk/uni/study_project/datasets/output/Electra/first_chunk.csv")
+    read_electra_create_parquet("/home/dW5kZWFk/uni/study_project/datasets/Electra/electra_s7comm.csv", "/home/dW5kZWFk/uni/study_project/datasets/output/Electra/first_chunk.csv")
 
     #read csv into dataframe
     df=read_df_from_csv("/home/dW5kZWFk/uni/study_project/datasets/output/Electra/first_chunk.csv")
@@ -88,6 +88,8 @@ def release_main():
     start = time.time()   # ⏱️ start timer
 
     import argparse
+    import sys
+    from pathlib import Path
 
     parser = argparse.ArgumentParser(
         description="Argument handling for preprocessing or statistics (QUT or Electra)."
@@ -107,10 +109,10 @@ def release_main():
     parser.add_argument("--attack-dir", help="QUT preprocess: directory with ATTACK PCAPs")
     parser.add_argument("--control-dir", help="QUT preprocess: directory with CONTROL PCAPs")
     parser.add_argument("--input-csv", help="Electra preprocess: path to the huge dataset CSV")
-    parser.add_argument("--output-csv", help="Preprocess: path to output CSV (single file)")
+    parser.add_argument("--output-file", help="Preprocess: path to output file (CSV for QUT, Parquet for Electra)")
 
     # --- Statistics arguments ---
-    parser.add_argument("--stats-input-csv", help="Stats: path to preprocessed CSV to analyze")
+    parser.add_argument("--stats-input-file", help="Stats: path to preprocessed file (CSV or Parquet) to analyze")
     parser.add_argument("--stats-output-dir", help="Stats: directory to save results and images")
 
     args = parser.parse_args()
@@ -121,66 +123,68 @@ def release_main():
     if args.task == "preprocess":
         if args.dataset == "qut":
             # validate args
-            if not args.attack_dir or not args.control_dir or not args.output_csv:
-                sys.exit("Missing required args for QUT preprocess: --attack-dir --control-dir --output-csv")
+            if not args.attack_dir or not args.control_dir or not args.output_file:
+                sys.exit("Missing required args for QUT preprocess: --attack-dir --control-dir --output-file")
 
             attack_dir = Path(args.attack_dir)
             control_dir = Path(args.control_dir)
-            output_csv = Path(args.output_csv)
+            output_file = Path(args.output_file)
 
             if not attack_dir.is_dir():
                 sys.exit(f"--attack-dir not found or not a directory: {attack_dir}")
             if not control_dir.is_dir():
                 sys.exit(f"--control-dir not found or not a directory: {control_dir}")
-            output_csv.parent.mkdir(parents=True, exist_ok=True)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
 
             print("MODE: QUT preprocess")
             print(f"attack_dir  = {attack_dir}")
             print(f"control_dir = {control_dir}")
-            print(f"output_csv  = {output_csv}")
+            print(f"output_file = {output_file}")
 
-            create_large_csv_file_from_pcaps(str(attack_dir), str(control_dir), str(output_csv))
+            create_large_csv_file_from_pcaps(str(attack_dir), str(control_dir), str(output_file))
 
         elif args.dataset == "electra":
-            if not args.input_csv or not args.output_csv:
-                sys.exit("Missing required args for Electra preprocess: --input-csv --output-csv")
+            if not args.input_csv or not args.output_file:
+                sys.exit("Missing required args for Electra preprocess: --input-csv --output-file")
 
             input_csv = Path(args.input_csv)
-            output_csv = Path(args.output_csv)
+            output_file = Path(args.output_file)
 
             if not input_csv.is_file():
                 sys.exit(f"--input-csv not found or not a file: {input_csv}")
-            output_csv.parent.mkdir(parents=True, exist_ok=True)
+            output_file.parent.mkdir(parents=True, exist_ok=True)
 
             print("MODE: Electra preprocess")
             print(f"input_csv   = {input_csv}")
-            print(f"output_csv  = {output_csv}")
+            print(f"output_file = {output_file}")
 
-            read_electra_create_csv(str(input_csv), str(output_csv))
+            read_electra_create_parquet(str(input_csv), str(output_file))
 
     elif args.task == "stats":
-        if not args.stats_input_csv or not args.stats_output_dir:
-            sys.exit("Missing required args for stats: --stats-input-csv --stats-output-dir")
+        if not args.stats_input_file or not args.stats_output_dir:
+            sys.exit("Missing required args for stats: --stats-input-file --stats-output-dir")
 
-        stats_input_csv = Path(args.stats_input_csv)
+        stats_input_file = Path(args.stats_input_file)
         stats_output_dir = Path(args.stats_output_dir)
 
-        if not stats_input_csv.is_file():
-            sys.exit(f"--stats-input-csv not found or not a file: {stats_input_csv}")
+        if not stats_input_file.is_file():
+            sys.exit(f"--stats-input-file not found or not a file: {stats_input_file}")
         stats_output_dir.mkdir(parents=True, exist_ok=True)
 
         print("MODE: Statistics")
-        print(f"stats_input_csv = {stats_input_csv}")
+        print(f"stats_input_file = {stats_input_file}")
         print(f"stats_output_dir = {stats_output_dir}")
 
-        df = read_df_from_csv(str(stats_input_csv))
 
         if args.dataset == "qut":
+            df = read_df_from_csv(str(stats_input_file))
             save_statistics_to_file(df, str(stats_output_dir), "2017QUT_S7Comm")
         elif args.dataset == "electra":
+            df = read_df_from_parquet(str(stats_input_file))
             save_statistics_to_file(df, str(stats_output_dir), "Electra")
         else:
             sys.exit("Unknown dataset for stats (expected 'qut' or 'electra').")
+
     end = time.time()  # ⏹️ end timer
     elapsed = end - start
     print(f"⏱️ main() executed in {elapsed:.2f} seconds")
