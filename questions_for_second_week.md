@@ -1,7 +1,13 @@
 - Show her your results and ask if they make sense to her. 
-- Ask about the direction, I added the src_ip and the dst_ip, is this what you want by direction, or you want to have a separate column and to be 1 if it is from certain ip to another, also how can I know the direction, do I need to check the first sender, and then determine the direction of the packets? 
+- Ask about the direction
+  -  I added the src_ip and the dst_ip, is this what you want by direction, or you want to have a separate column and to be 1 if it is from certain ip to another, also how can I know the direction, do I need to check the first sender, and then determine the direction of the packets? 
 - Does it make sense that the results for the flows of different window sizes are exactly the same ? 
   - From my prespective I think yes, because it depends on the max distance and this will be the same regardless the size of the window.
 - what does it mean that raw packets are represented as sequence of bytes in task 2.e? 
+  - I read the bytes from the packets as hex, which are same as wireshark.
 - Number of combinations for e and f are crazy large, is this normal ? 
 - Also I can extract the bytes from the pcap in QUT, but I am not sure how to do the same on electra, should I consider it the data field only from the csv file ? 
+- In task2.d what do you mean by from a single file? 
+  - I understand that we need to create 6 plots, one for each time window {2,4,6} for both normal and attack dataset.
+  - do you want me to in each of these plots, diffrentiate the flows from each pcap file ?
+  - If yes, In case of electra, I do not have except one file... 
