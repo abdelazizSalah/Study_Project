@@ -5,6 +5,9 @@
 
 '''
 
+
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
 from scapy.all import rdpcap
 import os, time
 import pandas as pd
@@ -237,7 +240,7 @@ def manual_histogram(data, bins):
     min_val, max_val = min(data), max(data)
     print(min_val, max_val)
     bin_width = (max_val - min_val) / bins
-    bin_edges = [min_val + i * bin_width for i in range(bins + 1)]
+    bin_edges = [min_val + i * bin_width for i in range(bins + 1)] # 0, bin_width, 2*bin_width, ..., bins*bin_width
     counts = [0] * bins # create a list for counts and initialze it with zeros. 
 
     for value in data:
@@ -287,6 +290,30 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
     print(f'time taken to conver and write all files {time.time() - start}\n now creating pairs')
     start = time.time()
     return all_packets_array
+
+
+def unoptimized_compute_chebyshev_distances(flow):
+    '''
+    I have traffic flow 1 in this format: "timestamp, src_ip, dst_ip, frame_len, iat"
+    Then we have all other traffic flows in the same format in the same window interval. 
+    so to compute chybyshev distance between flow 1 and all other flows, we need to extract the iat column for each flow and then compute the distance.
+    the distance is as follows: 
+      # chybyshev_t1 = max(|t1_iat - ti_iat|) for i in range(n)
+    I should have 3574782 chybyshev distances computed
+    
+    '''
+    chebyshev_distances = []
+    for i in range(len(flow)): 
+        current_flow_iat = flow['iat'][i]
+        max_distance = -1000000 
+        for j in range( i + 1, len(flow)):
+            other_flow_iat = flow['iat'][j]
+            max_distance = max(abs(current_flow_iat - other_flow_iat), max_distance)
+        chebyshev_distances.append(max_distance)
+    return chebyshev_distances # this takes too long, so I need to optimize it
+
+
+
 def compute_chebyshev_distances_on_iat_optimized(flow):
     '''
         This is the most optimized way to compute Chebyshev distances, and it works because instead of iterating over each element and compare it with other elements until we find the maximum difference,

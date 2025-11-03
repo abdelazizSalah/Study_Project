@@ -151,8 +151,37 @@ def task2c(chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances
 #        plt.show()
 
 
-def task2d():
-    return False
+def task2d(flows):
+        
+    # --- Hyperparameter tuning (grid search) ---
+    # flows = [flows_control_2min, flows_control_4min, flows_control_6min]
+    perplexities = [10, 30, 50]
+    learning_rates = [100, 200, 500]
+    for i, flow in enumerate(flows):
+        best_score = float('inf')
+        best_tsne = None
+        X = flow[['frame_len', 'iat']].values
+        X = StandardScaler().fit_transform(X)  # Standardize features
+        X = np.nan_to_num(X)  # Ensure no NaN values
+        for p in perplexities:
+            for lr in learning_rates:
+                tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
+                embedding = tsne.fit_transform(X)
+                kl_div = tsne.kl_divergence_  # lower is better
+                if kl_div < best_score:
+                    best_score = kl_div
+                    best_tsne = embedding
+        
+        # --- Plot best embedding ---
+        plt.figure(figsize=(6,5))
+        plt.scatter(best_tsne[:,0], best_tsne[:,1], s=10, alpha=0.7)
+        plt.title(f"t-SNE (control) - {(i + 1) * 2} min window\nBest KL: {best_score:.4f}")
+        plt.xlabel("t-SNE Dimension 1")
+        plt.ylabel("t-SNE Dimension 2")
+        plt.tight_layout()
+        plt.savefig(f"tsne_control_{(i + 1) * 2}min.png", dpi=300)
+        plt.close()
+    return True
 
 def task2e(packetsPath = "all_packets.npy") :
     '''
@@ -237,10 +266,13 @@ def main():
     task2c(Electra_Attacked_chebyshev_distances_2min,Electra_Attacked_chebyshev_distances_4min,Electra_Attacked_chebyshev_distances_6min,Electra_Attacked_chebyshev_distances_2min_frame_len,Electra_Attacked_chebyshev_distances_4min_frame_len,Electra_Attacked_chebyshev_distances_6min_frame_len, 'Attacked')
     task2c(Electra_Normal_chebyshev_distances_2min,Electra_Normal_chebyshev_distances_4min,Electra_Normal_chebyshev_distances_6min,Electra_Normal_chebyshev_distances_2min_frame_len,Electra_Normal_chebyshev_distances_4min_frame_len,Electra_Normal_chebyshev_distances_6min_frame_len, 'Normal')
 
-
-    # task2d: TODO
-    task2d()
-    task2d()
+    # task2d for QUT
+    task2d([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow])
+    task2d([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow])
+    
+    ## task2d for Electra
+    task2d([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow])
+    task2d([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow])
 
     # task2e for QUT
     QUT_Normal = task2e('all_packets_normal_qut.npy')
@@ -249,8 +281,7 @@ def main():
     # task2e for Electra
     Electra_Normal = task2e('all_packets_normal_electra.npy')
     Electra_Attacked = task2e('all_packets_attacked_electra.npy')
-
-
+    
     # task2f for QUT
     task2f(QUT_Normal, bins=4, label='QUT_Normal')
     task2f(QUT_Attacked, bins=4, label='QUT_Attacked')
