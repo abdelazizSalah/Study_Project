@@ -34,5 +34,5 @@
 - Although SNE constructs good visualizations, its cost function is difficult to optimize. 
 - So they created the t-SNE, it uses a cost function which is : 
   - Symmetric and with simpler gradients 
-    - ![Symmetric SNE](Symmetric_SNE.png)
+    - ![Symmetric_SNE](Symmetric_SNE.png)
   - Uses Student-t distribution instead of Gaussian to compute the similarity between two points in the low-dimensional space

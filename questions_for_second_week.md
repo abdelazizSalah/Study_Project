@@ -11,3 +11,4 @@
   - I understand that we need to create 6 plots, one for each time window {2,4,6} for both normal and attack dataset.
   - do you want me to in each of these plots, diffrentiate the flows from each pcap file ?
   - If yes, In case of electra, I do not have except one file... 
+- Do we need to deeply understand t-SNE and how it works? or we need just to implement it from library, because I skimmed its paper, it is around 27 pages, and contains many mathimatical equations.
