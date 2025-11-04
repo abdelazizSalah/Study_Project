@@ -24,7 +24,7 @@ python main.py --task preprocess --dataset electra --input-csv /home/demboann/da
 
 STATS
 
-python main.py --task stats --dataset qut --stats-input-file /home/demboann/datasets/output/electra/preprocessELECTRA.parquet --stats-output-dir /home/demboann/stats/electra/
+python main.py --task stats --dataset electra --stats-input-file /home/demboann/datasets/output/electra/preprocessELECTRA.parquet --stats-output-dir /home/demboann/stats/electra/
 
 
 LOCAL#######################################################
