@@ -172,7 +172,7 @@ def task2c(chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances
 #        plt.show()
 
 
-def task2d(flows):
+def task2d_with_no_parallelization(flows):
         
     # --- Hyperparameter tuning (grid search) ---
     # flows = [flows_control_2min, flows_control_4min, flows_control_6min]
@@ -209,6 +209,17 @@ def task2d(flows):
         plt.savefig(f"tsne_control_{(i + 1) * 2}min.png", dpi=300)
         plt.close()
     return True
+
+def task2d(flows):
+    perplexities, learning_rates = [10,30,50], [100,200,500]
+    workers = os.cpu_count() or 1
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        results = list(executor.map(lambda args: compute_best_tsne(*args),
+                                   [(flow, perplexities, learning_rates, i) for i, flow in enumerate(flows)]))
+    print("Best KL divergences per flow:", results)
+    return True
+
+
 
 def task2e(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label='control') :
     '''

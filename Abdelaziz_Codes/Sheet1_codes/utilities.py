@@ -16,6 +16,9 @@ from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor,as_complet
 import numpy as np
 from itertools import combinations
 import matplotlib.pyplot as plt
+from cuml.manifold import TSNE
+from cuml.preprocessing import StandardScaler
+import cupy as cp
 
 
 output_dir = Path('../../DataSets/electra_s7comm/output')
@@ -170,7 +173,10 @@ def multithreading_loading_QUT(df_path):
 
 def load_csv_electra(file):
     # Use fast C parser and low_memory=False for better chunk merging
-    return pd.read_csv(file, engine='c', low_memory=False, nrow=5000)
+    if TESTING:
+        return pd.read_csv(file, engine='c', low_memory=False, nrows=5000)
+    else:
+        return pd.read_csv(file, engine='c', low_memory=False)
 
 def parallel_load(file_list, maxWorkers=None):
     """
@@ -575,4 +581,50 @@ def create_time_windowed_flows_electra(flows, time_window_minutes):
     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
     print(f" Completed {time_window_minutes}-minute flow creation using {max_workers} cores.")
     return df
+
+
+def compute_best_tsne(flow, perplexities, learning_rates, index):
+    X = np.nan_to_num(StandardScaler().fit_transform(flow[['frame_len', 'iat']].values))
+    best_score, best_tsne = float('inf'), None
+    for p in perplexities:
+        for lr in learning_rates:
+            tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
+            embedding = tsne.fit_transform(X)
+            if tsne.kl_divergence_ < best_score:
+                best_score, best_tsne = tsne.kl_divergence_, embedding
+    plt.figure(figsize=(6,5))
+    plt.scatter(best_tsne[:,0], best_tsne[:,1], s=10, alpha=0.7)
+    plt.title(f"t-SNE (control) - {(index+1)*2} min\nBest KL: {best_score:.4f}")
+    plt.savefig(f"tsne_control_{(index+1)*2}min.png", dpi=300)
+    plt.close()
+    return best_score
+
+
+def gpu_tsne(flow, perplexities=[10,30,50], learning_rates=[100,200,500], index=0):
+    X = flow[['frame_len', 'iat']].values
+    X = cp.asarray(X)                           # Move data to GPU
+    X = StandardScaler().fit_transform(X)
+    
+    best_score, best_tsne = float('inf'), None
+    for p in perplexities:
+        for lr in learning_rates:
+            tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
+            embedding = tsne.fit_transform(X)
+            kl_div = float(tsne.kl_divergence_)  # Retrieve scalar value
+            if kl_div < best_score:
+                best_score, best_tsne = kl_div, embedding
+
+    embedding = cp.asnumpy(best_tsne)  # Bring result back to CPU for plotting
+    plt.figure(figsize=(6,5))
+    plt.scatter(embedding[:,0], embedding[:,1], s=10, alpha=0.7)
+    plt.title(f"GPU t-SNE (control) - {(index+1)*2}min\nBest KL: {best_score:.4f}")
+    plt.tight_layout()
+    plt.savefig(f"tsne_gpu_control_{(index+1)*2}min.png", dpi=300)
+    plt.close()
+    return best_score
+
+def task2d_gpu(flows):
+    results = [gpu_tsne(flow, index=i) for i, flow in enumerate(flows)]
+    print("Best KL divergences per flow:", results)
+    return True
 
