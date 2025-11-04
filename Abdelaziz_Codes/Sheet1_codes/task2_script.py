@@ -27,7 +27,7 @@ def task2a_flows_creation_QUT(df_path, label):
     # loading the attack and normal datasets from csv files
     loaded_df = multithreading_loading_QUT(df_path)
     # selecting the important features
-    df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']]
+    df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']][:1000] # working on small sample for testing
 
     # drop any packet with undefined app_proto and any packet with no src_ip or dst_ip
     df_selected_features = df_selected_features[df_selected_features['app_proto'] != 'undetected:-1:-1']
@@ -41,6 +41,9 @@ def task2a_flows_creation_QUT(df_path, label):
     print('after sorting')
     # converting timestamp to datetime
 #    flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s')
+
+    # Add a column for the direction of the flow, if the src_ip == the first 4 octets of the pair_id, then direction is 0, else 1
+    flows['direction'] = flows.apply(determine_direction, axis=1, src_col_name='src_ip', pair_index=1) # src_index is 1 because pair_id is the second level in the MultiIndex
     
     # adding inter-arrival time between packets in the same flow
     flows['iat'] = flows.groupby(level=[0,1])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups which are the protocol and pair_id
@@ -90,6 +93,10 @@ def task2a_flows_creation_Electra(df_path, label):
         print('before grouping')
         # selecting interesting features and sorting them by timestampstamp
         flows = df_grouped.apply(lambda x: x[['timestamp', 'sip', 'dip', 'frame_len']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
+
+
+        # determine the direction determine direction, and the argument is sip
+        flows['direction'] = flows.apply(determine_direction, axis=1, src_col_name='sip', pair_index=0) 
 
         # converting timestamp to datetimestamp
         flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s') # not sure if this will be a good idea.

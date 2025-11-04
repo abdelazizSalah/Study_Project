@@ -63,6 +63,20 @@ def compute_packet_size(row):
     """
     return 6*2 + 4*2 + 2*1 + row['data'] 
 
+def determine_direction(row, src_col_name, pair_index):
+    '''
+        My Logic is that, I will sort the flows with timestamp, and then the first packet will be from the source to destination which is sent,
+        so I will assign it 0, and the other packets will be assigned based on this logic.
+        if the src_ip is same as the first ip in the pair, then it is 0, else 1.
+    '''
+    src_ip = row[src_col_name]
+    pair_id = row.name[pair_index]  # Accessing pair_id from the MultiIndex
+    first_ip_in_pair = pair_id.split('__')[0]
+    if src_ip == first_ip_in_pair:
+        return 0
+    else:
+        return 1
+
 
 def process_chunk(chunk_id, chunk):
     """
