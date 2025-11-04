@@ -459,10 +459,8 @@ def create_time_windowed_flows(flows, time_window_minutes):
     for (app_proto, pair_id), group in flows.groupby(level=[0,1]):
         start_time = group['timestamp'].min()
         end_time = group['timestamp'].max()
-        print(f'{end_time} is the end time')    
         current_window_start = start_time
         while current_window_start < end_time:
-            print(f'curr start: {current_window_start}')
             current_window_end = current_window_start + time_delta
             window_group = group[(group['timestamp'] >= current_window_start) & (group['timestamp'] < current_window_end)]
             

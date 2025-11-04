@@ -210,12 +210,16 @@ def task2d_with_no_parallelization(flows):
         plt.close()
     return True
 
+
+def tsne_worker(args):
+    return compute_best_tsne(*args)
+
 def task2d(flows):
     perplexities, learning_rates = [10,30,50], [100,200,500]
     workers = os.cpu_count() or 1
+    args_list = [(flow, perplexities, learning_rates, i) for i, flow in enumerate(flows)]
     with ProcessPoolExecutor(max_workers=workers) as executor:
-        results = list(executor.map(lambda args: compute_best_tsne(*args),
-                                   [(flow, perplexities, learning_rates, i) for i, flow in enumerate(flows)]))
+        results = list(executor.map(tsne_worker, args_list))
     print("Best KL divergences per flow:", results)
     return True
 
