@@ -5,7 +5,7 @@
 '''
 
 from utilities import *
-
+TESTING = True
 
 
 # Task2 Creating traffic flow for attacker and normal traffic from QUT_S7Comm dataset pcaps
@@ -27,7 +27,12 @@ def task2a_flows_creation_QUT(df_path, label):
     # loading the attack and normal datasets from csv files
     loaded_df = multithreading_loading_QUT(df_path)
     # selecting the important features
-    df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']][:1000] # working on small sample for testing
+    if TESTING:
+        df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']][:100] # working on small sample for testing
+    else:
+        df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']] # working on small sample for testing
+
+    #df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']][:1000] # working on small sample for testing
 
     # drop any packet with undefined app_proto and any packet with no src_ip or dst_ip
     df_selected_features = df_selected_features[df_selected_features['app_proto'] != 'undetected:-1:-1']
@@ -40,14 +45,17 @@ def task2a_flows_creation_QUT(df_path, label):
     flows = df_grouped.apply(lambda x: x[['timestamp', 'src_ip', 'dst_ip', 'frame_len']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
     print('after sorting')
     # converting timestamp to datetime
-#    flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s')
+    # flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s')
 
     # Add a column for the direction of the flow, if the src_ip == the first 4 octets of the pair_id, then direction is 0, else 1
     flows['direction'] = flows.apply(determine_direction, axis=1, src_col_name='src_ip', pair_index=1) # src_index is 1 because pair_id is the second level in the MultiIndex
     
     # adding inter-arrival time between packets in the same flow
-    flows['iat'] = flows.groupby(level=[0,1])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups which are the protocol and pair_id
+#    flows['iat'] = flows.groupby(level=[0,1])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups which are the protocol and pair_id
+    flows['iat'] = flows.groupby(level=[0,1])['timestamp'].diff() # levels here refers to the index of the groups which are the protocol and pair_id
 
+    print(f'data head before flows creation {flows.head()}')
+    print(flows.columns)
     # creating time_widnowed_flows with 2, 4, and 6 mins
     flows_2min = create_time_windowed_flows(flows, 2)
     flows_4min = create_time_windowed_flows(flows, 4)
@@ -68,6 +76,8 @@ def task2a_flows_creation_Electra(df_path, label):
         now = time.time()
         flows = pd.read_parquet(label + '.parquet')
         print(f'loaded parquet file in {time.time() - now} secs')
+ 	# There is a problem in loading from .parquet.
+
     else: 
         # Time,smac,dmac,sip,dip,request,fc,error,address,data,label -> headers
         # loading the attack and normal datasets from csv files
@@ -97,12 +107,14 @@ def task2a_flows_creation_Electra(df_path, label):
 
         # determine the direction determine direction, and the argument is sip
         flows['direction'] = flows.apply(determine_direction, axis=1, src_col_name='sip', pair_index=0) 
-
+        print('after the direction')
         # converting timestamp to datetimestamp
-        flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s') # not sure if this will be a good idea.
+        # this should not be changed to date_time, because it is relative timestamp
+#        flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s') # not sure if this will be a good idea.
         print('after timestamp conversion')
         # adding inter-arrival timestamp between packets in the same flow
-        flows['iat'] = flows.groupby(level=[0])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups
+#        flows['iat'] = flows.groupby(level=[0])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups
+        flows['iat'] = flows.groupby(level=[0])['timestamp'].diff() # levels here refers to the index of the groups
         print('adding iat')
         print('starting creating flows 2 mins')
         
@@ -112,6 +124,8 @@ def task2a_flows_creation_Electra(df_path, label):
         flows.to_parquet(label + '.parquet', index=False)  
 
         print(f'processing time to write to the disk: {time.time() - now}') 
+    print(f'data head before flows creation {flows.head()}')
+    print(flows.columns)
     # creating time_widnowed_flows with 2, 4, and 6 mins
     flows_2min = create_time_windowed_flows_electra(flows, 2)
     
@@ -162,8 +176,14 @@ def task2d(flows):
         
     # --- Hyperparameter tuning (grid search) ---
     # flows = [flows_control_2min, flows_control_4min, flows_control_6min]
-    perplexities = [10, 30, 50]
-    learning_rates = [100, 200, 500]
+    if TESTING:
+        perplexities = [10]
+        learning_rates = [100]
+        flows = flows[:2]
+    else:
+        perplexities = [10, 30, 50]
+        learning_rates = [100, 200, 500]
+        
     for i, flow in enumerate(flows):
         best_score = float('inf')
         best_tsne = None
@@ -190,18 +210,19 @@ def task2d(flows):
         plt.close()
     return True
 
-def task2e(packetsPath = "all_packets.npy") :
+def task2e(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label='control') :
     '''
         We need to compute chebyshev distance between every two raw packets, not two flows
     '''
      
     
-    if not os.path.exists(packetsPath):
+    if not os.path.exists(packetsPathNpy):
         # Generating all packets from all pcaps in a directory
-        all_packets_array = generate_bytes_array_from_packet_list('../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set')
+        print('generating bytes')
+        all_packets_array = generate_bytes_array_from_packet_list(packetListPathPcap)
     else: 
         start = time.time()
-        all_packets_array = np.load(packetsPath, allow_pickle=True)
+        all_packets_array = np.load(packetsPathNpy, allow_pickle=True)
         print(f"Loaded {len(all_packets_array)} arrays successfully.")
         print(f'time taken to load all npfile {time.time() - start}\n now creating pairs')
 
@@ -214,7 +235,10 @@ def task2e(packetsPath = "all_packets.npy") :
     
     # Generate all packet pairs
     now = time.time()
-    pairs = list(combinations(all_packets_array[:100], 2)) # This 100 should be changed after I ask Dr.Asya
+    if TESTING:
+        pairs = list(combinations(all_packets_array[:100], 2)) # This 100 should be changed after I ask Dr.Asya
+    else: 
+        pairs = list(combinations(all_packets_array, 2)) 
 
     print(f'time taken to generate all pairs {time.time() - now} with {len(pairs)}, \n now computing distances')
     now = time.time()
@@ -228,7 +252,7 @@ def task2e(packetsPath = "all_packets.npy") :
     print(f"Computed {len(distances)} Chebyshev distances in parallel.\n now saving to file the distances")
 
     # Save to file (binary .npy for fast I/O)
-    output_path = "chebyshev_distances.npy"
+    output_path = f"chebyshev_distances_{label}.npy"
     np.save(output_path, np.array(distances, dtype=np.float32))
     print(f"Saved distances to {output_path}")
 
@@ -238,7 +262,6 @@ def task2e(packetsPath = "all_packets.npy") :
     print(distances[:100])
     return distances
 
-    
 
 def task2f(chebyshev_distance_for_bytes, bins, label):
     bin_edges, counts = manual_histogram(chebyshev_distance_for_bytes, bins=bins)
@@ -250,52 +273,56 @@ def task2f(chebyshev_distance_for_bytes, bins, label):
 def main(): 
 
     # task2a preprocessing for QUT 
+    print('processing task 2a Q')
     QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow = task2a_flows_creation_QUT('../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', 'attacked')
     QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow = task2a_flows_creation_QUT('../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/control/', 'normal')
     
     # task2a preprocessing for Electra
+    print('processing task 2a E')
+
     Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow = task2a_flows_creation_Electra('../../DataSets/electra_s7comm/output/attacked/combined_attacked.csv', 'attacked')
     Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow = task2a_flows_creation_Electra('../../DataSets/electra_s7comm/output/normal/combined_normal.csv', 'normal')
 
     # task2b for QUT
+    print('processing task 2b Q')
     QUT_Attacked_chebyshev_distances_2min,QUT_Attacked_chebyshev_distances_4min,QUT_Attacked_chebyshev_distances_6min,QUT_Attacked_chebyshev_distances_2min_frame_len,QUT_Attacked_chebyshev_distances_4min_frame_len,QUT_Attacked_chebyshev_distances_6min_frame_len = task2b(QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow)
     QUT_Control_chebyshev_distances_2min,QUT_Control_chebyshev_distances_4min,QUT_Control_chebyshev_distances_6min,QUT_Control_chebyshev_distances_2min_frame_len,QUT_Control_chebyshev_distances_4min_frame_len,QUT_Control_chebyshev_distances_6min_frame_len = task2b(QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow)
 
     # task2b for Electra
+    print('processing task 2b E')
     Electra_Attacked_chebyshev_distances_2min,Electra_Attacked_chebyshev_distances_4min,Electra_Attacked_chebyshev_distances_6min,Electra_Attacked_chebyshev_distances_2min_frame_len,Electra_Attacked_chebyshev_distances_4min_frame_len,Electra_Attacked_chebyshev_distances_6min_frame_len = task2b(Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow)
     Electra_Normal_chebyshev_distances_2min,Electra_Normal_chebyshev_distances_4min,Electra_Normal_chebyshev_distances_6min,Electra_Normal_chebyshev_distances_2min_frame_len,Electra_Normal_chebyshev_distances_4min_frame_len,Electra_Normal_chebyshev_distances_6min_frame_len = task2b(Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow)
 
     # task 2c for QUT
+    print('processing task 2c Q')
     task2c(QUT_Attacked_chebyshev_distances_2min,QUT_Attacked_chebyshev_distances_4min,QUT_Attacked_chebyshev_distances_6min,QUT_Attacked_chebyshev_distances_2min_frame_len,QUT_Attacked_chebyshev_distances_4min_frame_len,QUT_Attacked_chebyshev_distances_6min_frame_len, 'Attacked')
     task2c(QUT_Control_chebyshev_distances_2min,QUT_Control_chebyshev_distances_4min,QUT_Control_chebyshev_distances_6min,QUT_Control_chebyshev_distances_2min_frame_len,QUT_Control_chebyshev_distances_4min_frame_len,QUT_Control_chebyshev_distances_6min_frame_len, 'Normal')
 
     # task 2c for Electra
+    print('processing task 2c E')
     task2c(Electra_Attacked_chebyshev_distances_2min,Electra_Attacked_chebyshev_distances_4min,Electra_Attacked_chebyshev_distances_6min,Electra_Attacked_chebyshev_distances_2min_frame_len,Electra_Attacked_chebyshev_distances_4min_frame_len,Electra_Attacked_chebyshev_distances_6min_frame_len, 'Attacked')
     task2c(Electra_Normal_chebyshev_distances_2min,Electra_Normal_chebyshev_distances_4min,Electra_Normal_chebyshev_distances_6min,Electra_Normal_chebyshev_distances_2min_frame_len,Electra_Normal_chebyshev_distances_4min_frame_len,Electra_Normal_chebyshev_distances_6min_frame_len, 'Normal')
-
+    
     # task2d for QUT
+    print('processing task 2d Q')
     task2d([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow])
     task2d([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow])
     
     ## task2d for Electra
+    print('processing task 2d E')
     task2d([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow])
     task2d([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow])
-
-    # task2e for QUT
-    QUT_Normal = task2e('all_packets_normal_qut.npy')
-    QUT_Attacked = task2e('all_packets_attacked_qut.npy')
     
-    # task2e for Electra
-    Electra_Normal = task2e('all_packets_normal_electra.npy')
-    Electra_Attacked = task2e('all_packets_attacked_electra.npy')
+    # task2e for QUT only
+    print('processing task 2e Q')
+    QUT_Normal = task2e('all_packets_normal_qut.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='control')
+    QUT_Attacked = task2e('all_packets_attacked_qut.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='attacked')
+   
     
-    # task2f for QUT
+    # task2f for QUT only
+    print('processing task 2f Q ')
     task2f(QUT_Normal, bins=4, label='QUT_Normal')
     task2f(QUT_Attacked, bins=4, label='QUT_Attacked')
-
-    # task2f for Electra
-    task2f(Electra_Normal, bins=4, label='Electra_Normal')
-    task2f(Electra_Attacked, bins=4, label='Electra_Attacked')
 
 
 
@@ -305,4 +332,6 @@ main()
 end = time.time()
 
 print(f'whole process in {end - start} secs')
+
+
 
