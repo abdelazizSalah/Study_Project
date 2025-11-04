@@ -4,8 +4,7 @@
     @Desc: This is a utility file that contains helper functions to be used in the main tasks. 
 
 '''
-TESTING = True
-
+TESTING = False 
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from scapy.all import rdpcap
