@@ -71,14 +71,15 @@ def task2a_flows_creation_QUT(df_path, label):
 def task2a_flows_creation_Electra(df_path, label):
 
     # if the file .paraquet exists, load it directly
-    if os.path.exists(label + '.parquet'):
-        print(f'loading preprocessed parquet file for {label}')
-        now = time.time()
-        flows = pd.read_parquet(label + '.parquet')
-        print(f'loaded parquet file in {time.time() - now} secs')
- 	# There is a problem in loading from .parquet.
+    # if os.path.exists(label + '.parquet'):
+    #     print(f'loading preprocessed parquet file for {label}')
+    #     now = time.time()
+    #     flows = pd.read_parquet(label + '.parquet')
+    #     print(f'loaded parquet file in {time.time() - now} secs')
+ 	# # There is a problem in loading from .parquet.
 
-    else: 
+    # else: 
+    if True:
         # Time,smac,dmac,sip,dip,request,fc,error,address,data,label -> headers
         # loading the attack and normal datasets from csv files
         print('task2a starting')
