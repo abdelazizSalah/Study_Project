@@ -3,7 +3,7 @@ import numpy as np
 
 #print: model parameters
 def extract_and_print_features_to_file(ds_all, file, model, model_config: str):
-    encoder = keras.Model(model.input, model.get_layer("latent").output)
+    encoder = keras.Model(model.input, model.get_layer("latent").output)    #todo: name for bottleneck layer has to be consisten!
     features = encoder.predict(ds_all, verbose=1)  # works for tf.data.Dataset or np arrays
     np.save(f"{file}_features.npy", features)
     #todo: log config into file next to features or at least the modl name

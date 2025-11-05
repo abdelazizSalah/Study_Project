@@ -23,14 +23,14 @@ def build_tiny_ae_conv1d(input_dim: int, bottleneck: int = 32, activation: str =
     pass
 
 
-def create_train_evaluate_model(ds_train, ds_test, activation: str, layer_type: str, param_settings):
+def create_train_evaluate_model(M, ds_train, ds_test, activation: str, layer_type: str, param_settings):
     # learning rate = size of single weight update step
     # higher lr -> faster training, lr too high -> training unstable
 
     if layer_type=="dense":
-        model = build_tiny_ae_dense(activation=activation)
+        model = build_tiny_ae_dense(M, activation=activation)
     else:
-        model = build_tiny_ae_conv1d(activation=activation)
+        model = build_tiny_ae_conv1d(M, activation=activation)
 
     model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mse")
 
@@ -44,7 +44,7 @@ def create_train_evaluate_model(ds_train, ds_test, activation: str, layer_type: 
     return model, min(history.history["val_loss"]) #minimum MSE for test data of that model
 
 
-def hyperparameter_search(ds_train, ds_test, activation: str, layer_type: str):
+def hyperparameter_search(M, ds_train, ds_test, activation: str, layer_type: str):
     #todo: implement grid search of optimal hyperparameter for each model
 
     best_val_loss=1000
@@ -53,7 +53,7 @@ def hyperparameter_search(ds_train, ds_test, activation: str, layer_type: str):
 
     #todo: loop - foreach hyper parameter setting do:
     param_settings=[] #todo
-    model, val_loss= create_train_evaluate_model(ds_train, ds_test, activation, layer_type, param_settings)
+    model, val_loss= create_train_evaluate_model(M, ds_train, ds_test, activation, layer_type, param_settings)
 
 
     if val_loss < best_val_loss:
