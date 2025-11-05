@@ -99,7 +99,7 @@ def main_for_tests():
     p.add_argument("--pcap-dir", required=True, type=Path, help="Directory with PCAP/PCAPNG files (recursive)")
     p.add_argument("--M", type=int, required=True, help="Bytes per packet (input length)")
     p.add_argument("--epochs", required=True, type=int, help="")
-    p.add_argument("--output-dir", required=True, type=Path, help="File to print features of best models.")
+    p.add_argument("--output-dir", required=True, type=Path, help="Directory to print features of best SDA models.")
 
     args = p.parse_args()
 
@@ -114,12 +114,15 @@ def main_for_tests():
 
     #load dataset from file
     data = np.load("dataset.npy")
-    ds = tf.data.Dataset.from_tensor_slices(data)
-    print(ds.element_spec)
+
+    ds_all = tf.data.Dataset.from_tensor_slices(data)
+    ds_all_batched = ds_all.batch(128)
+    print(ds_all_batched.element_spec)
     print(len(data))
 
     #test feature extraction print
-    extract_and_print_features_to_file()
+    extract_and_print_features_to_file(ds_all_batched, model,  args.output_dir, "model_dense_relu")
+
 
 if __name__ == "__main__":
     #main()

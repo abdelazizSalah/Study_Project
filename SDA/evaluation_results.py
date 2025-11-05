@@ -1,11 +1,23 @@
+from pathlib import Path
 from tensorflow import keras
 import numpy as np
+import pandas as pd
 
 #print: model parameters
-def extract_and_print_features_to_file(ds_all, file, model, model_config: str):
+def extract_and_print_features_to_file(ds_all, model,  path: Path, model_name):
     encoder = keras.Model(model.input, model.get_layer("latent").output)    #todo: name for bottleneck layer has to be consisten!
     features = encoder.predict(ds_all, verbose=1)  # works for tf.data.Dataset or np arrays
-    np.save(f"{file}_features.npy", features)
+    filename = path / f"{model_name}_features.npy"
+    np.save(filename, features)
+
+    #save again but this time as csv:
+    # convert to DataFrame
+    df = pd.DataFrame(features)
+
+    filename = path / f"{model_name}_features.csv"
+
+    # save to CSV
+    df.to_csv(filename, index=False)
     #todo: log config into file next to features or at least the modl name
 
 

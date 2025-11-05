@@ -50,6 +50,7 @@ def create_matrix_from_pcaps(files, M):
 
 #assume unsupervised (no labels)
 #train ratio 0.9 => 10% validation, 90% training
+#batch size effects speed and resource consumption!
 def make_datasets(matrix, batch_size = 128, train_ratio: float = 0.9):
     # Compute split index
     n_train = int(train_ratio * matrix.shape[0])
