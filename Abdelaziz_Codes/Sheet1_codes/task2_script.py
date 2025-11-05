@@ -91,6 +91,7 @@ def task2a_flows_creation_Electra(df_path, label):
         print(loaded_df.head())    
         # change column name Time to timestamp
         loaded_df.rename(columns={'Time': 'timestamp', 'packet_size':'frame_len'}, inplace=True)
+
         print(loaded_df.columns)
 
         # selecting the important features
@@ -321,14 +322,16 @@ def main():
     
     # task2d for QUT
     print('processing task 2d Q')
-    task2d([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow])
-    task2d([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow])
-    
+    task2d_gpu([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow])
+    task2d_gpu([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow])
+   
+  
+ 
     ## task2d for Electra
     print('processing task 2d E')
-    task2d([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow])
-    task2d([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow])
-    
+    task2d_gpu([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow])
+    task2d_gpu([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow])
+
     # task2e for QUT only
     print('processing task 2e Q')
     QUT_Normal = task2e('all_packets_normal_qut.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='control')

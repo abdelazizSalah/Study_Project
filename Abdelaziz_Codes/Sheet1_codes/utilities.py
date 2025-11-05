@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 from cuml.manifold import TSNE
 from cuml.preprocessing import StandardScaler
 import cupy as cp
+cp.cuda.Device(1).use()   # use GPU 1 instead of GPU 0
 
 
 output_dir = Path('../../DataSets/electra_s7comm/output')
@@ -598,31 +599,58 @@ def compute_best_tsne(flow, perplexities, learning_rates, index):
     return best_score
 
 
-def gpu_tsne(flow, perplexities=[10,30,50], learning_rates=[100,200,500], index=0):
+def gpu_tsne(flow, perplexities=[10, 30, 50], learning_rates=[100, 200, 500], index=0):
+    # --- Prepare data ---
     X = flow[['frame_len', 'iat']].values
-    X = cp.asarray(X)                           # Move data to GPU
-    X = StandardScaler().fit_transform(X)
-    
-    best_score, best_tsne = float('inf'), None
-    for p in perplexities:
-        for lr in learning_rates:
-            tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
-            embedding = tsne.fit_transform(X)
-            kl_div = float(tsne.kl_divergence_)  # Retrieve scalar value
-            if kl_div < best_score:
-                best_score, best_tsne = kl_div, embedding
+    X = cp.asarray(X)                     # move data to GPU
+    X = StandardScaler().fit_transform(X) # normalize features
 
-    embedding = cp.asnumpy(best_tsne)  # Bring result back to CPU for plotting
-    plt.figure(figsize=(6,5))
-    plt.scatter(embedding[:,0], embedding[:,1], s=10, alpha=0.7)
-    plt.title(f"GPU t-SNE (control) - {(index+1)*2}min\nBest KL: {best_score:.4f}")
+    best_score, best_tsne = float('inf'), None
+
+    # --- Iterate over hyperparameters ---
+    for p in perplexities:
+        if X.shape[0] < 3 * p:  # cuML rule: n_samples >= 3 * perplexity
+            print(f"Skipping perplexity={p}: not enough samples ({X.shape[0]})")
+            continue
+        for lr in learning_rates:
+            try:
+                tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
+                embedding = tsne.fit_transform(X)
+                if embedding is None or embedding.size == 0:
+                    print(f"Empty embedding at perplexity={p}, lr={lr}")
+                    continue
+                kl_div = float(tsne.kl_divergence_)
+                if kl_div < best_score:
+                    best_score, best_tsne = kl_div, embedding
+            except Exception as e:
+                print(f"[!] Error with perplexity={p}, lr={lr}: {e}")
+                continue
+
+    # --- Handle empty result ---
+    if best_tsne is None:
+        print(f"Skipping flow {index}: no valid embeddings found.")
+        return None
+
+    # --- Plot best embedding ---
+    embedding = cp.asnumpy(best_tsne)  # bring back to CPU for plotting
+    plt.figure(figsize=(6, 5))
+    plt.scatter(embedding[:, 0], embedding[:, 1], s=10, alpha=0.7)
+    plt.title(f"GPU t-SNE (control) – {(index + 1) * 2} min window\nBest KL: {best_score:.4f}")
     plt.tight_layout()
-    plt.savefig(f"tsne_gpu_control_{(index+1)*2}min.png", dpi=300)
+    plt.savefig(f"tsne_gpu_control_{(index + 1) * 2}min.png", dpi=300)
     plt.close()
+
+    print(f"Flow {index}: Best KL={best_score:.4f}")
     return best_score
 
+
 def task2d_gpu(flows):
-    results = [gpu_tsne(flow, index=i) for i, flow in enumerate(flows)]
+    results = []
+    for i, flow in enumerate(flows):
+        cp.cuda.Device(i % cp.cuda.runtime.getDeviceCount()).use()  # rotate over GPUs
+        result = gpu_tsne(flow, index=i)
+        if result is not None:
+            results.append(result)
     print("Best KL divergences per flow:", results)
     return True
 
