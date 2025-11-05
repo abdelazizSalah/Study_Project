@@ -8,7 +8,7 @@ from SDA.autoencoder import hyperparameter_search, create_train_evaluate_model
 from SDA.prepare_data import create_matrix_from_pcaps, make_datasets
 
 from tensorflow import keras
-
+import tensorflow as tf
 from tensorflow.keras import layers
 from evaluation_results import evaluate, extract_and_print_features_to_file
 
@@ -57,7 +57,7 @@ def main():
     print(matrix.shape)
 
     #tansform np matrix into tensor dataset
-    ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+    ds_all, ds_train, ds_test, X_train, X_test = make_datasets(matrix)
 
     filename = args.output_file
     create_all_models_extract_features(filename, ds_train, ds_test)
@@ -80,7 +80,11 @@ def create_and_train_model(packet_length_M, path):
     print(matrix.shape)
 
     # create training data (np matrix)
-    ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+    ds_all, ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+
+    #save ds
+    data = np.concatenate(list(ds_all.as_numpy_iterator()))
+    np.save("dataset.npy", data)
 
     #creat model
     param_settings=[]
@@ -99,13 +103,23 @@ def main_for_tests():
 
     args = p.parse_args()
 
-    create_and_train_model(args.M, args.pcap_dir)
+    #create_and_train_model(args.M, args.pcap_dir)
+
+    #load dataset
+
 
     #load_model_from_file
     model = keras.models.load_model("autoencoder_full_model_test.keras")
     print(model.summary())
-    #test feature extraction print
 
+    #load dataset from file
+    data = np.load("dataset.npy")
+    ds = tf.data.Dataset.from_tensor_slices(data)
+    print(ds.element_spec)
+    print(len(data))
+
+    #test feature extraction print
+    extract_and_print_features_to_file()
 
 if __name__ == "__main__":
     #main()
