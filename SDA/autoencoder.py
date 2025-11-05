@@ -3,8 +3,6 @@ from tensorflow.keras import layers
 from evaluation_results import evaluate
 
 
-#
-
 #dense=fully connected
 def build_tiny_ae_dense(input_dim: int, bottleneck: int = 32, activation: str = "relu", noise_std: float = 0.02) -> keras.Model:
     inp = keras.Input(shape=(input_dim,), name="bytes")

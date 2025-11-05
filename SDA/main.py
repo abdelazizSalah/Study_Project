@@ -67,5 +67,31 @@ def main():
 #todo: classifier (3d)
 
 
+#/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set
+def main_for_tests():
+    p = argparse.ArgumentParser(description="Minimal Autoencoder for ICS packets")
+    p.add_argument("--pcap-dir", type=Path, help="Directory with PCAP/PCAPNG files (recursive)")
+    p.add_argument("--M", type=int, required=True, help="Bytes per packet (input length)")
+    p.add_argument("--epochs", required=True, type=int, help="")
+    p.add_argument("--output-dir", required=True, type=Path, help="File to print features of best models.")
+
+    args = p.parse_args()
+
+    #create training data (np matrix)
+    packet_length_M = args.M
+    files=list_files_by_filetype(args.pcap_dir, "pcap")
+    matrix=create_matrix_from_pcaps(files, packet_length_M)
+    print(matrix.shape)
+
+    #tansform np matrix into tensor dataset
+    ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+
+    filename = args.output_file
+    #create_all_models_extract_features(filename, ds_train, ds_test)
+
+    #test feature extraction print
+
+
 if __name__ == "__main__":
-    main()
+    #main()
+    main_for_tests()
