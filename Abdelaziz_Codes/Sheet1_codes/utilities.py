@@ -4,8 +4,7 @@
     @Desc: This is a utility file that contains helper functions to be used in the main tasks. 
 
 '''
-
-
+TESTING = False 
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from scapy.all import rdpcap
@@ -17,6 +16,9 @@ from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor,as_complet
 import numpy as np
 from itertools import combinations
 import matplotlib.pyplot as plt
+from cuml.manifold import TSNE
+from cuml.preprocessing import StandardScaler
+import cupy as cp
 
 
 output_dir = Path('../../DataSets/electra_s7comm/output')
@@ -62,6 +64,20 @@ def compute_packet_size(row):
     field in the `row` which is the payload.
     """
     return 6*2 + 4*2 + 2*1 + row['data'] 
+
+def determine_direction(row, src_col_name, pair_index):
+    '''
+        My Logic is that, I will sort the flows with timestamp, and then the first packet will be from the source to destination which is sent,
+        so I will assign it 0, and the other packets will be assigned based on this logic.
+        if the src_ip is same as the first ip in the pair, then it is 0, else 1.
+    '''
+    src_ip = row[src_col_name]
+    pair_id = row.name[pair_index]  # Accessing pair_id from the MultiIndex
+    first_ip_in_pair = pair_id.split('__')[0]
+    if src_ip == first_ip_in_pair:
+        return 0
+    else:
+        return 1
 
 
 def process_chunk(chunk_id, chunk):
@@ -115,7 +131,7 @@ def multi_threading_splitting_electra(input_file='../../DataSets/electra_s7comm/
 
 ##################### Multi-threading loading of QUT dataset and Electra dataset
 def load_csv(file):
-    return pd.read_csv(file)
+    return pd.read_csv(file, nrows = 50000)
 
 def multithreading_loading_QUT(df_path): 
     """
@@ -157,7 +173,10 @@ def multithreading_loading_QUT(df_path):
 
 def load_csv_electra(file):
     # Use fast C parser and low_memory=False for better chunk merging
-    return pd.read_csv(file, engine='c', low_memory=False)
+    if TESTING:
+        return pd.read_csv(file, engine='c', low_memory=False, nrows=5000)
+    else:
+        return pd.read_csv(file, engine='c', low_memory=False)
 
 def parallel_load(file_list, maxWorkers=None):
     """
@@ -268,7 +287,10 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
     """
     start = time.time()
     pcap_files = list_files_by_filetype(pcap_files_path, "pcap")
-    print(pcap_files)
+    if TESTING: 
+        pcap_files = [pcap_files[0]]
+
+    print(f'the pcap file to be processed {pcap_files}')
     all_packets = []
     print(f'time taken to load all list all files {time.time() - start}')
     start = time.time()
@@ -404,6 +426,7 @@ def list_files_by_filetype(root_path, filetype):
     return pcap_files
 
 def read_pcap_as_byte_sequences(pcap_path):
+    print(f' the given path is {pcap_path}')
     packets = rdpcap(pcap_path)              # Load all packets
     return [bytes(pkt) for pkt in packets]  # Convert each packet to raw bytes
     
@@ -430,12 +453,12 @@ def create_time_windowed_flows(flows, time_window_minutes):
     """
     time_windowed_flows = {}
     print(time_window_minutes)
-    time_delta = pd.Timedelta(minutes=time_window_minutes)
-    
+#    time_delta = pd.Timedelta(minutes=time_window_minutes)
+ #   print(time_delta)    
+    time_delta = time_window_minutes * 60
     for (app_proto, pair_id), group in flows.groupby(level=[0,1]):
         start_time = group['timestamp'].min()
         end_time = group['timestamp'].max()
-        
         current_window_start = start_time
         while current_window_start < end_time:
             current_window_end = current_window_start + time_delta
@@ -535,13 +558,14 @@ def create_time_windowed_flows_electra(flows, time_window_minutes):
     specified time window in minutes.
     """
     print(f" Creating {time_window_minutes}-minute windows...")
-    time_delta = pd.Timedelta(minutes=time_window_minutes)
+    #time_delta = pd.Timedelta(minutes=time_window_minutes)
+    time_delta = time_window_minutes * 60
     time_windowed_flows = {}
 
     grouped = list(flows.groupby(level=[0]))  # [(pair_id, group_df), ...]
-
+    print(f"max timestamp: {max(flows['timestamp'])}")
     # Use parallel processing
-    max_workers = max(1, os.cpu_count() // 2)
+    max_workers = max(1, os.cpu_count())
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(process_single_pair, (pid, g, time_delta)): pid for pid, g in grouped}
         for f in as_completed(futures):
@@ -555,4 +579,50 @@ def create_time_windowed_flows_electra(flows, time_window_minutes):
     df = pd.concat(time_windowed_flows.values(), keys=time_windowed_flows.keys())
     print(f" Completed {time_window_minutes}-minute flow creation using {max_workers} cores.")
     return df
+
+
+def compute_best_tsne(flow, perplexities, learning_rates, index):
+    X = np.nan_to_num(StandardScaler().fit_transform(flow[['frame_len', 'iat']].values))
+    best_score, best_tsne = float('inf'), None
+    for p in perplexities:
+        for lr in learning_rates:
+            tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
+            embedding = tsne.fit_transform(X)
+            if tsne.kl_divergence_ < best_score:
+                best_score, best_tsne = tsne.kl_divergence_, embedding
+    plt.figure(figsize=(6,5))
+    plt.scatter(best_tsne[:,0], best_tsne[:,1], s=10, alpha=0.7)
+    plt.title(f"t-SNE (control) - {(index+1)*2} min\nBest KL: {best_score:.4f}")
+    plt.savefig(f"tsne_control_{(index+1)*2}min.png", dpi=300)
+    plt.close()
+    return best_score
+
+
+def gpu_tsne(flow, perplexities=[10,30,50], learning_rates=[100,200,500], index=0):
+    X = flow[['frame_len', 'iat']].values
+    X = cp.asarray(X)                           # Move data to GPU
+    X = StandardScaler().fit_transform(X)
+    
+    best_score, best_tsne = float('inf'), None
+    for p in perplexities:
+        for lr in learning_rates:
+            tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
+            embedding = tsne.fit_transform(X)
+            kl_div = float(tsne.kl_divergence_)  # Retrieve scalar value
+            if kl_div < best_score:
+                best_score, best_tsne = kl_div, embedding
+
+    embedding = cp.asnumpy(best_tsne)  # Bring result back to CPU for plotting
+    plt.figure(figsize=(6,5))
+    plt.scatter(embedding[:,0], embedding[:,1], s=10, alpha=0.7)
+    plt.title(f"GPU t-SNE (control) - {(index+1)*2}min\nBest KL: {best_score:.4f}")
+    plt.tight_layout()
+    plt.savefig(f"tsne_gpu_control_{(index+1)*2}min.png", dpi=300)
+    plt.close()
+    return best_score
+
+def task2d_gpu(flows):
+    results = [gpu_tsne(flow, index=i) for i, flow in enumerate(flows)]
+    print("Best KL divergences per flow:", results)
+    return True
 
