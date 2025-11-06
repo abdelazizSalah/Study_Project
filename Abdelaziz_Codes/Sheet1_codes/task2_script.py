@@ -207,7 +207,7 @@ def task2d_with_no_parallelization(flows, label):
             X = flow[['frame_len', 'iat', 'direction']].values
             X = StandardScaler().fit_transform(X)  # Standardize features
             X = np.nan_to_num(X)  # Ensure no NaN values
-            best_perplexity, best_lr, best_score, _ = parameter_tuning(X[:len(X) * 0.1], perplexities, learning_rates)
+            best_perplexity, best_lr, best_score, _ = parameter_tuning(X[:int(len(X) * 0.1)], perplexities, learning_rates)
            
             # running the model again but with the best parameters on the full data
             tsne = TSNE(n_components=2, perplexity=best_perplexity, learning_rate=best_lr, random_state=42, metric='chebyshev')
