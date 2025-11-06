@@ -26,11 +26,12 @@ def task2a_preprocessing():
 def task2a_flows_creation_QUT(df_path, label):
     # loading the attack and normal datasets from csv files
     loaded_df = multithreading_loading_QUT(df_path)
+    loaded_df['attack_label'] = loaded_df['filename'].apply(lambda x: x.split('.')[1] if len(x.split('.')) > 2 else x.split('.')[0])
     # selecting the important features
     if TESTING:
-        df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']][:100] # working on small sample for testing
+        df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id', 'attack_label']][:100] # working on small sample for testing
     else:
-        df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']] # working on small sample for testing
+        df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id', 'attack_label']] # working on small sample for testing
 
     #df_selected_features = loaded_df[['timestamp', 'src_ip', 'dst_ip', 'app_proto', 'frame_len', 'pair_id']][:1000] # working on small sample for testing
 
@@ -38,17 +39,17 @@ def task2a_flows_creation_QUT(df_path, label):
     df_selected_features = df_selected_features[df_selected_features['app_proto'] != 'undetected:-1:-1']
     
     # group packets by application protocol
-    df_grouped = df_selected_features.groupby(['app_proto', 'pair_id'])
+    df_grouped = df_selected_features.groupby(['pair_id','app_proto'])
 
     # selecting interesting features and sorting them by timestamp
     print('before sorting')
-    flows = df_grouped.apply(lambda x: x[['timestamp', 'src_ip', 'dst_ip', 'frame_len']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
+    flows = df_grouped.apply(lambda x: x[['timestamp', 'src_ip', 'dst_ip', 'frame_len', 'attack_label']].sort_values('timestamp').reset_index(drop=True)) # Reseting the index to get new indicies after sorting to avoid confusion.
     print('after sorting')
     # converting timestamp to datetime
     # flows['timestamp'] = pd.to_datetime(flows['timestamp'], unit='s')
 
     # Add a column for the direction of the flow, if the src_ip == the first 4 octets of the pair_id, then direction is 0, else 1
-    flows['direction'] = flows.apply(determine_direction, axis=1, src_col_name='src_ip', pair_index=1) # src_index is 1 because pair_id is the second level in the MultiIndex
+    flows['direction'] = flows.apply(determine_direction, axis=1, src_col_name='src_ip', pair_index=0) # src_index is 1 because pair_id is the second level in the MultiIndex
     
     # adding inter-arrival time between packets in the same flow
 #    flows['iat'] = flows.groupby(level=[0,1])['timestamp'].diff().dt.total_seconds() # levels here refers to the index of the groups which are the protocol and pair_id
@@ -174,42 +175,66 @@ def task2c(chebyshev_distances_2min,chebyshev_distances_4min,chebyshev_distances
 #        plt.show()
 
 
-def task2d_with_no_parallelization(flows):
+def parameter_tuning(flow, perplexities, learning_rates):
+    best_score = float('inf')
+    best_perplexity, best_lr = 0, 0
+    best_tsne = None
+    for p in perplexities:
+        for lr in learning_rates:
+            tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42, metric='chebyshev') # the output will be strange because we are using chebyshev distance, which does not make sense in our context, however we can use eucliedean distance for better representation.
+            embedding = tsne.fit_transform(flow)
+            kl_div = tsne.kl_divergence_  # lower is better
+            if kl_div < best_score:
+                best_score = kl_div
+                best_tsne = embedding
+                best_perplexity, best_lr = p, lr
+    return  best_perplexity, best_lr, best_score, best_tsne
+
+def task2d_with_no_parallelization(flows, label):
         
     # --- Hyperparameter tuning (grid search) ---
     # flows = [flows_control_2min, flows_control_4min, flows_control_6min]
     if TESTING:
         perplexities = [10]
         learning_rates = [100]
-        flows = flows[:2]
+        flows = flows[:2][:100]
     else:
-        perplexities = [10, 30, 50]
-        learning_rates = [100, 200, 500]
-        
-    for i, flow in enumerate(flows):
-        best_score = float('inf')
-        best_tsne = None
-        X = flow[['frame_len', 'iat']].values
-        X = StandardScaler().fit_transform(X)  # Standardize features
-        X = np.nan_to_num(X)  # Ensure no NaN values
-        for p in perplexities:
-            for lr in learning_rates:
-                tsne = TSNE(n_components=2, perplexity=p, learning_rate=lr, random_state=42)
-                embedding = tsne.fit_transform(X)
-                kl_div = tsne.kl_divergence_  # lower is better
-                if kl_div < best_score:
-                    best_score = kl_div
-                    best_tsne = embedding
-        
-        # --- Plot best embedding ---
-        plt.figure(figsize=(6,5))
-        plt.scatter(best_tsne[:,0], best_tsne[:,1], s=10, alpha=0.7)
-        plt.title(f"t-SNE (control) - {(i + 1) * 2} min window\nBest KL: {best_score:.4f}")
-        plt.xlabel("t-SNE Dimension 1")
-        plt.ylabel("t-SNE Dimension 2")
-        plt.tight_layout()
-        plt.savefig(f"tsne_control_{(i + 1) * 2}min.png", dpi=300)
-        plt.close()
+        perplexities = [i for i in range(5,50)]
+        learning_rates = [i for i in range (10,1000)]
+
+        # use the best parameters to compute t-SNE embeddings for all flows
+        for i, flow in enumerate(flows):
+            X = flow[['frame_len', 'iat', 'direction']].values
+            X = StandardScaler().fit_transform(X)  # Standardize features
+            X = np.nan_to_num(X)  # Ensure no NaN values
+            best_perplexity, best_lr, best_score, _ = parameter_tuning(X[:len(X) * 0.1], perplexities, learning_rates)
+           
+            # running the model again but with the best parameters on the full data
+            tsne = TSNE(n_components=2, perplexity=best_perplexity, learning_rate=best_lr, random_state=42, metric='chebyshev')
+            embedding = tsne.fit_transform(X)
+            # --- Plot best embedding ---
+            # Assign the color based on the attack_label, green for hmi, blue for master, and red for others
+                        
+            color_map = {'master': 'green', 'hmi': 'blue'}
+            colors = attack_labels.map(color_map).fillna('red')
+            handles = [plt.Line2D([0], [0], marker='o', color='w', label=label, markerfacecolor=color)
+                        for label, color in color_map.items()]
+            if label == 'control':
+                attack_labels = flow['attack_label']
+                
+                # add to handles red for attacks 
+                handles.append(plt.Line2D([0], [0], marker='o', color='w', label='other attacks', markerfacecolor='red'))
+
+                plt.legend(handles=handles, title="Attack Type")
+            color_map = {'hmi': 'green', 'master': 'blue'}
+            plt.figure(figsize=(6,5))
+            plt.scatter(embedding[:,0], embedding[:,1], s=10, alpha=0.7, c=colors)
+            plt.title(f"t-SNE ({label}) - {(i + 1) * 2} min window\nBest KL: {best_score:.4f}")
+            plt.xlabel("t-SNE Dimension 1")
+            plt.ylabel("t-SNE Dimension 2")
+            plt.tight_layout()
+            plt.savefig(f"tsne_{label}_{(i + 1) * 2}min.png", dpi=300)
+            plt.close()
     return True
 
 
@@ -280,6 +305,59 @@ def task2e(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSet
     return distances
 
 
+def compute_distances_for_i(i, all_packets_array):
+    base = all_packets_array[i]
+    n = len(all_packets_array)
+    return [np.max(np.abs(base - all_packets_array[j])) for j in range(i + 1, n)]
+
+def compute_all_distances(all_packets_array, label, TESTING=False):
+    if TESTING:
+        all_packets_array = all_packets_array[:100]
+
+    max_workers = os.cpu_count() or 4
+    now = time.time()
+
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        results = list(executor.map(compute_distances_for_i, range(len(all_packets_array)), [all_packets_array]*len(all_packets_array)))
+
+    # Flatten results (each thread returns list of distances)
+    distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
+
+    print(f"Computed {len(distances)} Chebyshev distances in {time.time()-now:.2f}s")
+    np.save(f"chebyshev_distances_{label}.npy", distances)
+    return distances
+
+def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label='control') :
+    '''
+        We need to compute chebyshev distance between every two raw packets, not two flows
+    '''
+     
+    
+    if not os.path.exists(packetsPathNpy):
+        # Generating all packets from all pcaps in a directory
+        print('generating bytes')
+        all_packets_array = generate_bytes_array_from_packet_list(packetListPathPcap)
+    else: 
+        start = time.time()
+        all_packets_array = np.load(packetsPathNpy, allow_pickle=True)
+        print(f"Loaded {len(all_packets_array)} arrays successfully.")
+        print(f'time taken to load all npfile {time.time() - start}\n now creating pairs')
+
+    all_packets =  [] 
+    for array in all_packets_array: 
+        print(len(array))
+        all_packets.extend(arr for arr in array)
+    all_packets_array = normalize_packets(all_packets)
+
+    
+    # Generate all packet pairs
+    now = time.time()
+
+
+    return compute_all_distances(all_packets_array, label, TESTING=TESTING)
+    
+
+
 def task2f(chebyshev_distance_for_bytes, bins, label):
     bin_edges, counts = manual_histogram(chebyshev_distance_for_bytes, bins=bins)
     plot_histogram(bin_edges, counts, f"Chebyshev Distances {label} Traffic", "Chebyshev Distance (Bytes Level)", "Frequency", f"bytes_{label}.jpg")
@@ -322,15 +400,15 @@ def main():
     
     # task2d for QUT
     print('processing task 2d Q')
-    task2d_gpu([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow])
-    task2d_gpu([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow])
+    task2d_with_no_parallelization([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow], 'QUT_control')
+    task2d_with_no_parallelization([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow], 'QUT_attacked')
    
   
  
     ## task2d for Electra
     print('processing task 2d E')
-    task2d_gpu([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow])
-    task2d_gpu([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow])
+    task2d_with_no_parallelization([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow], 'Electra_Normal')
+    task2d_with_no_parallelization([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow], 'Electra_Attacked')
 
     # task2e for QUT only
     print('processing task 2e Q')

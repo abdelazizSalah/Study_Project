@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 
-from Anna_Code.process_pcap import pcap_extract_values
+from process_pcap import pcap_extract_values
 
 
 def save_df_as_parquet(df, path):
@@ -15,7 +15,7 @@ def read_df_from_parquet(path):
     return df
 
 
-def save_df_to_csv(df,output_path, mode, header ):
+def save_df_to_csv(df,output_path, mode='w', header =True):
     df.to_csv(output_path, mode=mode, header=header, index=False)
     return 0
 

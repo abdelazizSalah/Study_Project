@@ -50,6 +50,7 @@ def create_matrix_from_pcaps(files, M):
 
 #assume unsupervised (no labels)
 #train ratio 0.9 => 10% validation, 90% training
+#batch size effects speed and resource consumption!
 def make_datasets(matrix, batch_size = 128, train_ratio: float = 0.9):
     # Compute split index
     n_train = int(train_ratio * matrix.shape[0])
@@ -71,4 +72,12 @@ def make_datasets(matrix, batch_size = 128, train_ratio: float = 0.9):
         .batch(batch_size)
     )
 
-    return ds_train, ds_test, X_train, X_test
+    # Combine train and test into one dataset (e.g., for feature extraction)
+    ds_all = (
+        tf.data.Dataset
+        .from_tensor_slices(matrix)
+        .batch(batch_size)
+        .prefetch(tf.data.AUTOTUNE)
+    )
+
+    return ds_all, ds_train, ds_test, X_train, X_test

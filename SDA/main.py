@@ -4,26 +4,41 @@ from pathlib import Path
 import numpy as np
 
 from Anna_Code.file_helper import list_files_by_filetype
-from SDA.autoencoder import build_tiny_ae
+from SDA.autoencoder import hyperparameter_search, create_train_evaluate_model
 from SDA.prepare_data import create_matrix_from_pcaps, make_datasets
 
 from tensorflow import keras
+import tensorflow as tf
 from tensorflow.keras import layers
+from evaluation_results import evaluate, extract_and_print_features_to_file
 
 
-def evaluate():
-    pass
+
+def create_all_models_extract_features(M, output_dir, ds_train, ds_test):
+
+    #create 6 models: 2 different layers, 3 differnt activation function
+    model_dense_relu, param_settings = hyperparameter_search(M, ds_train, ds_test, activation="relu", layer_type="dense")
+    extract_and_print_features_to_file(ds_train, output_dir+"dense_relu", model_dense_relu, f"Model 1: Dense Layers, relu activation functions.\n Hyperparameters: {param_settings})")
+
+    model_dense_elu, param_settings = hyperparameter_search(M, ds_train, ds_test, activation="elu", layer_type="dense")
+    extract_and_print_features_to_file(ds_train, "dense_elu", model_dense_elu, f"Model 2: Dense Layers, elu activation functions.\n Hyperparameters: {param_settings})")
 
 
-def plot_results(history):
-    import matplotlib.pyplot as plt
-    plt.plot(history.history["loss"], label="train")
-    plt.plot(history.history["val_loss"], label="val")
-    plt.yscale("log")
-    plt.legend()
-    plt.savefig(f"autoencoder_training.png")
+    model_dense_tanh, param_settings = hyperparameter_search(M, ds_train, ds_test, activation="tanh", layer_type="dense")
+    extract_and_print_features_to_file(ds_train, "dense_tanh", model_dense_tanh, f"Model 3: Dense Layers, tanh activation functions.\n Hyperparameters: {param_settings})")
 
-    #plt.show()
+
+    model_conv1d_relu, param_settings = hyperparameter_search(M, ds_train, ds_test, activation="relu", layer_type="conv1d")
+    extract_and_print_features_to_file(ds_train, "conv1d_relu", model_conv1d_relu, f"Model 3: conv1D Layers, relu activation functions.\n Hyperparameters: {param_settings})")
+
+    model_conv1d_elu, param_settings = hyperparameter_search(M, ds_train, ds_test, activation="elu", layer_type="conv1d")
+    extract_and_print_features_to_file(ds_train, "conv1d_elu", model_conv1d_elu, f"Model 3: conv1D Layers, elu activation functions.\n Hyperparameters: {param_settings})")
+
+    model_conv1d_tanh, param_settings = hyperparameter_search(M, ds_train, ds_test, activation="tanh", layer_type="conv1d")
+    extract_and_print_features_to_file(ds_train, "conv1d_tanh", model_conv1d_tanh, f"Model 3: conv1D Layers, tanh activation functions.\n Hyperparameters: {param_settings})")
+
+    return
+
 
 #/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set
 def main():
@@ -31,35 +46,84 @@ def main():
     p.add_argument("--pcap-dir", type=Path, help="Directory with PCAP/PCAPNG files (recursive)")
     p.add_argument("--M", type=int, required=True, help="Bytes per packet (input length)")
     p.add_argument("--epochs", required=True, type=int, help="")
+    p.add_argument("--output-dir", required=True, type=Path, help="File to print features of best models.")
 
     args = p.parse_args()
 
+    #create training data (np matrix)
     packet_length_M = args.M
     files=list_files_by_filetype(args.pcap_dir, "pcap")
     matrix=create_matrix_from_pcaps(files, packet_length_M)
     print(matrix.shape)
 
-    #todo batch siz and train ratio as parameters
-    ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+    #tansform np matrix into tensor dataset
+    ds_all, ds_train, ds_test, X_train, X_test = make_datasets(matrix)
 
-    #create model
-    model = build_tiny_ae(input_dim=packet_length_M)
-    #learning rate = size of single weight update step
-    #higher lr -> faster training, lr too high -> training unstable
-    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.001), loss="mse")
+    filename = args.output_file
+    create_all_models_extract_features(filename, ds_train, ds_test)
+
+
+#todo: transform simple AE into SDA
+#todo: implement conv1d layer type
+#todo: hyperparameter grid search (3b)
+#todo: classifier (3d)
+
+
+
+
+###################################################################################testing
+
+def create_and_train_model(packet_length_M, path):
+
+    files = list_files_by_filetype(path, "pcap")
+    matrix = create_matrix_from_pcaps(files, packet_length_M)
+    print(matrix.shape)
+
+    # create training data (np matrix)
+    ds_all, ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+
+    #save ds
+    data = np.concatenate(list(ds_all.as_numpy_iterator()))
+    np.save("dataset.npy", data)
+
+    #creat model
+    param_settings=[]
+    model_dense_relu, error = create_train_evaluate_model(packet_length_M, ds_train, ds_test, activation="relu", layer_type="dense", param_settings=param_settings)
+
+    model_dense_relu.save("autoencoder_full_model_test.keras")
+
+
+#--M 100 --epochs 100 --output-dir /home/dW5kZWFk/uni/study_project/stats/sda_output --pcap-dir /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set
+def main_for_tests():
+    p = argparse.ArgumentParser(description="Minimal Autoencoder for ICS packets")
+    p.add_argument("--pcap-dir", required=True, type=Path, help="Directory with PCAP/PCAPNG files (recursive)")
+    p.add_argument("--M", type=int, required=True, help="Bytes per packet (input length)")
+    p.add_argument("--epochs", required=True, type=int, help="")
+    p.add_argument("--output-dir", required=True, type=Path, help="Directory to print features of best SDA models.")
+
+    args = p.parse_args()
+
+    #create_and_train_model(args.M, args.pcap_dir)
+
+    #load dataset
+
+
+    #load_model_from_file
+    model = keras.models.load_model("autoencoder_full_model_test.keras")
     print(model.summary())
 
-    #define early stopping callback
-    #if loss doesn't improve for 5 consecutive epochs -> roll back to weights with lowest loss
-    cb = [keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)]
+    #load dataset from file
+    data = np.load("dataset.npy")
 
-    # train model
-    history = model.fit(ds_train, validation_data=ds_test, epochs=args.epochs, callbacks=cb, verbose=1)
-    plot_results(history)
+    ds_all = tf.data.Dataset.from_tensor_slices(data)
+    ds_all_batched = ds_all.batch(128)
+    print(ds_all_batched.element_spec)
+    print(len(data))
 
-    best_val_loss = min(history.history["val_loss"])
-    best_train_loss = min(history.history["loss"])
-    print(f"train_loss:{best_train_loss}; val_loss{best_val_loss} ")
+    #test feature extraction print
+    extract_and_print_features_to_file(ds_all_batched, model,  args.output_dir, "model_dense_relu")
+
 
 if __name__ == "__main__":
-    main()
+    #main()
+    main_for_tests()

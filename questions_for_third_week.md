@@ -1,0 +1,1 @@
+- t-SNE is used when we need to reduce from high-dimensions to low dimensions, but in our case, we already have only 3 dimensions, which is already low dimensions. So the question is do you want to perform it only on the selected 3 features, or we need to perform it on the whole features before prepration? 
