@@ -1,6 +1,6 @@
 from tensorflow import keras
 from tensorflow.keras import layers
-from evaluation_results import evaluate
+from evaluation_results import evaluate_model
 
 
 #dense=fully connected

@@ -3,9 +3,10 @@ from tensorflow import keras
 import numpy as np
 import pandas as pd
 
+
 #print: model parameters
 def extract_and_print_features_to_file(ds_all, model,  path: Path, model_name):
-    encoder = keras.Model(model.input, model.get_layer("latent").output)    #todo: name for bottleneck layer has to be consisten!
+    encoder = keras.Model(model.input, model.get_layer("latent").output)    #todo: name for bottleneck layer has to be consistent!
     features = encoder.predict(ds_all, verbose=1)  # works for tf.data.Dataset or np arrays
     filename = path / f"{model_name}_features.npy"
     np.save(filename, features)
@@ -18,7 +19,6 @@ def extract_and_print_features_to_file(ds_all, model,  path: Path, model_name):
 
     # save to CSV
     df.to_csv(filename, index=False)
-    #todo: log config into file next to features or at least the modl name
 
 
 def plot_results(history):
@@ -33,7 +33,7 @@ def plot_results(history):
     return
 
 
-def evaluate(history, plot_results):
+def evaluate_model(history, plot_results):
     if plot_results:
         plot_results(history)
     best_val_loss = min(history.history["val_loss"])

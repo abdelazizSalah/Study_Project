@@ -28,7 +28,7 @@ from process_electra import electra_df_extract_values
 
 
 def test_main():
-    start = time.time()   # ⏱️ start timer
+    start = time.time()   # start timer
 
     # create_large_csv_file_from_pcaps("/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks",
     #                                 "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set",
@@ -57,7 +57,7 @@ def test_main():
     #print_packet_length_distribution_and_iat_task1B(df)
     print_packet_distribution_task1C(df)
 
-    end = time.time()  # ⏹️ end timer
+    end = time.time()  #  end timer
     elapsed = end - start
     print(f"⏱️ main() executed in {elapsed:.2f} seconds")
     return 0

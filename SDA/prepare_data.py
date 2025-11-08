@@ -3,6 +3,26 @@ from scapy.all import rdpcap
 import numpy as np
 from pathlib import Path
 import tensorflow as tf
+from scapy.error import Scapy_Exception
+
+from Anna_Code.file_helper import list_files_by_filetype
+
+
+def store_dataset_in_file(path, packet_length_M, is_attack_set):
+
+    files = list_files_by_filetype(path, "pcap")
+    matrix = create_matrix_from_pcaps(files, packet_length_M)
+
+    #create training data (np matrix)
+    ds_all, ds_train, ds_test, X_train, X_test = make_datasets(matrix)
+    # save ds
+    data = np.concatenate(list(ds_all.as_numpy_iterator()))
+    if(is_attack_set):
+        np.save("dataset_attack.npy", data)
+    else:
+        np.save("dataset_normal.npy", data)
+    return
+
 
 #input: single packet in binary, length M
 #output: array for packet with required length
@@ -34,11 +54,20 @@ def read_pcap_bytes(pcap_file, M):
 def create_matrix_from_pcaps(files, M):
     rows = []
     for file in files:
-        packet_list = read_pcap_bytes(file, M)  # list of np arrays
-        rows.extend(packet_list)  # add them to our big list
-    if not rows:
-        raise ValueError(f"No packets found in the provided PCAP file{file}.")
+        try:
+            packet_list = read_pcap_bytes(file, M)  # list of np arrays
+        except Exception as e:
+            print(f"[!] Unexpected error reading {file} - it might be empty: {e}")
+            continue
 
+        if not packet_list:
+            print(f"[!] No packets found in {file}, skipping.")
+            continue
+
+        rows.extend(packet_list)
+
+    if not rows:
+        raise ValueError("No valid packets found in any of the provided PCAP files.")
 
     #stack list of arrays into single matrix
     #before: [  8,   0,  39,  46, 207, 244,   0,  27,  27,  23, 248, 130,   ...]
