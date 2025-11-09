@@ -7,7 +7,6 @@ from scapy.error import Scapy_Exception
 
 from Anna_Code.file_helper import list_files_by_filetype
 
-
 def store_dataset_in_file(path, packet_length_M, is_attack_set):
 
     files = list_files_by_filetype(path, "pcap")

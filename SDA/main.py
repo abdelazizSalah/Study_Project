@@ -15,6 +15,7 @@ from tensorflow import keras
 
 
 
+
 #run mode 2 "features" (requires existing models)
 def print_features_for_all_models(output_dir):
 
@@ -47,28 +48,73 @@ def print_features_for_all_models(output_dir):
 
     return
 
-
+from stackedDenoisingAutoEncoder import SDA 
 #run mode 1 "model":
-def create_and_train_all_optimized_models(M, ds_train, ds_test):
+def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
+    '''
+        The output here should be six trained models, each one with the best hyperparameters found.
+        All the models should be saved to files for later use.
 
-    model_dir = Path("models_and_data")
-
-    layer_types = ["dense", "conv1d"]
+    '''
+    layer_types = ["dense", "sparse"]
     activations = ["relu", "elu", "tanh"]
-
+    numberOfLayers = [i for i in range(3,8)]  # from 3 to 7 layers
+    optimizers = ['adam', 'gradient_descent']
+    dropoutRates = [0.1, 0.2, 0.3, 0.4, 0.5]
+    batchSizes = [64, 128, 256]
+    noiseFactors = [0.1, 0.2, 0.3, 0.4, 0.5]
+    epochs = [50, 100, 150]
+    biasOptions = [True, False]
+    bestModel = None
+    bestMSE = float('inf')
+    best_hyperparameters = {}
     #create 6 models: 2 different layers, 3 differnt activation function
-
     for layer_type in layer_types:
         for activation in activations:
-            print(f"\nSearching for hyperparameters and training {layer_type.upper()} model with activation {activation} ...")
-            model, param_settings = hyperparameter_search(
-                M, ds_train, ds_test, activation=activation, layer_type=layer_type
-            )
-            model_name = f"model_{layer_type}_{activation}.keras"
-            model_path = model_dir / model_name
-            model.save(model_path)
+            # All the followings are hyperparameters fine-tuning for each model type.
+            for numLayer in numberOfLayers:
+                for dropOut in dropoutRates: 
+                    for batch in batchSizes: 
+                        for noise in noiseFactors:
+                            for epoch in epochs:
+                                for optimizer in optimizers:
+                                    for bias in biasOptions: 
+                                        sda = SDA(
+                                            numLayers= numLayer,
+                                            hiddenNodesPerLayer = [M], # Ask how can we reduce this, if this is the output size? 
+                                            dropoutPerLayer = [dropOut if layer_type == "dense" else 0.7],
+                                            encodingActivationPerLayer = [activation],
+                                            decodingActivationPerLayer = [activation],
+                                            bias = bias,
+                                            lossFunction = 'mse',
+                                            batchSize = batch,
+                                            numberOfEpochs = epoch,
+                                            optimizer = optimizer, 
+                                            noiseFactor = noise,
+                                            layerType= layer_type,
+                                            activationType= activation
+                                        )
 
-    return
+                                        # also the model is written in the given directory.
+                                        print(f"\ncreating SDA with hyper parameters: {layer_type.upper()} model with activation {activation} ...")
+                                        finalModel, trainingData, validationData, testingData, reconstructionMSE = sda.getSDAModel(ds_train, ds_validation, ds_test, 'models_and_data/')
+                                        print(f"Model created and trained. Reconstruction MSE on test set: {reconstructionMSE}")
+                                        if reconstructionMSE < bestMSE:
+                                            bestMSE = reconstructionMSE
+                                            bestModel = finalModel
+                                            best_hyperparameters = {
+                                                "layer_type": layer_type,
+                                                "activation": activation,
+                                                "num_layers": numLayer,
+                                                "dropout": dropOut,
+                                                "batch_size": batch,
+                                                "noise_factor": noise,
+                                                "epochs": epoch,
+                                                "optimizer": optimizer,
+                                                "bias": bias
+                                            }
+
+    return bestModel, best_hyperparameters
 
 
 
@@ -146,7 +192,7 @@ def parse_args():
 
 
 def main():
-    start = time.time()   # ⏱️ start timer
+    start = time.time()   #  start timer
 
     args = parse_args()
 
@@ -156,28 +202,23 @@ def main():
     have_attack = attack_path.exists()
 
     #verify that normal dataset already exists in file (required for mode features and mode classify)
-    if args.mode!="models" and not have_normal:
+    if not have_normal:
         print(
             f"No dataset file found for normal packets ('models_and_data/dataset_normal.npy')! The dataset will be created from the pcap files in{args.pcap_dir_attack}. This may take a while...")
         store_dataset_in_file(args.pcap_dir_control, args.M, 0)
-
+        
 
     #for creation of models, dataset will be prepared
-    # --mode models --pcap-dir-control /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set --M 100 --epochs 25
     if args.mode == "models":
         print("Create Models Mode\n")
-        files = list_files_by_filetype(args.pcap_dir_control, "pcap")
-        matrix = create_matrix_from_pcaps(files, args.M)
-        print(matrix.shape)
+        # load normal dataset from file
+        data = np.load("models_and_data/dataset_normal.npy")
 
-        # create training data (np matrix)
-        ds_all, ds_train, ds_test, X_train, X_test = make_datasets(matrix)
-
-        # save ds (optional for later use)
-        data = np.concatenate(list(ds_all.as_numpy_iterator()))
-        np.save("dataset_normal.npy", data)
-
-        create_and_train_all_optimized_models(args.M, ds_train, ds_test) #stores models in files
+        # convert it to training, validation and test sets
+        ds_training = data[:int(0.8 * data.shape[0])] # 80% training
+        ds_validation = data[int(0.8 * data.shape[0]):int(0.9 * data.shape[0])] # 10% validation
+        ds_test = data[int(0.9 * data.shape[0]):] # 10% test
+        create_and_train_all_optimized_models(args.M, ds_training,ds_validation, ds_test) #stores models in files
 
     #--mode features --pcap-dir-control /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set --M 100 --output-dir-features /home/dW5kZWFk/uni/study_project/stats/sda_output
     elif args.mode == "features":
