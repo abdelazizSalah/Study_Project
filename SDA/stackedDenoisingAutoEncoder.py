@@ -33,7 +33,6 @@ class SDA(object) :
                 numberOfEpochs = 100,
                 optimizer = 'adam', 
                 noiseFactor = 0.1,
-                counter = 0
                   ):
         '''
             Initializing SDA parameters
