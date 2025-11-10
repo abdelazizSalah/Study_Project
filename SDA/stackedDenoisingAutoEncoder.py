@@ -168,6 +168,9 @@ class SDA(object) :
 
         # Saving the file into the directory. 
         self._saveModel(finalModel, outputDir = outputDirectory, architectureFileName = f'enc_{self.layerType}_{self.activationType}_layers.png', modelJsonFileName = f'enc_{self.layerType}_{self.activationType}_layers.json', weightsFileName = 'enc_layers_weights.h5')
+        
+        # TODO: try to save it in form of .keras format. 
+        
         return finalModel, trainingData, validationData, testingData, reconstructionMSE
     
     # This saves the trained model
@@ -188,6 +191,7 @@ class SDA(object) :
         
         # and saving its weights.
         model.save_weights(outputDir+weightsFileName, overwrite=True)
+
         
     # This stores the SDA hyperparameters to a file for future reference.
     def _writeSDAConfigToFile(self, outDir):

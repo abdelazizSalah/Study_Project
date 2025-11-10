@@ -240,6 +240,7 @@ def task2d_with_no_parallelization(flows, label):
 def tsne_worker(args):
     return compute_best_tsne(*args)
 
+# This should be modified. 
 def task2d(flows):
     perplexities, learning_rates = [p for p in range(5,50)], [lr for lr in range(10,1000)]
     workers = os.cpu_count() or 1
