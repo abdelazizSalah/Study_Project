@@ -367,52 +367,11 @@ shared_packets = None
 #####
 
 
-
-def compute_all_distances(all_packets_array, label, block_size=40000):
-    """
-    Compute Chebyshev distances in blocks to avoid OOM.
-    Each block pair (i, j) is processed sequentially and saved incrementally.
-    """
-    all_packets_array = np.array(all_packets_array, dtype=np.uint8)
-    start_time = time.time()
-    n = len(all_packets_array)
-    max_len = all_packets_array.shape[1]
-    print(f"[INFO] Starting blockwise distance computation on {n} packets "
-          f"(length={max_len}) with block size={block_size}")
-
-    output_dir = "chebyshev_blocks"
-    os.makedirs(output_dir, exist_ok=True)
-    block_id = 0
-
-    # Iterate over upper-triangle block pairs
-    for i in range(0, n, block_size):
-        block_a = all_packets_array[i:i + block_size]
-        for j in range(i, n, block_size):
-            block_b = all_packets_array[j:j + block_size]
-            print(f"  -> Computing block ({i}:{i+len(block_a)}) x ({j}:{j+len(block_b)})")
-
-            # Compute pairwise Chebyshev distances between block_a and block_b
-            # Broadcasting trick: expand dims then take max over byte axis
-            diffs = np.abs(block_a[:, None, :] - block_b[None, :, :])
-            cheb = np.max(diffs, axis=2)
-
-            # Keep only upper triangle if same block (to avoid duplicates)
-            if i == j:
-                mask = np.triu(np.ones_like(cheb, dtype=bool), k=1)
-                cheb = cheb[mask]
-
-            np.save(os.path.join(output_dir, f"{label}_block_{block_id}.npy"), cheb.astype(np.float32))
-            block_id += 1
-
-    print(f"[INFO] Finished in {(time.time() - start_time)/60:.2f} min. "
-          f"Saved {block_id} partial blocks to '{output_dir}/'")
-
-    return output_dir
-
-
 def pad_packets_to_max(packets):
+    """Convert packets (bytes/bytearray) into uniform 2D numpy array padded to max length."""
     max_len = max(len(np.frombuffer(p, dtype=np.uint8)) for p in packets)
     print(f"[INFO] Max packet length = {max_len} bytes")
+
     padded = np.zeros((len(packets), max_len), dtype=np.uint8)
     for i, p in enumerate(packets):
         arr = np.frombuffer(p, dtype=np.uint8)
@@ -425,26 +384,37 @@ def compute_block(args):
     i, j, block_a, block_b, label, block_id = args
     print(f"  -> block {block_id}: ({i}:{i+len(block_a)}) x ({j}:{j+len(block_b)})")
 
+    # Compute Chebyshev distances using broadcasting
     diffs = np.abs(block_a[:, None, :] - block_b[None, :, :])
     cheb = np.max(diffs, axis=2)
-    if i == j:                     # remove duplicates on the diagonal
+
+    # Keep only upper triangle if same block
+    if i == j:
         mask = np.triu(np.ones_like(cheb, dtype=bool), k=1)
         cheb = cheb[mask]
+
     out = f"chebyshev_blocks/{label}_block_{block_id}.npy"
     np.save(out, cheb.astype(np.float32))
     return out
 
 
 def compute_chebyshev_blockwise_parallel(all_packets_array, label, block_size=10000):
+    """Parallel computation of Chebyshev distances blockwise."""
     os.makedirs("chebyshev_blocks", exist_ok=True)
+
+    # ✅ FIX: pad first, ensure rectangular numeric array
+    all_packets_array = pad_packets_to_max(all_packets_array)
+
     n = len(all_packets_array)
     jobs, block_id = [], 0
 
-    # build job list for upper-triangular blocks
+    # Build job list safely within bounds
     for i in range(0, n, block_size):
+        i_end = min(i + block_size, n)
         for j in range(i, n, block_size):
-            block_a = all_packets_array[i:i + block_size]
-            block_b = all_packets_array[j:j + block_size]
+            j_end = min(j + block_size, n)
+            block_a = all_packets_array[i:i_end]
+            block_b = all_packets_array[j:j_end]
             jobs.append((i, j, block_a, block_b, label, block_id))
             block_id += 1
 
@@ -461,9 +431,6 @@ def compute_chebyshev_blockwise_parallel(all_packets_array, label, block_size=10
 
     print(f"[INFO] Done in {(time.time()-start)/60:.2f} min; "
           f"results saved in 'chebyshev_blocks/'")
-
-
-
 #####################
 
 # Global shared data
