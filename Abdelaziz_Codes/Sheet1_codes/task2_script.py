@@ -5,7 +5,7 @@
 '''
 
 from utilities import *
-TESTING = True
+TESTING = False
 
 
 # Task2 Creating traffic flow for attacker and normal traffic from QUT_S7Comm dataset pcaps
