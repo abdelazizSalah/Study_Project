@@ -373,6 +373,7 @@ def compute_all_distances(all_packets_array, label, block_size=2000):
     Compute Chebyshev distances in blocks to avoid OOM.
     Each block pair (i, j) is processed sequentially and saved incrementally.
     """
+    all_packets_array = np.array(all_packets_array, dtype=np.uint8)
     start_time = time.time()
     n = len(all_packets_array)
     max_len = all_packets_array.shape[1]
