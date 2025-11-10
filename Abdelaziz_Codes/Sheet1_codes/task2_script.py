@@ -5,6 +5,7 @@
 '''
 
 from utilities import *
+from multiprocessing import shared_memory
 TESTING = False
 
 
@@ -309,9 +310,10 @@ def task2d(flows):
 # Global shared data
 shared_packets = None
 
-def init_worker(packets):
+def init_worker(shm_name, shape, dtype):
     global shared_packets
-    shared_packets = packets
+    existing_shm = shared_memory.SharedMemory(name=shm_name)
+    shared_packets = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
 
 def compute_distances_for_i(i):
     base = shared_packets[i]
@@ -319,23 +321,41 @@ def compute_distances_for_i(i):
     print(f' computing distances for packet {i+1}/{n}')
     return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)] # computing half the matrix only to avoid duplicate computations
 
-def compute_all_distances(all_packets_array, label, TESTING=False):
-    if TESTING:
-        all_packets_array = all_packets_array[:100]
 
-    max_workers = os.cpu_count() or 4
-    now = time.time()
+def compute_all_distances(all_packets_array, label):
+    shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
+    shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
+    shared_copy[:] = all_packets_array[:]  # one copy only
 
-    # running one process with each index i, and passing the a full copy of all_packets_array to each process.
-    with ProcessPoolExecutor(max_workers=max_workers, initializer=init_worker, initargs=(all_packets_array,)) as executor:
-        results = list(executor.map(compute_distances_for_i, range(len(all_packets_array))))
+    with ProcessPoolExecutor(
+        max_workers=os.cpu_count(),
+        initializer=init_worker,
+        initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
+    ) as ex:
+        results = list(ex.map(compute_distances_for_i, range(len(all_packets_array))))
 
-    # Flatten results (each thread returns list of distances)
+    shm.close(); shm.unlink()
     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
-
-    print(f"Computed {len(distances)} Chebyshev distances in {time.time()-now:.2f}s")
     np.save(f"chebyshev_distances_{label}.npy", distances)
     return distances
+
+# def compute_all_distances(all_packets_array, label, TESTING=False):
+#     if TESTING:
+#         all_packets_array = all_packets_array[:100]
+
+#     max_workers = os.cpu_count() or 4
+#     now = time.time()
+
+#     # running one process with each index i, and passing the a full copy of all_packets_array to each process.
+#     with ProcessPoolExecutor(max_workers=max_workers, initializer=init_worker, initargs=(all_packets_array,)) as executor:
+#         results = list(executor.map(compute_distances_for_i, range(len(all_packets_array))))
+
+#     # Flatten results (each thread returns list of distances)
+#     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
+
+#     print(f"Computed {len(distances)} Chebyshev distances in {time.time()-now:.2f}s")
+#     np.save(f"chebyshev_distances_{label}.npy", distances)
+#     return distances
 
 def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label='control') :
     '''
