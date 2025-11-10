@@ -190,6 +190,7 @@ def parameter_tuning(flow, perplexities, learning_rates):
                 best_perplexity, best_lr = p, lr
     return  best_perplexity, best_lr, best_score, best_tsne
 
+
 def task2d_with_no_parallelization(flows, label):
         
     # --- Hyperparameter tuning (grid search) ---
@@ -216,17 +217,15 @@ def task2d_with_no_parallelization(flows, label):
             # Assign the color based on the attack_label, green for hmi, blue for master, and red for others
                         
             color_map = {'master': 'green', 'hmi': 'blue'}
-            colors = attack_labels.map(color_map).fillna('red')
             handles = [plt.Line2D([0], [0], marker='o', color='w', label=label, markerfacecolor=color)
                         for label, color in color_map.items()]
-            if label == 'control':
+            if label != 'control':
                 attack_labels = flow['attack_label']
-                
+                colors = attack_labels.map(color_map).fillna('red')
                 # add to handles red for attacks 
                 handles.append(plt.Line2D([0], [0], marker='o', color='w', label='other attacks', markerfacecolor='red'))
 
-                plt.legend(handles=handles, title="Attack Type")
-            color_map = {'hmi': 'green', 'master': 'blue'}
+            plt.legend(handles=handles, title="Attack Type")
             plt.figure(figsize=(6,5))
             plt.scatter(embedding[:,0], embedding[:,1], s=10, alpha=0.7, c=colors)
             plt.title(f"t-SNE ({label}) - {(i + 1) * 2} min window\nBest KL: {best_score:.4f}")
@@ -242,7 +241,7 @@ def tsne_worker(args):
     return compute_best_tsne(*args)
 
 def task2d(flows):
-    perplexities, learning_rates = [10,30,50], [100,200,500]
+    perplexities, learning_rates = [p for p in range(5,50)], [lr for lr in range(10,1000)]
     workers = os.cpu_count() or 1
     args_list = [(flow, perplexities, learning_rates, i) for i, flow in enumerate(flows)]
     with ProcessPoolExecutor(max_workers=workers) as executor:
@@ -400,15 +399,15 @@ def main():
     
     # task2d for QUT
     print('processing task 2d Q')
-    task2d_with_no_parallelization([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow], 'QUT_control')
-    task2d_with_no_parallelization([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow], 'QUT_attacked')
+    task2d([QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow], 'QUT_control')
+    task2d([QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow], 'QUT_attacked')
    
   
  
     ## task2d for Electra
     print('processing task 2d E')
-    task2d_with_no_parallelization([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow], 'Electra_Normal')
-    task2d_with_no_parallelization([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow], 'Electra_Attacked')
+    task2d([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow], 'Electra_Normal')
+    task2d([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow], 'Electra_Attacked')
 
     # task2e for QUT only
     print('processing task 2e Q')

@@ -583,7 +583,7 @@ def create_time_windowed_flows_electra(flows, time_window_minutes):
     return df
 
 
-def compute_best_tsne(flow, perplexities, learning_rates, index):
+def compute_best_tsne(flow, perplexities, learning_rates, index, label):
     X = np.nan_to_num(StandardScaler().fit_transform(flow[['frame_len', 'iat']].values))
     best_score, best_tsne = float('inf'), None
     for p in perplexities:
@@ -592,8 +592,18 @@ def compute_best_tsne(flow, perplexities, learning_rates, index):
             embedding = tsne.fit_transform(X)
             if tsne.kl_divergence_ < best_score:
                 best_score, best_tsne = tsne.kl_divergence_, embedding
+    color_map = {'master': 'green', 'hmi': 'blue'}
+    handles = [plt.Line2D([0], [0], marker='o', color='w', label=label, markerfacecolor=color)
+                for label, color in color_map.items()]
+    if label != 'control':
+        attack_labels = flow['attack_label']
+        colors = attack_labels.map(color_map).fillna('red')
+        # add to handles red for attacks 
+        handles.append(plt.Line2D([0], [0], marker='o', color='w', label='other attacks', markerfacecolor='red'))
+
+    plt.legend(handles=handles, title="Attack Type")
     plt.figure(figsize=(6,5))
-    plt.scatter(best_tsne[:,0], best_tsne[:,1], s=10, alpha=0.7)
+    plt.scatter(best_tsne[:,0], best_tsne[:,1], s=10, alpha=0.7, c=colors if label != 'control' else 'gray')
     plt.title(f"t-SNE (control) - {(index+1)*2} min\nBest KL: {best_score:.4f}")
     plt.savefig(f"tsne_control_{(index+1)*2}min.png", dpi=300)
     plt.close()

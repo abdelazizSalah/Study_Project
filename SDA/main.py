@@ -65,12 +65,13 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
     noiseFactors = [0.1, 0.2, 0.3, 0.4, 0.5]
     epochs = [50, 100, 150]
     biasOptions = [True, False]
-    bestModel = None
-    bestMSE = float('inf')
-    best_hyperparameters = {}
     #create 6 models: 2 different layers, 3 differnt activation function
     for layer_type in layer_types:
         for activation in activations:
+            # for each model, we try to find the best hyperparameters
+            bestModel = None
+            bestMSE = float('inf')
+            best_hyperparameters = {}   
             # All the followings are hyperparameters fine-tuning for each model type.
             for numLayer in numberOfLayers:
                 for dropOut in dropoutRates: 

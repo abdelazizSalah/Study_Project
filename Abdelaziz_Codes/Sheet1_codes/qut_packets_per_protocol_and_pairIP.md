@@ -4,7 +4,7 @@
   - ![alt text](image-1.png)
 
 - Processing of task2 on the whole dataset: 
-  - ![alt text](image-2.png)
+  - ![Process2OnWholeDataset](image-3.png)
 - 
 | البند                 | معناه                                                                                                   |
 | --------------------- | ------------------------------------------------------------------------------------------------------- |
