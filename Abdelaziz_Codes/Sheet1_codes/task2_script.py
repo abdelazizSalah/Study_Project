@@ -336,7 +336,7 @@ def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../
     if not os.path.exists(packetsPathNpy):
         # Generating all packets from all pcaps in a directory
         print('generating bytes')
-        all_packets_array = generate_bytes_array_from_packet_list(packetListPathPcap)
+        all_packets_array = generate_bytes_array_from_packet_list(packetListPathPcap, label=label)
     else: 
         start = time.time()
         all_packets_array = np.load(packetsPathNpy, allow_pickle=True)

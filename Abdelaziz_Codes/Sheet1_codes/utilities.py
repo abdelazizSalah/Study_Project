@@ -283,7 +283,7 @@ def read_pcap_as_byte_sequences(pcap_path):
     
 
 
-def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set'):
+def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label = 'control'):
     """
     This function reads packet data from pcap files, processes them using multithreading, converts them
     into a NumPy array, and saves the array to a file.
@@ -315,18 +315,19 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
 
     # ensure that all packets all of the same length
     max_len = max(len(pkt) for pkt_list in all_packets for pkt in pkt_list)
-    min_len = min(len(pkt) for pkt_list in all_packets for pkt in pkt_list)
-    print(f'max packet len: {max_len}, min packet len: {min_len}')
     # padd all of them to the max length
     for i in range(len(all_packets)):
         all_packets[i] = [pkt.ljust(max_len, b'\0') for pkt in all_packets[i]]
+        
+    min_len = min(len(pkt) for pkt_list in all_packets for pkt in pkt_list)
+    print(f'max packet len: {max_len}, min packet len: {min_len}')
 
 
     print(f'time taken to process all files {time.time() - start}')
     start = time.time()
     # Convert to large NumPy array with dtype=object (packets may differ in length)
     all_packets_array = np.array(all_packets, dtype=object)
-    np.save('all_packets.npy', all_packets_array)
+    np.save(f'all_packets_{label}.npy', all_packets_array)
 
     print(f'time taken to conver and write all files {time.time() - start}\n now creating pairs')
     start = time.time()
