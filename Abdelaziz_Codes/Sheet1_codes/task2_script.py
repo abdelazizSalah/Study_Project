@@ -511,7 +511,7 @@ def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../
     # Generate all packet pairs
 
     print('computing all distances now')
-    return compute_all_distances(all_packets_array, label)
+    return compute_chebyshev_blockwise_parallel(all_packets_array, label)
     
 
 
