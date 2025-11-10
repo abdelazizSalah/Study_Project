@@ -394,14 +394,16 @@ def compute_block(args):
         cheb = cheb[mask]
 
     out = f"chebyshev_blocks/{label}_block_{block_id}.npy"
+
+    print(f'saving the block {block_id}')
     np.save(out, cheb.astype(np.float32))
     return out
 
 
-def compute_chebyshev_blockwise_parallel(all_packets_array, label, block_size=10000):
+def compute_chebyshev_blockwise_parallel(all_packets_array, label, block_size=1000):
     """Parallel computation of Chebyshev distances blockwise."""
     os.makedirs("chebyshev_blocks", exist_ok=True)
-
+    print('padding')
     # ✅ FIX: pad first, ensure rectangular numeric array
     all_packets_array = pad_packets_to_max(all_packets_array)
 
@@ -511,7 +513,7 @@ def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../
     # Generate all packet pairs
 
     print('computing all distances now')
-    return compute_all_distances(all_packets_array, label)
+    return compute_chebyshev_blockwise_parallel(all_packets_array, label)
     
 
 
@@ -568,15 +570,15 @@ def main():
     task2d([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow], 'Electra_Attacked')
     '''
     # task2e for QUT only
-    print('processing task 2e Q')
-    QUT_Normal = task2e_optimized('all_packets_QUT_control_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
+ #   print('processing task 2e Q')
+#    QUT_Normal = task2e_optimized('all_packets_QUT_control_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
     QUT_Attacked = task2e_optimized('all_packets_QUT_attacked_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
    
     
     # task2f for QUT only
-    print('processing task 2f Q ')
-    task2f(QUT_Normal, bins=4, label='QUT_Normal_taskF')
-    task2f(QUT_Attacked, bins=4, label='QUT_Attacked_taskF')
+  #  print('processing task 2f Q ')
+   # task2f(QUT_Normal, bins=4, label='QUT_Normal_taskF')
+    #task2f(QUT_Attacked, bins=4, label='QUT_Attacked_taskF')
 
 
 
