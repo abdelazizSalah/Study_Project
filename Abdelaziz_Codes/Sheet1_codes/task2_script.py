@@ -5,7 +5,7 @@
 '''
 
 from utilities import *
-TESTING = False
+TESTING = True
 
 
 # Task2 Creating traffic flow for attacker and normal traffic from QUT_S7Comm dataset pcaps
@@ -366,7 +366,7 @@ def task2f(chebyshev_distance_for_bytes, bins, label):
 
 
 def main(): 
-
+    '''
     # task2a preprocessing for QUT 
     print('processing task 2a Q')
     QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow = task2a_flows_creation_QUT('../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', 'QUT_attacked')
@@ -409,7 +409,7 @@ def main():
     print('processing task 2d E')
     task2d([Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow], 'Electra_Normal')
     task2d([Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow], 'Electra_Attacked')
-
+    '''
     # task2e for QUT only
     print('processing task 2e Q')
     QUT_Normal = task2e_optimized('all_packets_normal_qut.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
