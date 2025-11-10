@@ -342,7 +342,7 @@ def compute_chunk(start_end):
             sub.append(np.max(np.abs(base - shared_packets[j])))
     return sub
 
-def compute_all_distances(all_packets_array, label, chunk_size=1000):
+def compute_all_distances2(all_packets_array, label, chunk_size=1000):
     all_packets_array = pad_packets_to_max(all_packets_array)
     shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
     shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
@@ -362,6 +362,51 @@ def compute_all_distances(all_packets_array, label, chunk_size=1000):
     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
     np.save(f"chebyshev_distances_{label}.npy", distances)
     return distances
+
+
+#####
+
+
+
+def compute_all_distances(all_packets_array, label, block_size=2000):
+    """
+    Compute Chebyshev distances in blocks to avoid OOM.
+    Each block pair (i, j) is processed sequentially and saved incrementally.
+    """
+    start_time = time.time()
+    n = len(all_packets_array)
+    max_len = all_packets_array.shape[1]
+    print(f"[INFO] Starting blockwise distance computation on {n} packets "
+          f"(length={max_len}) with block size={block_size}")
+
+    output_dir = "chebyshev_blocks"
+    os.makedirs(output_dir, exist_ok=True)
+    block_id = 0
+
+    # Iterate over upper-triangle block pairs
+    for i in range(0, n, block_size):
+        block_a = all_packets_array[i:i + block_size]
+        for j in range(i, n, block_size):
+            block_b = all_packets_array[j:j + block_size]
+            print(f"  -> Computing block ({i}:{i+len(block_a)}) x ({j}:{j+len(block_b)})")
+
+            # Compute pairwise Chebyshev distances between block_a and block_b
+            # Broadcasting trick: expand dims then take max over byte axis
+            diffs = np.abs(block_a[:, None, :] - block_b[None, :, :])
+            cheb = np.max(diffs, axis=2)
+
+            # Keep only upper triangle if same block (to avoid duplicates)
+            if i == j:
+                mask = np.triu(np.ones_like(cheb, dtype=bool), k=1)
+                cheb = cheb[mask]
+
+            np.save(os.path.join(output_dir, f"{label}_block_{block_id}.npy"), cheb.astype(np.float32))
+            block_id += 1
+
+    print(f"[INFO] Finished in {(time.time() - start_time)/60:.2f} min. "
+          f"Saved {block_id} partial blocks to '{output_dir}/'")
+
+    return output_dir
 
 #####################
 
