@@ -277,7 +277,9 @@ def manual_histogram(data, bins):
 
 def read_pcap_as_byte_sequences(pcap_path):
     print(f' the given path is {pcap_path}')
-    packets = rdpcap(pcap_path)              # Load all packets
+    packets = rdpcap(pcap_path)              # Load all packets in form of a list.
+    print(packets[0])
+    print(type(packets[0]))
     return [bytes(pkt) for pkt in packets]  # Convert each packet to raw bytes
     
     
