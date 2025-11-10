@@ -315,6 +315,8 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
 
     # ensure that all packets all of the same length
     max_len = max(len(pkt) for pkt_list in all_packets for pkt in pkt_list)
+
+    print('padding the packets')
     # padd all of them to the max length
     for i in range(len(all_packets)):
         all_packets[i] = [pkt.ljust(max_len, b'\0') for pkt in all_packets[i]]
