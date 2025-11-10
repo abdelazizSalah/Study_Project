@@ -252,64 +252,72 @@ def task2d(flows):
 
 
 
-def task2e(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label='control') :
-    '''
-        We need to compute chebyshev distance between every two raw packets, not two flows
-    '''
+# def task2e(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label='control') :
+#     '''
+#         We need to compute chebyshev distance between every two raw packets, not two flows
+#     '''
      
     
-    if not os.path.exists(packetsPathNpy):
-        # Generating all packets from all pcaps in a directory
-        print('generating bytes')
-        all_packets_array = generate_bytes_array_from_packet_list(packetListPathPcap)
-    else: 
-        start = time.time()
-        all_packets_array = np.load(packetsPathNpy, allow_pickle=True)
-        print(f"Loaded {len(all_packets_array)} arrays successfully.")
-        print(f'time taken to load all npfile {time.time() - start}\n now creating pairs')
+#     if not os.path.exists(packetsPathNpy):
+#         # Generating all packets from all pcaps in a directory
+#         print('generating bytes')
+#         all_packets_array = generate_bytes_array_from_packet_list(packetListPathPcap)
+#     else: 
+#         start = time.time()
+#         all_packets_array = np.load(packetsPathNpy, allow_pickle=True)
+#         print(f"Loaded {len(all_packets_array)} arrays successfully.")
+#         print(f'time taken to load all npfile {time.time() - start}\n now creating pairs')
 
-    all_packets =  [] 
-    for array in all_packets_array: 
-        print(len(array))
-        all_packets.extend(arr for arr in array)
-    all_packets_array = normalize_packets(all_packets)
+#     all_packets =  [] 
+#     for array in all_packets_array: 
+#         print(len(array))
+#         all_packets.extend(arr for arr in array)
+#     all_packets_array = normalize_packets(all_packets)
 
     
-    # Generate all packet pairs
-    now = time.time()
-    if TESTING:
-        pairs = list(combinations(all_packets_array[:100], 2)) # This 100 should be changed after I ask Dr.Asya
-    else: 
-        pairs = list(combinations(all_packets_array, 2)) 
+#     # Generate all packet pairs
+#     now = time.time()
+#     if TESTING:
+#         pairs = list(combinations(all_packets_array[:100], 2)) # This 100 should be changed after I ask Dr.Asya
+#     else: 
+#         pairs = list(combinations(all_packets_array, 2)) 
 
-    print(f'time taken to generate all pairs {time.time() - now} with {len(pairs)}, \n now computing distances')
-    now = time.time()
-    # Parallel computation for chebyshev distance between packet pairs
-    maxWorkers = os.cpu_count() or 4
-    with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
-        distances = list(executor.map(compute_pair_distance, pairs))
+#     print(f'time taken to generate all pairs {time.time() - now} with {len(pairs)}, \n now computing distances')
+#     now = time.time()
+#     # Parallel computation for chebyshev distance between packet pairs
+#     maxWorkers = os.cpu_count() or 4
+#     with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
+#         distances = list(executor.map(compute_pair_distance, pairs))
 
-    print(f'time taken to compute chebychev distance files {time.time() - now}')
-    now = time.time()
-    print(f"Computed {len(distances)} Chebyshev distances in parallel.\n now saving to file the distances")
+#     print(f'time taken to compute chebychev distance files {time.time() - now}')
+#     now = time.time()
+#     print(f"Computed {len(distances)} Chebyshev distances in parallel.\n now saving to file the distances")
 
-    # Save to file (binary .npy for fast I/O)
-    output_path = f"chebyshev_distances_{label}.npy"
-    np.save(output_path, np.array(distances, dtype=np.float32))
-    print(f"Saved distances to {output_path}")
+#     # Save to file (binary .npy for fast I/O)
+#     output_path = f"chebyshev_distances_{label}.npy"
+#     np.save(output_path, np.array(distances, dtype=np.float32))
+#     print(f"Saved distances to {output_path}")
 
-    print(f'time taken to write chebyshev distance to file {time.time() - now}')
-    #start = time.time()
-    print(len(distances))
-    print(distances[:100])
-    return distances
+#     print(f'time taken to write chebyshev distance to file {time.time() - now}')
+#     #start = time.time()
+#     print(len(distances))
+#     print(distances[:100])
+#     return distances
 
 
-def compute_distances_for_i(i, all_packets_array):
-    base = all_packets_array[i]
-    n = len(all_packets_array)
+
+# Global shared data
+shared_packets = None
+
+def init_worker(packets):
+    global shared_packets
+    shared_packets = packets
+
+def compute_distances_for_i(i):
+    base = shared_packets[i]
+    n = len(shared_packets)
     print(f' computing distances for packet {i+1}/{n}')
-    return [np.max(np.abs(base - all_packets_array[j])) for j in range(i + 1, n)]
+    return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)] # computing half the matrix only to avoid duplicate computations
 
 def compute_all_distances(all_packets_array, label, TESTING=False):
     if TESTING:
@@ -318,8 +326,9 @@ def compute_all_distances(all_packets_array, label, TESTING=False):
     max_workers = os.cpu_count() or 4
     now = time.time()
 
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(compute_distances_for_i, range(len(all_packets_array)), [all_packets_array]*len(all_packets_array)))
+    # running one process with each index i, and passing the a full copy of all_packets_array to each process.
+    with ProcessPoolExecutor(max_workers=max_workers, initializer=init_worker, initargs=(all_packets_array,)) as executor:
+        results = list(executor.map(compute_distances_for_i, range(len(all_packets_array))))
 
     # Flatten results (each thread returns list of distances)
     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])

@@ -412,8 +412,8 @@ def compute_pair_distance(pair):
 
 def normalize_packets(packets):
     """
-    The function `normalize_packets` takes a list of packets and converts them into normalized numpy
-    arrays of unsigned integers.
+    The function `normalize_packets` takes a list of packets which may contain different values and representation of the data and converts them into numpy
+    arrays of unsigned integers to make all the data consistent and to be able to compute chybeshev distance.
     
     :param packets: The `packets` parameter is a list containing packets of data. Each packet can be of
     different types such as bytes, bytearray, list of byte strings, numpy array, or any other data type
