@@ -333,23 +333,32 @@ def compute_distances_for_i(i):
     print(f' computing distances for packet {i+1}/{n}')
     return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)]
 
-def compute_all_distances(all_packets_array, label):
-    # pad automatically to max length
-    all_packets_array = np.array(all_packets_array, dtype=np.uint8)
+def compute_chunk(start_end):
+    start, end = start_end
+    sub = []
+    for i in range(start, end):
+        base = shared_packets[i]
+        for j in range(i+1, len(shared_packets)):
+            sub.append(np.max(np.abs(base - shared_packets[j])))
+    return sub
+
+def compute_all_distances(all_packets_array, label, chunk_size=1000):
     all_packets_array = pad_packets_to_max(all_packets_array)
-    
     shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
     shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
     shared_copy[:] = all_packets_array[:]
-    
-    with ProcessPoolExecutor(
-        max_workers=os.cpu_count(),
-        initializer=init_worker,
-        initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
-    ) as ex:
-        results = list(ex.map(compute_distances_for_i, range(len(all_packets_array))))
-    
-    shm.close(); shm.unlink()
+
+    ranges = [(i, min(i+chunk_size, len(all_packets_array))) for i in range(0, len(all_packets_array), chunk_size)]
+    try:
+        with ProcessPoolExecutor(
+            max_workers=os.cpu_count(),
+            initializer=init_worker,
+            initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
+        ) as ex:
+            results = list(ex.map(compute_chunk, ranges))
+    finally:
+        shm.close(); shm.unlink()
+
     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
     np.save(f"chebyshev_distances_{label}.npy", distances)
     return distances
