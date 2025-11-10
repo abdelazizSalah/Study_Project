@@ -306,9 +306,21 @@ def task2d(flows):
 #     return distances
 
 
+#################33
 
-# Global shared data
 shared_packets = None
+
+def pad_packets_to_max(packets):
+    # find maximum packet length
+    max_len = max(len(np.frombuffer(p, dtype=np.uint8)) for p in packets)
+    print(f"[INFO] Max packet length = {max_len} bytes")
+    
+    # create 2D padded array
+    padded = np.zeros((len(packets), max_len), dtype=np.uint8)
+    for i, p in enumerate(packets):
+        arr = np.frombuffer(p, dtype=np.uint8)
+        padded[i, :len(arr)] = arr
+    return padded
 
 def init_worker(shm_name, shape, dtype):
     global shared_packets
@@ -319,25 +331,63 @@ def compute_distances_for_i(i):
     base = shared_packets[i]
     n = len(shared_packets)
     print(f' computing distances for packet {i+1}/{n}')
-    return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)] # computing half the matrix only to avoid duplicate computations
-
+    return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)]
 
 def compute_all_distances(all_packets_array, label):
+    # pad automatically to max length
+    all_packets_array = np.array(all_packets_array, dtype=np.uint8)
+    all_packets_array = pad_packets_to_max(all_packets_array)
+    
     shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
     shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
-    shared_copy[:] = all_packets_array[:]  # one copy only
-
+    shared_copy[:] = all_packets_array[:]
+    
     with ProcessPoolExecutor(
         max_workers=os.cpu_count(),
         initializer=init_worker,
         initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
     ) as ex:
         results = list(ex.map(compute_distances_for_i, range(len(all_packets_array))))
-
+    
     shm.close(); shm.unlink()
     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
     np.save(f"chebyshev_distances_{label}.npy", distances)
     return distances
+
+#####################
+
+# Global shared data
+# shared_packets = None
+
+# def init_worker(shm_name, shape, dtype):
+#     global shared_packets
+#     existing_shm = shared_memory.SharedMemory(name=shm_name)
+#     shared_packets = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
+
+# def compute_distances_for_i(i):
+#     base = shared_packets[i]
+#     n = len(shared_packets)
+#     print(f' computing distances for packet {i+1}/{n}')
+#     return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)] # computing half the matrix only to avoid duplicate computations
+
+
+# def compute_all_distances(all_packets_array, label):
+#     all_packets_array = np.array(all_packets_array, dtype=np.uint8)
+#     shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
+#     shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
+#     shared_copy[:] = all_packets_array[:]  # one copy only
+
+#     with ProcessPoolExecutor(
+#         max_workers=os.cpu_count(),
+#         initializer=init_worker,
+#         initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
+#     ) as ex:
+#         results = list(ex.map(compute_distances_for_i, range(len(all_packets_array))))
+
+#     shm.close(); shm.unlink()
+#     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
+#     np.save(f"chebyshev_distances_{label}.npy", distances)
+#     return distances
 
 # def compute_all_distances(all_packets_array, label, TESTING=False):
 #     if TESTING:
