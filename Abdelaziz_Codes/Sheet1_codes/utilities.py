@@ -277,6 +277,12 @@ def manual_histogram(data, bins):
 
 def read_pcap_as_byte_sequences(pcap_path):
     print(f' the given path is {pcap_path}')
+    # check if the file is empty
+    if os.path.getsize(pcap_path) == 0:
+        print(f'file is found empty at path {pcap_path}')
+        return []
+    
+
     packets = rdpcap(pcap_path)              # Load all packets in form of a list.
     print(packets[0])
     print(type(packets[0]))
