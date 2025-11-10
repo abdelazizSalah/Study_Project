@@ -308,6 +308,7 @@ def task2e(packetsPathNpy = "all_packets.npy", packetListPathPcap='../../DataSet
 def compute_distances_for_i(i, all_packets_array):
     base = all_packets_array[i]
     n = len(all_packets_array)
+    print(f' computing distances for packet {i+1}/{n}')
     return [np.max(np.abs(base - all_packets_array[j])) for j in range(i + 1, n)]
 
 def compute_all_distances(all_packets_array, label, TESTING=False):
@@ -347,13 +348,13 @@ def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../
     for array in all_packets_array: 
         print(len(array))
         all_packets.extend(arr for arr in array)
+    print('now normalizing packets')
     all_packets_array = normalize_packets(all_packets)
 
     
     # Generate all packet pairs
-    now = time.time()
 
-
+    print('computing all distances now')
     return compute_all_distances(all_packets_array, label, TESTING=TESTING)
     
 
@@ -412,8 +413,8 @@ def main():
     '''
     # task2e for QUT only
     print('processing task 2e Q')
-    QUT_Normal = task2e_optimized('all_packets_normal_qut.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
-    QUT_Attacked = task2e_optimized('all_packets_attacked_qut.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
+    QUT_Normal = task2e_optimized('all_packets_QUT_control_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
+    QUT_Attacked = task2e_optimized('all_packets_QUT_attacked_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
    
     
     # task2f for QUT only
