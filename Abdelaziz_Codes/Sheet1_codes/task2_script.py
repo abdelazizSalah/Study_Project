@@ -310,65 +310,65 @@ def task2d(flows):
 
 shared_packets = None
 
-def pad_packets_to_max(packets):
-    # find maximum packet length
-    max_len = max(len(np.frombuffer(p, dtype=np.uint8)) for p in packets)
-    print(f"[INFO] Max packet length = {max_len} bytes")
+# def pad_packets_to_max(packets):
+#     # find maximum packet length
+#     max_len = max(len(np.frombuffer(p, dtype=np.uint8)) for p in packets)
+#     print(f"[INFO] Max packet length = {max_len} bytes")
     
-    # create 2D padded array
-    padded = np.zeros((len(packets), max_len), dtype=np.uint8)
-    for i, p in enumerate(packets):
-        arr = np.frombuffer(p, dtype=np.uint8)
-        padded[i, :len(arr)] = arr
-    return padded
+#     # create 2D padded array
+#     padded = np.zeros((len(packets), max_len), dtype=np.uint8)
+#     for i, p in enumerate(packets):
+#         arr = np.frombuffer(p, dtype=np.uint8)
+#         padded[i, :len(arr)] = arr
+#     return padded
 
-def init_worker(shm_name, shape, dtype):
-    global shared_packets
-    existing_shm = shared_memory.SharedMemory(name=shm_name)
-    shared_packets = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
+# def init_worker(shm_name, shape, dtype):
+#     global shared_packets
+#     existing_shm = shared_memory.SharedMemory(name=shm_name)
+#     shared_packets = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
 
-def compute_distances_for_i(i):
-    base = shared_packets[i]
-    n = len(shared_packets)
-    print(f' computing distances for packet {i+1}/{n}')
-    return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)]
+# def compute_distances_for_i(i):
+#     base = shared_packets[i]
+#     n = len(shared_packets)
+#     print(f' computing distances for packet {i+1}/{n}')
+#     return [np.max(np.abs(base - shared_packets[j])) for j in range(i + 1, n)]
 
-def compute_chunk(start_end):
-    start, end = start_end
-    sub = []
-    for i in range(start, end):
-        base = shared_packets[i]
-        for j in range(i+1, len(shared_packets)):
-            sub.append(np.max(np.abs(base - shared_packets[j])))
-    return sub
+# def compute_chunk(start_end):
+#     start, end = start_end
+#     sub = []
+#     for i in range(start, end):
+#         base = shared_packets[i]
+#         for j in range(i+1, len(shared_packets)):
+#             sub.append(np.max(np.abs(base - shared_packets[j])))
+#     return sub
 
-def compute_all_distances2(all_packets_array, label, chunk_size=1000):
-    all_packets_array = pad_packets_to_max(all_packets_array)
-    shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
-    shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
-    shared_copy[:] = all_packets_array[:]
+# def compute_all_distances2(all_packets_array, label, chunk_size=1000):
+#     all_packets_array = pad_packets_to_max(all_packets_array)
+#     shm = shared_memory.SharedMemory(create=True, size=all_packets_array.nbytes)
+#     shared_copy = np.ndarray(all_packets_array.shape, dtype=all_packets_array.dtype, buffer=shm.buf)
+#     shared_copy[:] = all_packets_array[:]
 
-    ranges = [(i, min(i+chunk_size, len(all_packets_array))) for i in range(0, len(all_packets_array), chunk_size)]
-    try:
-        with ProcessPoolExecutor(
-            max_workers=os.cpu_count(),
-            initializer=init_worker,
-            initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
-        ) as ex:
-            results = list(ex.map(compute_chunk, ranges))
-    finally:
-        shm.close(); shm.unlink()
+#     ranges = [(i, min(i+chunk_size, len(all_packets_array))) for i in range(0, len(all_packets_array), chunk_size)]
+#     try:
+#         with ProcessPoolExecutor(
+#             max_workers=os.cpu_count(),
+#             initializer=init_worker,
+#             initargs=(shm.name, all_packets_array.shape, all_packets_array.dtype)
+#         ) as ex:
+#             results = list(ex.map(compute_chunk, ranges))
+#     finally:
+#         shm.close(); shm.unlink()
 
-    distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
-    np.save(f"chebyshev_distances_{label}.npy", distances)
-    return distances
+#     distances = np.concatenate([np.array(r, dtype=np.float32) for r in results if r])
+#     np.save(f"chebyshev_distances_{label}.npy", distances)
+#     return distances
 
 
 #####
 
 
 
-def compute_all_distances(all_packets_array, label, block_size=2000):
+def compute_all_distances(all_packets_array, label, block_size=40000):
     """
     Compute Chebyshev distances in blocks to avoid OOM.
     Each block pair (i, j) is processed sequentially and saved incrementally.
@@ -408,6 +408,61 @@ def compute_all_distances(all_packets_array, label, block_size=2000):
           f"Saved {block_id} partial blocks to '{output_dir}/'")
 
     return output_dir
+
+
+def pad_packets_to_max(packets):
+    max_len = max(len(np.frombuffer(p, dtype=np.uint8)) for p in packets)
+    print(f"[INFO] Max packet length = {max_len} bytes")
+    padded = np.zeros((len(packets), max_len), dtype=np.uint8)
+    for i, p in enumerate(packets):
+        arr = np.frombuffer(p, dtype=np.uint8)
+        padded[i, :len(arr)] = arr
+    return padded
+
+
+def compute_block(args):
+    """Worker: compute Chebyshev distances for a pair of blocks (i,j)."""
+    i, j, block_a, block_b, label, block_id = args
+    print(f"  -> block {block_id}: ({i}:{i+len(block_a)}) x ({j}:{j+len(block_b)})")
+
+    diffs = np.abs(block_a[:, None, :] - block_b[None, :, :])
+    cheb = np.max(diffs, axis=2)
+    if i == j:                     # remove duplicates on the diagonal
+        mask = np.triu(np.ones_like(cheb, dtype=bool), k=1)
+        cheb = cheb[mask]
+    out = f"chebyshev_blocks/{label}_block_{block_id}.npy"
+    np.save(out, cheb.astype(np.float32))
+    return out
+
+
+def compute_chebyshev_blockwise_parallel(all_packets_array, label, block_size=10000):
+    os.makedirs("chebyshev_blocks", exist_ok=True)
+    n = len(all_packets_array)
+    jobs, block_id = [], 0
+
+    # build job list for upper-triangular blocks
+    for i in range(0, n, block_size):
+        for j in range(i, n, block_size):
+            block_a = all_packets_array[i:i + block_size]
+            block_b = all_packets_array[j:j + block_size]
+            jobs.append((i, j, block_a, block_b, label, block_id))
+            block_id += 1
+
+    start = time.time()
+    print(f"[INFO] Launching {len(jobs)} block tasks with {os.cpu_count()} workers")
+
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as ex:
+        futures = [ex.submit(compute_block, job) for job in jobs]
+        for f in as_completed(futures):
+            try:
+                f.result()
+            except Exception as e:
+                print(f"[WARN] Block failed: {e}")
+
+    print(f"[INFO] Done in {(time.time()-start)/60:.2f} min; "
+          f"results saved in 'chebyshev_blocks/'")
+
+
 
 #####################
 
