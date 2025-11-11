@@ -208,8 +208,6 @@ def task2d_Electra(Electra_Attacked_2mins_flow, Electra_Normal_2mins_flow, label
     handles = [plt.Line2D([0], [0], marker='o', color='w', label=label, markerfacecolor=color)
                 for label, color in color_map.items()]
     # add to handles red for attacks 
-    handles.append(plt.Line2D([0], [0], marker='o', color='w', label='other attacks', markerfacecolor='red'))
-
     plt.legend(handles=handles, title="Attack Type")
     plt.scatter(embedding[:,0], embedding[:,1],  s=10, alpha=0.7, c=colors)
     plt.title(f"t-SNE ({label} flows: normal + attack)")
