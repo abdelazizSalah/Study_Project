@@ -452,7 +452,7 @@ def task2fMultiProcessing(label='QUT_attacked_taskE', folder = "chebyshev_blocks
 
 
 def main(): 
-    
+    '''
     # task2a preprocessing for QUT 
     print('processing task 2a Q')
     QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow = task2a_flows_creation_QUT('../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', 'QUT_attacked')
@@ -504,7 +504,7 @@ def main():
     if not TESTING:
         task2d_Electra(Electra_Attacked_4mins_flow, Electra_Normal_4mins_flow, label='Electra_4min_attack_normal')
         task2d_Electra(Electra_Attacked_6mins_flow, Electra_Normal_6mins_flow, label='Electra_6min_attack_normal')
-
+    '''
    
     # task2e for QUT only
     print('processing task 2e Q')
