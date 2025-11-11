@@ -340,8 +340,14 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
     all_packets_array = np.array(all_packets, dtype=object)
     np.save(f'all_packets_{label}.npy', all_packets_array)
 
-    print(f'time taken to conver and write all files {time.time() - start}\n now creating pairs')
+    print(f'time taken to conver and write all files {time.time() - start}')
     start = time.time()
+
+    if TESTING:
+        all_packets_array = all_packets_array[:10]  # for testing, use only first 2 pcap files
+        print(type(all_packets_array[0]))
+        print(type(all_packets_array))
+
     return all_packets_array
 
 

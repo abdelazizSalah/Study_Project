@@ -381,16 +381,15 @@ def task2e_optimized(packetsPathNpy = "all_packets.npy", packetListPathPcap='../
         all_packets_array = np.load(packetsPathNpy, allow_pickle=True)# allow pickle is a parameter in numpy which allow storing and loading different formats, and I read that it suggested to be true to make it faster. 
         print(f"Loaded {len(all_packets_array)} arrays successfully.")
         print(f'time taken to load all npfile {time.time() - start}\n now creating pairs')
-    if TESTING:
-        all_packets_array = all_packets_array[0]  # working on small sample for testing
-
     
     all_packets =  [] 
     for array in all_packets_array: 
-        print(len(array))
+        print('extending packets')
         all_packets.extend(arr for arr in array)
+    print(f'total packets length {len(all_packets)} before normailizing')
     print('now normalizing packets')
     all_packets_array = normalize_packets(all_packets)
+    print(f'total packets length {len(all_packets_array)} after normalizing')
 
     
     # Generate all packet pairs
