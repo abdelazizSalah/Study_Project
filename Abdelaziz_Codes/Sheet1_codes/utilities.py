@@ -4,7 +4,7 @@
     @Desc: This is a utility file that contains helper functions to be used in the main tasks. 
 
 '''
-TESTING = False 
+TESTING = True
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 from scapy.all import rdpcap
@@ -122,7 +122,7 @@ def multi_threading_splitting_electra(input_file='../../DataSets/electra_s7comm/
         ProcessPoolExecutor is a method used for parallel processing, it creates many processes based on the maxWorker parameter, and assign each process
         a chunk to process it, this is useful when we have large data that needs to be processed quickly.
     '''
-    maxWorkers = max(1, os.cpu_count() // 2)
+    maxWorkers = max(1, os.cpu_count())
     with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
         futures = {executor.submit(process_chunk, i, c): i for i, c in enumerate(chunks)}
 
@@ -133,7 +133,10 @@ def multi_threading_splitting_electra(input_file='../../DataSets/electra_s7comm/
 
 ##################### Multi-threading loading of QUT dataset and Electra dataset
 def load_csv(file):
-    return pd.read_csv(file, nrows = 50000)
+    if TESTING:
+        return pd.read_csv(file, nrows = 1000 )
+    else:
+        return pd.read_csv(file)
 
 def multithreading_loading_QUT(df_path): 
     """
@@ -155,7 +158,7 @@ def multithreading_loading_QUT(df_path):
     files = list_files_by_filetype(df_path, 'csv')
         
     # parallel read
-    maxWorkers = max(1, os.cpu_count() // 2)
+    maxWorkers = max(1, os.cpu_count())
     with ProcessPoolExecutor(max_workers=maxWorkers) as executor:
         normal_futures = {executor.submit(load_csv, f): f for f in files}
 
@@ -284,8 +287,6 @@ def read_pcap_as_byte_sequences(pcap_path):
     
 
     packets = rdpcap(pcap_path)              # Load all packets in form of a list.
-    print(packets[0])
-    print(type(packets[0]))
     return [bytes(pkt) for pkt in packets]  # Convert each packet to raw bytes
     
     
@@ -498,32 +499,11 @@ def create_time_windowed_flows(flows, time_window_minutes):
     return df
 
 def plot_histogram(bin_edges, counts, title, xlabel, ylabel, filename):
-    """
-    The function `plot_histogram` generates a histogram plot using the provided bin edges, counts,
-    title, x-axis label, y-axis label, and saves the plot to a specified file.
     
-    :param bin_edges: Bin edges are the boundaries that define the intervals for the histogram bins.
-    Each pair of consecutive bin edges specifies the range for a single bin
-    :param counts: Counts is a list containing the frequency or count of data points within each bin
-    specified by the bin_edges. Each element in the counts list corresponds to a bin and represents the
-    frequency of data points falling within that bin
-    :param title: The `title` parameter is a string that represents the title of the histogram plot. It
-    is typically used to provide a brief description or label for the visualization
-    :param xlabel: The `xlabel` parameter in the `plot_histogram` function is used to specify the label
-    for the x-axis of the histogram plot. It typically describes the data being represented on the
-    x-axis. For example, if you are plotting a histogram of ages, the `xlabel` could be "Age"
-    :param ylabel: The `ylabel` parameter in the `plot_histogram` function is used to specify the label
-    for the y-axis of the histogram plot. It typically describes the quantity or data being represented
-    on the y-axis. For example, if you are plotting a histogram of frequencies, you could set the
-    `ylabel`
-    :param filename: The `filename` parameter in the `plot_histogram` function is a string that
-    represents the file path where the generated histogram plot will be saved. This parameter should
-    include the file name and extension (e.g., "histogram_plot.png") where the plot will be saved
-    """
     plt.bar(
-            [ (bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(counts)) ],
+            [ (bin_edges[i] + bin_edges[i+1]) / 2 for i in range(len(counts)) ], # I set the bar in the middle between the two edges this is the X axis
             counts,
-            width=(bin_edges[1] - bin_edges[0]),
+            width=(bin_edges[1] - bin_edges[0]), # width = the bin size. 
             edgecolor='black'
         )
     plt.title(title)

@@ -293,3 +293,9 @@ Killed
 
 # TSNE on control 5000 packets
 ![alt text](TSNE_5000_Control.png)
+
+# TSNE on full control
+![alt text](image-5.png)
+
+
+* number of pairs bytes from QUT I computed is : 67141360000
