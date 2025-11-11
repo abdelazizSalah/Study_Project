@@ -120,7 +120,7 @@ class SDA(object) :
                                     name = f'decodingLayer{str(currLayer)}_{self.layerType}_{self.activationType}'
                                     )
                 decoder = decodingLayer(encoder)
-            elif layer == 'Conv1d':
+            elif layer == 'Einsum':
                                 
                 encodingLayer = EinsumDense(
                     equation="ab,bc->ac",              # standard dense pattern
@@ -130,7 +130,7 @@ class SDA(object) :
                     kernel_initializer='glorot_uniform',
                     name=f"encodingEinsumLayer{currLayer}_{self.layerType}_{self.activationType}"
                 )
-                encoder = encodingLayer(reshapedInput)
+                encoder = encodingLayer(inputAfterDropout)
                 decodingLayer = EinsumDense(
                     equation="ab,bc->ac",
                     output_shape=(trainingData.shape[1],),
@@ -139,7 +139,7 @@ class SDA(object) :
                     kernel_initializer='glorot_uniform',
                     name=f"decodingEinsumLayer{currLayer}_{self.layerType}_{self.activationType}"
                 )
-
+                decoder = decodingLayer(encoder)
             # creaing keras model 
             currentModel = Model(inputLayer,decoder)
             

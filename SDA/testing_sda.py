@@ -31,7 +31,7 @@ X_train_50 = X_train[0:50]
 n_in = n_out = X_train.shape[1]
 n_hid = 576
 
-cur_sdae = SDA(2, [20], [0.1], 'Dense', 'relu', ['relu'], ['relu'], True, 
+cur_sdae = SDA(2, [20], [0.1], 'Dense', 'elu', ['elu'], ['elu'], True, 
                'mse', 256, 2, 'adam', 0.1 )
 
 #train a stacked denoising autoencoder and get the trained model, dense representations of the final hidden layer, and reconstruction error
