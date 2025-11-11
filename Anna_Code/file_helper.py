@@ -4,7 +4,7 @@ from pathlib import Path
 
 from process_pcap import pcap_extract_values
 
-
+#
 def save_df_as_parquet(df, path):
     df.to_parquet(path, compression="zstd", index=False)
     return 0
@@ -39,7 +39,6 @@ def list_files_by_filetype(root_path, filetype):
 #used for QUT_S7Comm
 #one large file for attack dataset and control dataset
 def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_pcap,output_csv_file):
-#assumes that control set is not empty, otherwise it will crash!
 
     pcap_files_attack=list_files_by_filetype(input_path_attack_pcap,"pcap")
     pcap_files_control=list_files_by_filetype(input_path_control_pcap,"pcap")
@@ -79,75 +78,3 @@ def create_large_csv_file_from_pcaps(input_path_attack_pcap,input_path_control_p
 
     return 0
 
-
-
-###################################################### not used anymore:
-
-#load all csv files from directory into one dataframe (or single csv file)
-#output/2017QUT_S7comm/attacks/
-#output/2017QUT_S7comm/control/
-def load_all_csvs(attack_path, control_path):
-    # Get all .csv files recursively (or non-recursively)
-    if Path(attack_path).is_file():
-        csv_files_attack = [str(attack_path)]
-    else: csv_files_attack = list_files_by_filetype(attack_path,"csv")
-
-    if Path(control_path).is_file():
-        csv_files_control=[str(control_path)]
-        print("yes")
-    else: csv_files_control = list_files_by_filetype(control_path,"csv")
-    csv_files=csv_files_attack+csv_files_control
-    dfs = []
-
-
-    #print(len(csv_files_attack))
-
-    for f in csv_files:
-        try:
-            df = pd.read_csv(f)
-            dfs.append(df)
-        except Exception as e:
-            print(f"Skipping {f}: {e}")
-
-
-    combined = pd.concat(dfs, ignore_index=True)
-    print(f"Combined DataFrame shape: {combined.shape}")
-    return combined
-
-
-
-#used for QUT_S7Comm
-#creates csv file for each PCAP file using the pcap_extract_values function
-#(no csv created for empty files)
-# 2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks
-# 2017QUT_S7comm/LabelledDataset/20161219132813_control_set
-# output/2017QUT_S7comm/attacks/
-# output/2017QUT_S7comm/control/
-def create_csv_file_for_each_pcap(input_path_attack_pcap,input_path_control_pcap,output_path_attack,output_path_control):
-
-    pcap_files_attack=list_files_by_filetype(input_path_attack_pcap,"pcap")
-    pcap_files_control=list_files_by_filetype(input_path_control_pcap,"pcap")
-
-
-    for path in pcap_files_control:
-        try:
-            filename = os.path.basename(path)
-            df_pcap=pcap_extract_values(path, 0)
-            save_df_to_csv(df_pcap, output_path_control+filename+".csv", mode='w', header=1)
-            print(f"File {path} done.")
-        except Exception as e:
-            print(f"Exception in {filename}:\n{e}")
-
-    print("\n\nControl dataset done\n\n")
-
-    for path in pcap_files_attack:
-        try:
-            filename=os.path.basename(path)
-            df_pcap = pcap_extract_values(path, 1)
-            save_df_to_csv(df_pcap, output_path_attack+filename+".csv", mode='w', header=1)
-            print(f"File {path} done.")
-        except Exception as e:
-            print(f"Exception in {path}:\n{e}")
-            os.path.getsize(path)
-
-    return 0
