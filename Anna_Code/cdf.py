@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from get_statistics import preprocess
 
-
+#
 #takes list of values [1,3,5,7]
 def compute_manual_cdf(data):
 

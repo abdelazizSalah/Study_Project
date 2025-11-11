@@ -6,7 +6,7 @@ def preprocess(df):
     out['app_proto'] = out['app_proto'].replace('unknown', 'none')
     return out
 
-
+#
 # Task 01 A ###########################################################################################################
 #pd.series = column table
 #receives one column with amount of attack and amount of normal packets
