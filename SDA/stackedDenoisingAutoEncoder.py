@@ -4,15 +4,21 @@
 @Description Stacked Denoising Autoencoder implementation using Keras
 '''
 
+# import os
+# os.environ['THEANO_FLAGS'] = "device=gpu1,floatX=float32"
+# os.environ['KERAS_BACKEND'] = "theano"
+# os.environ['PYTHONHASHSEED'] = '0'
+
 import numpy as np
 from keras.models import Model, Sequential
-from keras.layers import Input
-from keras.layers.core import Dense, Dropout
+from keras.layers import Input, Dense, Dropout, Conv1D, Conv1DTranspose
+
 from keras.callbacks import EarlyStopping
 from keras import backend as Keras
-from keras.utils.vis_utils import plot_model
+from keras.utils import plot_model
 import scipy.sparse as scp
 
+import tensorflow as tf
 
 class SDA(object) : 
     '''
@@ -23,8 +29,7 @@ class SDA(object) :
                 hiddenNodesPerLayer = [32],
                 dropoutPerLayer = [0.1],
                 layerType = "dense",
-                activationType = "relu", 
-                
+                activationType = "relu", # for print and saving purposes
                 encodingActivationPerLayer = ['relu'],
                 decodingActivationPerLayer = ['sigmoid'],
                 bias = True,
@@ -49,6 +54,7 @@ class SDA(object) :
             @param noiseFactor: fraction of input to corrupt with noise during training.
             @param counter: counter to differentiate between multiple SDA instances.
         '''
+        print('initializing SDA parameters')
         self.numLayers = numLayers
         self.hiddenNodesPerLayer, self.dropoutPerLayer, self.encodingActivationPerLayer, self.decodingActivationPerLayer = self._assertInputs(numLayers, hiddenNodesPerLayer, dropoutPerLayer, encodingActivationPerLayer, decodingActivationPerLayer)
         self.bias = bias
@@ -60,7 +66,7 @@ class SDA(object) :
         self.layerType = layerType
         self.activationType = activationType
     
-    def getSDAModel(self, trainingData, validationData, testingData, outputDirectory = 'models_and_data/' ):
+    def getSDAModel(self, trainingData, validationData, testingData,  outputDirectory = 'models_and_data/' ):
         '''
             This function creates and trains the Stacked Denoising Autoencoder model.
             Each layer is trained on at a time, to allow leaning stable meaningful features step by step, and avoid vanishing gradients.
@@ -82,8 +88,11 @@ class SDA(object) :
         modelLayers = [] # list to hold each layer model after training it.
         encoders = []
         # add noise to the input following gaussian distribution
-        # TODO: Add the noise.
+        noisyTrainingData = trainingData + self.noiseFactor * np.random.normal(loc=0.0, scale=1.0, size=trainingData.shape)
+        noisyValidationData = validationData + self.noiseFactor * np.random.normal(loc=0.0, scale=1.0, size=validationData.shape)
         for currLayer in range(self.numLayers): 
+            layer = self.layerType.capitalize() # to match the class names 
+            print('Starting to train SDA with ', str(self.numLayers), ' layers of type ', layer)
             # start creating the SDA 
             inputLayer = Input(shape = (trainingData.shape[1],)) # the input layer should contains the number of features in the data. M (packet size)
             
@@ -92,23 +101,54 @@ class SDA(object) :
             inputAfterDropout = dropOutLayer(inputLayer)
 
             # creating the encoding Dense layers with the given parameters 
-            encodingLayer = Dense(output_dim = self.hiddenNodesPerLayer[currLayer], 
-                                  init = 'glorot_uniform', # initializes weights efficiently.
-                                  activation = self.encodingActivationPerLayer[currLayer],
-                                  bias = self.bias,
-                                  name = f'encodingLayer{str(currLayer)}_{self.layerType}_{self.activationType}' 
-                                   )
-            encoder = encodingLayer(inputAfterDropout)
+            if layer == 'Dense':
+                print('Creating Dense layer ', str(currLayer))
+                encodingLayer = Dense(units = self.hiddenNodesPerLayer[currLayer], 
+                                    kernel_initializer = 'glorot_uniform', # initializes weights efficiently.
+                                    activation = self.encodingActivationPerLayer[currLayer],
+                                    use_bias = self.bias,
+                                    name = f'encodingLayer{str(currLayer)}_{self.layerType}_{self.activationType}' 
+                                    )
+                encoder = encodingLayer(inputAfterDropout)
 
-            # creating the decoding Dense layers with the given parameters
-            numberOfOutputNodes = trainingData.shape[1] # same output units as the input units. 
-            decodingLayer = Dense(output_dim = numberOfOutputNodes,
-                                  init = 'glorot_uniform',
-                                  activation = self.decodingActivationPerLayer[currLayer],
-                                   bias = self.bias,
-                                  name = f'decodingLayer{str(currLayer)}_{self.layerType}_{self.activationType}'
-                                   )
-            decoder = decodingLayer(encoder)
+                # creating the decoding Dense layers with the given parameters
+                numberOfOutputNodes = trainingData.shape[1] # same output units as the input units. 
+                decodingLayer = Dense(units = numberOfOutputNodes,
+                                    kernel_initializer = 'glorot_uniform',
+                                    activation = self.decodingActivationPerLayer[currLayer],
+                                    use_bias = self.bias,
+                                    name = f'decodingLayer{str(currLayer)}_{self.layerType}_{self.activationType}'
+                                    )
+                decoder = decodingLayer(encoder)
+            elif layer == 'Conv1D':
+                print('Creating Conv1D layer ', str(currLayer))
+                # implement it with conv layer
+                encodingLayer = Conv1D(
+                filters=self.hiddenNodesPerLayer[currLayer],  # number of feature maps (like neurons)
+                kernel_size=3,                               # typical small receptive field
+                strides=1,
+                padding='same',
+                activation=self.encodingActivationPerLayer[currLayer],
+                kernel_initializer='glorot_uniform',
+                use_bias=self.bias,
+                name=f'encodingConvLayer{currLayer}_{self.layerType}_{self.activationType}'
+                )
+                encoder = encodingLayer(inputAfterDropout)
+
+                # ======== DECODER ========
+                # Option 1: Use Conv1DTranspose (if available)
+                decodingLayer = Conv1DTranspose(
+                    filters=trainingData.shape[2],               # reconstruct same # of input features
+                    kernel_size=3,
+                    strides=1,
+                    padding='same',
+                    activation=self.decodingActivationPerLayer[currLayer],
+                    kernel_initializer='glorot_uniform',
+                    use_bias=self.bias,
+                    name=f'decodingConvLayer{currLayer}_{self.layerType}_{self.activationType}'
+                )
+                decoder = decodingLayer(encoder)
+
 
             # creaing keras model 
             currentModel = Model(inputLayer,decoder)
@@ -121,45 +161,47 @@ class SDA(object) :
 
             # training the current layer model using mini-batch 
             print('Before training layer ', str(currLayer))
-            currentModel.fit_generator(
-                generator = self._batchGeneratorForTraining(
-                            trainingData, trainingData, # input and outputs are the same, because autoencoder generates the input
-                            self.batchSize, # batch size
-                            shuffle = True # change the order to prevent bias.
-                            ),
-                nb_epoch = self.numberOfEpochs,
-                samples_per_epoch = trainingData.shape[0], # the whole dataset should be passed in each epoch.
-                callbacks = [earlyStoppingCallback], # function run after each epoch
-                validation_data = self._batchGeneratorForTraining(
-                                validationData, validationData,
-                                self.batchSize,
-                                shuffle = False # because it shouldn't impact the validation.
-                            ),
-                nb_val_samples = validationData.shape[0], # the whole validation dataset
-                validation_steps = np.ceil(validationData.shape[0]/self.batchSize) # validation occurs after each batch
-                          )
+            currentModel.fit(
+                self._batchGeneratorForTraining(
+                    noisyTrainingData, trainingData,
+                    self.batchSize,
+                    shuffle=True
+                ),
+                epochs=self.numberOfEpochs,
+                steps_per_epoch=int(np.ceil(noisyTrainingData.shape[0] / self.batchSize)),
+                callbacks=[earlyStoppingCallback],
+                validation_data=self._batchGeneratorForTraining(
+                    noisyValidationData, validationData,
+                    self.batchSize,
+                    shuffle=False
+                ),
+                validation_steps=int(np.ceil(noisyValidationData.shape[0] / self.batchSize))
+            )
             print('After training layer ', str(currLayer))
             
-            # save the trained model in the list
-            modelLayers.append(currentModel)
-
-            # extract its encoder part only for stacking later
-            encoderLayer = currentModel.layers[-2] # because the last layer is the decoder layer
-
-            # add it tp the list
-            encoders.append(encoderLayer)
-
             # compute the mse on the first layer only, because it is the one with the same input as the data
             if currLayer == 0:                
-                # compute the mean square error
-                reconstructionMSE = self._getReconstructionError(currentModel, trainingData, numberOfNeurons = currentModel.layers[-1].output_shape[1]) # uses the output size of the decoder.
+                # compute the mean square errorR'..
+                reconstructionMSE = self._getReconstructionError(currentModel, trainingData, numberOfNeurons = currentModel.output_shape[1]) # uses the output size of the decoder.
+                
+            # Save trained model
+            modelLayers.append(currentModel)
 
-            # Extracting the hidden layer output (the encoded representation) from the trained moder, 
-            trainingData = self._getIntermediateLayerOutput(currentModel, trainingData, layerNumber = 2, applyDropOut = 0, numberOfNeurons = self.hiddenNodesPerLayer[currLayer], batchSize = self.batchSize) #train = 0 because we do not want to use dropout to get hidden node value, since is a train-only behavior, used only to learn weights. output of second layer: hidden layer
-            assert trainingData.shape[1] == self.hiddenNodesPerLayer[currLayer], "Output of hidden layer not retrieved"
-            validationData = self._getIntermediateLayerOutput(currentModel, validationData, layerNumber = 2, applyDropOut = 0, numberOfNeurons = self.hiddenNodesPerLayer[currLayer], batchSize = self.batchSize) #get output of second layer (hidden layer) without dropout
-            testingData = self._getIntermediateLayerOutput(currentModel, testingData, layerNumber = 2, applyDropOut = 0, numberOfNeurons = self.hiddenNodesPerLayer[currLayer], batchSize = self.batchSize)
-            
+            # Extract encoder model (input → encoded)
+            encoderModel = Model(inputs=currentModel.input, outputs=currentModel.layers[-2].output)
+            encoders.append(encoderModel)
+
+            # 🔥 Update training/validation/testing data to use this encoded representation
+            trainingData = encoderModel.predict(trainingData, batch_size=self.batchSize)
+            validationData = encoderModel.predict(validationData, batch_size=self.batchSize)
+            testingData = encoderModel.predict(testingData, batch_size=self.batchSize)
+
+            # ✅ Now regenerate noise for the new encoded space (important!)
+            noisyTrainingData = trainingData + self.noiseFactor * np.random.normal(0.0, 1.0, trainingData.shape)
+            noisyValidationData = validationData + self.noiseFactor * np.random.normal(0.0, 1.0, validationData.shape)
+
+
+
         # Writing all configurations to file 
         self._writeSDAConfigToFile(outputDirectory)
 
@@ -167,14 +209,13 @@ class SDA(object) :
         finalModel = self._buildModelFromEncoders(encoders, dropoutAll = True)
 
         # Saving the file into the directory. 
-        self._saveModel(finalModel, outputDir = outputDirectory, architectureFileName = f'enc_{self.layerType}_{self.activationType}_layers.png', modelJsonFileName = f'enc_{self.layerType}_{self.activationType}_layers.json', weightsFileName = 'enc_layers_weights.h5')
+        self._saveModel(finalModel, outputDir = outputDirectory, architectureFileName = f'enc_{self.layerType}_{self.activationType}_layers.png', modelJsonFileName = f'enc_{self.layerType}_{self.activationType}_layers.json', weightsFileName = 'enc_layers.weights.h5')
         
-        # TODO: try to save it in form of .keras format. 
         
         return finalModel, trainingData, validationData, testingData, reconstructionMSE
     
     # This saves the trained model
-    def _saveModel(model, outputDir, architectureFileName = 'model_arch.png', modelJsonFileName = 'model_arch.json', weightsFileName = 'model_weights.h5'):
+    def _saveModel(self, model, outputDir, architectureFileName = 'model_arch.png', modelJsonFileName = 'model_arch.json', weightsFileName = 'model_weights.h5'):
         '''
         Saves a Keras model description and model weights
         @param model: a keras model
@@ -182,6 +223,7 @@ class SDA(object) :
         @param modelJsonFileName: file name for model architecture
         @param weightsFileName: filename for model weights
         '''
+        print('saving the model')
         model.summary() # prints the model structure. 
         plot_model(model, to_file=outputDir+architectureFileName) # provides a visual diagram for the model. 
         
@@ -192,12 +234,18 @@ class SDA(object) :
         # and saving its weights.
         model.save_weights(outputDir+weightsFileName, overwrite=True)
 
+        keras_model_path = outputDir + f'final_sdae_{self.layerType}_{self.activationType}.keras'
+        print(f"\nSaving full model to {keras_model_path}")
+        model.save(keras_model_path)
+        print("Model saved successfully in .keras format ✅")
+
         
     # This stores the SDA hyperparameters to a file for future reference.
     def _writeSDAConfigToFile(self, outDir):
         """
         Write the configuration of the autoencoder to a file
         """
+        print('writing SDA config')
         with open(outDir + f'sdae_config_{self.layerType}_{self.activationType}.txt', 'w') as f:
             f.write("Number of layers: " + str(self.numLayers))
             f.write("\nHidden nodes: ")
@@ -222,27 +270,76 @@ class SDA(object) :
             f.write("\nLoss: " + str(self.lossFunction))
             f.write("\nBatch size: " + str(self.batchSize))
             f.write("\nOptimizer: " + str(self.optimizer))
+    def _buildModelFromEncoders(self, encodingModels, dropoutAll=False):
+        """
+        Safely rebuilds a stacked encoder model from pretrained encoder models.
+        Supports Dense and Conv1D encoders automatically.
+        """
+        print("Building stacked model from encoders")
 
-            
-    def _buildModelFromEncoders(self, encodingLayers, dropoutAll = False ):
-            '''
-            Builds a deep NN model that generates low-dimensional representation of input, based on pretrained layers.
-            @param encodingLayers: pretrained encoder layers
-            @param dropoutAll: True to include dropout layer between all layers. By default, dropout is only present for input.
-            @return model with each encoding layer as a layer of a NN
-            '''
-            model = Sequential()
-            model.add(Dropout(self.dropout[0], input_shape = (encodingLayers[0].input_shape[1],)))
-            
-            for i in range(len(encodingLayers)):
-                if i and dropoutAll: # insert the dropout between all layers except the first one, because we already did.
-                    model.add(Dropout(self.dropout[i]))
-                    
-                encodingLayers[i].inbound_nodes = [] # remove previous connections to avoid errors
-                model.add(encodingLayers[i]) # add the encoder layer
-            
-            return model
+        model = Sequential()
+        input_dim = encodingModels[0].input.shape[-1]
+        model.add(Input(shape=(input_dim,)))
+
+        for i, enc_model in enumerate(encodingModels):
+            # find last trainable layer (Dense or Conv1D)
+            enc_layer = None
+            for layer in reversed(enc_model.layers):
+                if len(layer.get_weights()) > 0:
+                    enc_layer = layer
+                    break
+
+            if enc_layer is None:
+                raise ValueError(f"Encoder {i} has no trainable layer.")
+
+            weights = enc_layer.get_weights()
+
+            # ======= handle Dense layer =======
+            if isinstance(enc_layer, Dense):
+                units = weights[0].shape[1]
+                new_enc = Dense(
+                    units=units,
+                    activation=enc_layer.activation,
+                    use_bias=self.bias,
+                    name=f"stacked_enc_{i}_{self.layerType}_{self.activationType}"
+                )
+                new_enc.build((None, input_dim))
+                
+                new_enc.set_weights(weights)
+                if i and dropoutAll:
+                    model.add(Dropout(self.dropoutPerLayer[i]))
+                model.add(new_enc)
+                input_dim = units
+
+            # ======= handle Conv1D layer =======
+            elif 'Conv1D' in enc_layer.__class__.__name__:
+                filters = enc_layer.filters
+                kernel_size = enc_layer.kernel_size[0]
+                new_enc = Conv1D(
+                    filters=filters,
+                    kernel_size=kernel_size,
+                    strides=enc_layer.strides[0],
+                    padding=enc_layer.padding,
+                    activation=enc_layer.activation,
+                    use_bias=self.bias,
+                    name=f"stacked_enc_{i}_{self.layerType}_{self.activationType}"
+                )
+                new_enc.build((None, input_dim, weights[0].shape[1]))
+                new_enc.set_weights(weights)
+                if i and dropoutAll:
+                    model.add(Dropout(self.dropoutPerLayer[i]))
+                model.add(new_enc)
+                input_dim = filters  # update for next layer
+
+            else:
+                raise TypeError(f"Unsupported encoder layer type: {type(enc_layer)}")
+
+        return model
+
+
+
     
+
     
     # while this function adds logic to handle larger datasets, and converting sparse to dense in batches, then uses the getNthLayer.
     def _getIntermediateLayerOutput(self, model, inputData, layerNumber, applyDropOut, numberOfNeurons, batchSize, dtype = np.float32):
@@ -281,17 +378,17 @@ class SDA(object) :
         @param isTraining: (1/0): 1 to use the same setting as training (for example, with Dropout, etc.), 0 to use the same setting as testing phase for the model.
         @return the value of layerNumber in the given model, input, and setting 
         '''
-        # This is a keras backend function that allows me to create a callable function that directly computes specific layer output.
-        # 
-        getNthLayerOutput = Keras.function(
-            [model.layers[0].input,# specifing model's input tensor
-            Keras.learning_phase()],# tells Keras whether the model in in training mode or inference mode
-            [model.layers[layerNumber].output] # specifing which layer output to return
-              )
-        # So the main idea is to be able to extract the output of any layer.
-        return getNthLayerOutput([inputData,isTraining])[0] # calling the function with input data and training/inference mode, and returning the output.
             
+        # Handle negative layer index (like -1)
+        target_layer = model.layers[layerNumber]
+        
+        # Build a new model that outputs from this layer
+        intermediate_model = Model(inputs=model.input, outputs=target_layer.output)
+        
+        # Use predict() to get the output
+        return intermediate_model.predict(inputData, batch_size=self.batchSize)
     
+
 
     def _getReconstructionError(self, model, inputData, numberOfNeurons):
         """
@@ -301,7 +398,7 @@ class SDA(object) :
         @param numberOfNeurons: number of model output nodes
         """
         # -1 is the last layer
-        trainReconstruction = self._getIntermediateLayerOutput(model, inputData, layerNumber = -1, isTraining = 0, numberOfNeurons = numberOfNeurons, batchSize = self.batchSize) #train = 0 because we do not want to use dropout to get hidden node value, since is a train-only behavior, used only to learn weights. output of third layer: output layer
+        trainReconstruction = self._getIntermediateLayerOutput(model, inputData, layerNumber = -1, applyDropOut = 0, numberOfNeurons = numberOfNeurons, batchSize = self.batchSize) #train = 0 because we do not want to use dropout to get hidden node value, since is a train-only behavior, used only to learn weights. output of third layer: output layer
         
         # mean error
         reconMSE = np.mean(np.square(trainReconstruction - inputData), axis = 0)
@@ -310,7 +407,7 @@ class SDA(object) :
         
         return reconMSE
 
-    def _batchGeneratorForExtraction(X, batchSize):
+    def _batchGeneratorForExtraction(self, X, batchSize):
         '''
         Creates batches of data from given input, given a batch size. Returns dense representation of sparse input one batch a time.
         @param X: input features, can be sparse or dense
@@ -341,7 +438,7 @@ class SDA(object) :
 
 
 
-    def _batchGeneratorForTraining(X, Y, batch_size, shuffle, seed = 1337):
+    def _batchGeneratorForTraining(self, X, Y, batch_size, shuffle, seed = 1337):
         '''
         Creates batches of data from given dataset, given a batch size. Returns dense representation of sparse input.
         @param X: input features, sparse or dense

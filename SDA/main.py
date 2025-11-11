@@ -56,7 +56,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
         All the models should be saved to files for later use.
 
     '''
-    layer_types = ["dense", "sparse"]
+    layer_types = ["Dense", "Conv1D"]
     activations = ["relu", "elu", "tanh"]
     numberOfLayers = [i for i in range(3,8)]  # from 3 to 7 layers
     optimizers = ['adam', 'gradient_descent']
@@ -84,7 +84,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
                                         sda = SDA(
                                             numLayers= numLayer,
                                             hiddenNodesPerLayer = [M], # Ask how can we reduce this, if this is the output size? 
-                                            dropoutPerLayer = [dropOut if layer_type == "dense" else 0.7],
+                                            dropoutPerLayer = [dropOut],
                                             encodingActivationPerLayer = [activation],
                                             decodingActivationPerLayer = [activation],
                                             bias = bias,
@@ -99,7 +99,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
 
                                         # also the model is written in the given directory.
                                         print(f"\ncreating SDA with hyper parameters: {layer_type.upper()} model with activation {activation} ...")
-                                        finalModel, trainingData, validationData, testingData, reconstructionMSE = sda.getSDAModel(ds_train, ds_validation, ds_test, 'models_and_data/')
+                                        finalModel, trainingData, validationData, testingData, reconstructionMSE = sda.getSDAModel(ds_train, ds_validation, ds_test,'models_and_data/')
                                         print(f"Model created and trained. Reconstruction MSE on test set: {reconstructionMSE}")
                                         if reconstructionMSE < bestMSE:
                                             bestMSE = reconstructionMSE
