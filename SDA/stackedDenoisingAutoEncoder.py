@@ -4,14 +4,10 @@
 @Description Stacked Denoising Autoencoder implementation using Keras
 '''
 
-# import os
-# os.environ['THEANO_FLAGS'] = "device=gpu1,floatX=float32"
-# os.environ['KERAS_BACKEND'] = "theano"
-# os.environ['PYTHONHASHSEED'] = '0'
 
 import numpy as np
 from keras.models import Model, Sequential
-from keras.layers import Input, Dense, Dropout, Conv1D, Conv1DTranspose
+from keras.layers import Input, Dense, Dropout, EinsumDense
 
 from keras.callbacks import EarlyStopping
 from keras import backend as Keras
@@ -90,8 +86,12 @@ class SDA(object) :
         # add noise to the input following gaussian distribution
         noisyTrainingData = trainingData + self.noiseFactor * np.random.normal(loc=0.0, scale=1.0, size=trainingData.shape)
         noisyValidationData = validationData + self.noiseFactor * np.random.normal(loc=0.0, scale=1.0, size=validationData.shape)
+        layer = self.layerType.capitalize() # to match the class names 
+        originalTrainingData = trainingData
+        originalNoisyTrainingData = noisyTrainingData
+        originalValidationData = validationData
+        originalNoisyValidationData = noisyValidationData
         for currLayer in range(self.numLayers): 
-            layer = self.layerType.capitalize() # to match the class names 
             print('Starting to train SDA with ', str(self.numLayers), ' layers of type ', layer)
             # start creating the SDA 
             inputLayer = Input(shape = (trainingData.shape[1],)) # the input layer should contains the number of features in the data. M (packet size)
@@ -120,35 +120,25 @@ class SDA(object) :
                                     name = f'decodingLayer{str(currLayer)}_{self.layerType}_{self.activationType}'
                                     )
                 decoder = decodingLayer(encoder)
-            elif layer == 'Conv1D':
-                print('Creating Conv1D layer ', str(currLayer))
-                # implement it with conv layer
-                encodingLayer = Conv1D(
-                filters=self.hiddenNodesPerLayer[currLayer],  # number of feature maps (like neurons)
-                kernel_size=3,                               # typical small receptive field
-                strides=1,
-                padding='same',
-                activation=self.encodingActivationPerLayer[currLayer],
-                kernel_initializer='glorot_uniform',
-                use_bias=self.bias,
-                name=f'encodingConvLayer{currLayer}_{self.layerType}_{self.activationType}'
-                )
-                encoder = encodingLayer(inputAfterDropout)
-
-                # ======== DECODER ========
-                # Option 1: Use Conv1DTranspose (if available)
-                decodingLayer = Conv1DTranspose(
-                    filters=trainingData.shape[2],               # reconstruct same # of input features
-                    kernel_size=3,
-                    strides=1,
-                    padding='same',
-                    activation=self.decodingActivationPerLayer[currLayer],
+            elif layer == 'Conv1d':
+                                
+                encodingLayer = EinsumDense(
+                    equation="ab,bc->ac",              # standard dense pattern
+                    output_shape=(self.hiddenNodesPerLayer[currLayer],),
+                    activation=self.encodingActivationPerLayer[currLayer],
+                    bias_axes="c" if self.bias else None,
                     kernel_initializer='glorot_uniform',
-                    use_bias=self.bias,
-                    name=f'decodingConvLayer{currLayer}_{self.layerType}_{self.activationType}'
+                    name=f"encodingEinsumLayer{currLayer}_{self.layerType}_{self.activationType}"
                 )
-                decoder = decodingLayer(encoder)
-
+                encoder = encodingLayer(reshapedInput)
+                decodingLayer = EinsumDense(
+                    equation="ab,bc->ac",
+                    output_shape=(trainingData.shape[1],),
+                    activation=self.decodingActivationPerLayer[currLayer],
+                    bias_axes="c" if self.bias else None,
+                    kernel_initializer='glorot_uniform',
+                    name=f"decodingEinsumLayer{currLayer}_{self.layerType}_{self.activationType}"
+                )
 
             # creaing keras model 
             currentModel = Model(inputLayer,decoder)
@@ -191,12 +181,12 @@ class SDA(object) :
             encoderModel = Model(inputs=currentModel.input, outputs=currentModel.layers[-2].output)
             encoders.append(encoderModel)
 
-            # 🔥 Update training/validation/testing data to use this encoded representation
+            # Update training/validation/testing data to use this encoded representation
             trainingData = encoderModel.predict(trainingData, batch_size=self.batchSize)
             validationData = encoderModel.predict(validationData, batch_size=self.batchSize)
             testingData = encoderModel.predict(testingData, batch_size=self.batchSize)
 
-            # ✅ Now regenerate noise for the new encoded space (important!)
+            # Now regenerate noise for the new encoded space (important!)
             noisyTrainingData = trainingData + self.noiseFactor * np.random.normal(0.0, 1.0, trainingData.shape)
             noisyValidationData = validationData + self.noiseFactor * np.random.normal(0.0, 1.0, validationData.shape)
 
@@ -207,7 +197,23 @@ class SDA(object) :
 
         # creating the full stacked sequential auto encoder model after training all layers
         finalModel = self._buildModelFromEncoders(encoders, dropoutAll = True)
-
+        finalModel.compile(optimizer = self.optimizer, loss = self.lossFunction)
+        finalModel.fit(
+            self._batchGeneratorForTraining(
+                    originalNoisyTrainingData, originalTrainingData,
+                    self.batchSize,
+                    shuffle=True
+                ),
+                epochs=self.numberOfEpochs,
+                steps_per_epoch=int(np.ceil(originalNoisyTrainingData.shape[0] / self.batchSize)),
+                callbacks=[earlyStoppingCallback],
+                validation_data=self._batchGeneratorForTraining(
+                    originalNoisyValidationData, originalValidationData,
+                    self.batchSize,
+                    shuffle=False
+                ),
+                validation_steps=int(np.ceil(originalNoisyValidationData.shape[0] / self.batchSize))
+        )
         # Saving the file into the directory. 
         self._saveModel(finalModel, outputDir = outputDirectory, architectureFileName = f'enc_{self.layerType}_{self.activationType}_layers.png', modelJsonFileName = f'enc_{self.layerType}_{self.activationType}_layers.json', weightsFileName = 'enc_layers.weights.h5')
         
@@ -270,7 +276,73 @@ class SDA(object) :
             f.write("\nLoss: " + str(self.lossFunction))
             f.write("\nBatch size: " + str(self.batchSize))
             f.write("\nOptimizer: " + str(self.optimizer))
-    def _buildModelFromEncoders(self, encodingModels, dropoutAll=False):
+    def _buildModelFromEncoders(self, encodingModels, dropoutAll=False, addDecoder=True):
+        """
+        Build either:
+        (a) a stacked encoder model (for feature extraction), or
+        (b) a full autoencoder (encoder + decoder) for end-to-end fine-tuning.
+
+        @param encodingModels: list of pretrained encoder models (each mapping input→encoded)
+        @param dropoutAll: whether to insert dropout layers between encoders
+        @param addDecoder: if True, mirrors the encoder to build a full autoencoder
+        @return: Keras Model (stacked encoder or autoencoder)
+        """
+        print("Building stacked model from encoders" + (" + decoder" if addDecoder else ""))
+
+        model = Sequential()
+        input_dim = encodingModels[0].input.shape[-1]
+        model.add(Input(shape=(input_dim,)))
+
+        # -------------------- ENCODER STACK --------------------
+        encoder_shapes = []  # remember layer sizes for decoder
+        for i, enc_model in enumerate(encodingModels):
+            # find the actual Dense layer (with weights)
+            enc_layer = next((l for l in reversed(enc_model.layers) if len(l.get_weights()) > 0), None)
+            if enc_layer is None:
+                raise ValueError(f"Encoder {i} has no trainable layer.")
+
+            weights = enc_layer.get_weights()
+            units = weights[0].shape[1]
+            encoder_shapes.append(units)
+
+            new_enc = Dense(
+                units=units,
+                activation=enc_layer.activation,
+                use_bias=self.bias,
+                name=f"stacked_enc_{i}_{self.layerType}_{self.activationType}"
+            )
+            new_enc.build((None, input_dim))
+            new_enc.set_weights(weights)
+
+            if i and dropoutAll:
+                model.add(Dropout(self.dropoutPerLayer[i]))
+
+            model.add(new_enc)
+            input_dim = units
+
+        # -------------------- OPTIONAL DECODER STACK --------------------
+        if addDecoder:
+            print("Adding symmetric decoder for fine-tuning.")
+            # mirror encoder sizes in reverse (e.g., [256, 128] → decoder [128, 256, input_dim])
+            for i, units in enumerate(reversed(encoder_shapes[:-1])):
+                model.add(Dense(
+                    units=units,
+                    activation=self.decodingActivationPerLayer[-(i+1)],
+                    name=f"stacked_dec_{i}_{self.layerType}_{self.activationType}"
+                ))
+
+            # final reconstruction layer (back to original input size)
+            model.add(Dense(
+                units=encodingModels[0].input.shape[-1],
+                activation=self.decodingActivationPerLayer[0],
+                name="final_reconstruction_layer"
+            ))
+
+        # -------------------- SUMMARY --------------------
+        model.summary()
+        return model
+
+    def _buildModelFromEncoders2(self, encodingModels, dropoutAll=False):
         """
         Safely rebuilds a stacked encoder model from pretrained encoder models.
         Supports Dense and Conv1D encoders automatically.
