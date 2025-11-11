@@ -243,7 +243,7 @@ class SDA(object) :
         keras_model_path = outputDir + f'final_sdae_{self.layerType}_{self.activationType}.keras'
         print(f"\nSaving full model to {keras_model_path}")
         model.save(keras_model_path)
-        print("Model saved successfully in .keras format ✅")
+        print("Model saved successfully in .keras format")
 
         
     # This stores the SDA hyperparameters to a file for future reference.
@@ -320,7 +320,6 @@ class SDA(object) :
             model.add(new_enc)
             input_dim = units
 
-        # -------------------- OPTIONAL DECODER STACK --------------------
         if addDecoder:
             print("Adding symmetric decoder for fine-tuning.")
             # mirror encoder sizes in reverse (e.g., [256, 128] → decoder [128, 256, input_dim])
@@ -338,8 +337,9 @@ class SDA(object) :
                 name="final_reconstruction_layer"
             ))
 
-        # -------------------- SUMMARY --------------------
         model.summary()
+        dummy = np.zeros((1, 784), dtype=np.float32)
+        model(dummy)
         return model
 
     def _buildModelFromEncoders2(self, encodingModels, dropoutAll=False):
