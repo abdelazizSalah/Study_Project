@@ -394,6 +394,7 @@ def compute_block(args):
         cheb = cheb[mask]
 
     out = f"chebyshev_blocks/{label}_block_{block_id}.npy"
+    
 
     print(f'saving the block {block_id}')
     np.save(out, cheb.astype(np.float32))

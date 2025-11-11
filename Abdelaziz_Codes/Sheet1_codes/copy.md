@@ -283,3 +283,7 @@ time taken to conver and write all files 0.49498438835144043
 28522
 421080
 Killed
+
+
+## Handlind all attacking files with multi cores: 
+![alt text](image-4.png)

@@ -5,7 +5,7 @@ import numpy as np
 from scapy.all import PcapReader, rdpcap, IP, IPv6, TCP, UDP, Ether
 import pandas as pd
 from scapy.layers.sctp import SCTP
-from Anna_Code.known_ports import KNOWN_PORTS
+from known_ports import KNOWN_PORTS
 
 
 """
