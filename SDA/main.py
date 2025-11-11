@@ -4,10 +4,15 @@ import time
 from pathlib import Path
 import numpy as np
 
-from Anna_Code.file_helper import list_files_by_filetype
-from SDA.autoencoder import hyperparameter_search, create_train_evaluate_model
-from SDA.classifier import test_classifier
-from SDA.prepare_data import create_matrix_from_pcaps, make_datasets, store_dataset_in_file
+
+import sys
+sys.path.append('../Anna_Code')  
+from file_helper import list_files_by_filetype
+
+from stackedDenoisingAutoEncoder import SDA
+from autoencoder import hyperparameter_search, create_train_evaluate_model
+from classifier import test_classifier
+from prepare_data import create_matrix_from_pcaps, make_datasets, store_dataset_in_file
 
 from evaluation_results import evaluate_model, extract_and_print_features_to_file
 import tensorflow as tf
@@ -56,6 +61,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
         All the models should be saved to files for later use.
 
     '''
+    print('start creating models')
     layer_types = ["Dense", "Conv1D"]
     activations = ["relu", "elu", "tanh"]
     numberOfLayers = [i for i in range(3,8)]  # from 3 to 7 layers
