@@ -12,22 +12,20 @@ from known_ports import KNOWN_PORTS
 Extract all the important values from a pcap file and summarize them in a dataframe.
 """
 
-
-#application layer protocol
+#input: port numbers
+#output: application layer protocol
 def get_app_proto(srcport,dstport):
-    #we assume that only either the dstport or the srcport is well known
+    #assume that either the dstport or the srcport is well known
     ports=[srcport,dstport]
 
     for p in ports:
         if p in KNOWN_PORTS:
             return KNOWN_PORTS[p]
 
-    #todo complete mapping
-    #toDo what if there is no application layer -> return "none"
-    return(f"unknown")
+    return(f"unknown") # if there is no application layer or port not found
 
 
-#whole application layer (including header) counted as payload!
+#whole application layer (including header) is counted as payload!
 def header_and_payload_len(pkt):
 
     try:
@@ -59,11 +57,13 @@ def host_pair_id(src,dst):
     return "__".join(sorted([a, b]))
 
 
-
+"""Extracts the following values from each packt of a PCAP File. 
 #filename
-#pkt index = timestamp
+#relative
 #src ip
 #dst ip
+#src mac
+#dst mac
 #src port
 #dst port
 #packet length (Frame length)
@@ -76,8 +76,10 @@ def host_pair_id(src,dst):
 #inter-arrival time -> consecuticve packets (timestamps?)
 #payload content?
 #boolean attack
+"""
 
-#returns dataframe object for a pcap
+#input: pcap file
+#output: dataframe with extracted value per packet
 def pcap_extract_values(pcap_path, attack):
 
     records = []
@@ -89,8 +91,10 @@ def pcap_extract_values(pcap_path, attack):
 
     filename=os.path.basename(pcap_path)
     with (PcapReader(pcap_path) as pcap):
+
         for pkt in pcap:
-            # timestamp (always try to keep)
+
+            #calculate relative timestamp starting from the first packet of each pcap file
             try:
                 ts = float(pkt.time)
                 if first_ts is None:
@@ -115,7 +119,7 @@ def pcap_extract_values(pcap_path, attack):
                 src_mac =""
                 dst_mac=""
 
-            #(protocols that don't reach transport layer do not use port numbers)
+            #extract port numbers
             try:
                 if TCP in pkt:
                     src_port = int(pkt[TCP].sport)
@@ -133,13 +137,13 @@ def pcap_extract_values(pcap_path, attack):
                     src_port = -1
                     dst_port = -1
                     l4_proto = "unknown"  # arp, lldp
-            except Exception:
+            except Exception:   #(protocols that don't reach transport layer do not use port numbers)
                 src_port = -1
                 dst_port = -1
                 l4_proto="unknown" #arp, ...
 
+            #get application layer protocol from port number
             app_proto = get_app_proto(src_port,dst_port)
-
 
             # frame length
             frame_len = len(pkt.original)
@@ -147,32 +151,30 @@ def pcap_extract_values(pcap_path, attack):
             #Ethernet / IP / TCP / Raw
             #-> pkt.payload = IP Layer, Pkt[IP].payload = TCP layer etc
 
-            #for packets without application layer -> header len is 0
+            #for packets without application layer
             if l4_proto=="unknown":
-                header_len=frame_len
+                header_len=frame_len    #whole packet is header
                 app_len=0
-            else:
+            else: #packets with application layer
                 header_len,app_len=header_and_payload_len(pkt)
 
-            if header_len is None or header_len < 0 or header_len > frame_len:
-                raise ValueError(f"Invalid total_header_len: {header_len} ")
 
-            #host pairs and inter arrival time
+            #host pairs (sorted concatination of src and dst ip address)
             if not src_ip == "":
                 pair_id = host_pair_id(src_ip, dst_ip)
             else:
                 pair_id = host_pair_id(src_mac, dst_mac)
 
-            #for calculations per proto-hostpair combinarion
+            #host pair and application layer protocol key
             proto_pair_key = f"{pair_id}__{app_proto}"
 
-            #calculate iat for pair only
+            #calculate iat for each host pair
             if pair_id:
                 if pair_id in last_ts_by_pair:
                     iat_pair = ts - last_ts_by_pair[pair_id]
                 else:
                     iat_pair = pd.NA
-                last_ts_by_pair[pair_id] = ts #stores last timestamp for that pair ID (pcap files are sorted by timestamp)
+                last_ts_by_pair[pair_id] = ts #stores last timestamp for that pair ID in dictionary
 
 
             #calculate iat for pairs with same app protocol

@@ -11,7 +11,12 @@ from get_statistics import preprocess
 def compute_manual_cdf(data):
 
     # Remove NaN values and convert to list
-    clean_data = [x for x in data if pd.notna(x)]
+    clean_data = []
+    for x in data:
+        if pd.notna(x):
+            clean_data.append(x)
+
+
     n = len(clean_data)
 
     if n == 0:
@@ -41,6 +46,11 @@ def plot_cdf_per_proto(sub_df, column, dataset_label):
     with one line per application-layer protocol.
     """
 
+    if column=="app_payload_len":
+        column_label="Application Payload Length"
+    else:
+        column_label="Total Header Length"
+
     #control ds
     protocols = sub_df['app_proto'].unique()
 
@@ -53,9 +63,9 @@ def plot_cdf_per_proto(sub_df, column, dataset_label):
         x, y = compute_manual_cdf(subset[column]) #column: header_length or payload_length
         plt.plot(x, y, label=proto)
 
-    plt.xlabel(f"{column} (bytes)")
+    plt.xlabel(f"{column_label} (bytes)")
     plt.ylabel("Cumulative Probability")
-    plt.title(f"CDF of {column} per Application Protocol for {dataset_label} ")
+    plt.title(f"CDF of {column_label} per Application Protocol for {dataset_label} ")
     plt.legend(title="App Protocol", loc="lower right")
     plt.grid(True)
     plt.tight_layout()
@@ -63,7 +73,7 @@ def plot_cdf_per_proto(sub_df, column, dataset_label):
 
     plt.savefig(f"cdf_{column}_{dataset_label}.png")
 
-    #attack ds
+    return
 
 
 #for each value x in the dataset it shows how likely it is that a value <=x occurs
@@ -94,5 +104,5 @@ def create_cdf_plots_task1d(df, output_dir, dataset_name):
     plt.savefig(os.path.join(output_dir, f"{dataset_name}_attack_payload_len_cdf.png"), bbox_inches="tight")
     plt.close()
 
-    return 0
+    return 
 

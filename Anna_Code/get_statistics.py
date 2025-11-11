@@ -138,7 +138,15 @@ def print_packet_distribution_task1A(df):
     df = preprocess(df)
 
     total_results = overall_packet_distribution(df)
+
+    #exclude packets with app_proto "none"
+    df = df[df["app_proto"] != "none"]
+
+    # exclude packets with l4_results "unknown"
+    df = df[df["l4_proto"] != "unknown"]
     app_results = app_layer_packet_distribution(df)
+
+
     l4_results = transport_layer_packet_distribution(df)
     combo_results = transport_and_app_layer_packet_distribution(df)
 
@@ -241,7 +249,7 @@ def iat_per_pair_stats(df):
 
 
 def print_packet_length_distribution_and_iat_task1B(df):
-    df = preprocess(df) #todo consider where to put
+    df = preprocess(df)
     print("\nTask 01B++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     print("""
     Only consider packets with application data.
@@ -260,10 +268,10 @@ def print_packet_length_distribution_and_iat_task1B(df):
     """)
     iat_stats=iat_per_pair_stats(df)
     print("\nNormal Packets:")
-    print(iat_stats["normal"].head(20).to_string())
+    print(iat_stats["normal"].to_string())
 
     print("\nAttack Packets:")
-    print(iat_stats["attack"].head(20).to_string())
+    print(iat_stats["attack"].to_string())
 
     return 0
 
@@ -319,8 +327,9 @@ def print_packet_distribution_task1C(df):
     print(count_host_pairs(df))
     print("""
      \nCompute average, average, std, and median inter-arrival time between same host pair from SAME APPLICATION LAYER PROTOCOL
-     for normal packets and attack packets subset. (Task doesnt exclude Packets without application data.)
+     for normal packets and attack packets subset. 
      """)
+    df = df[df["app_proto"] != "none"]
     iat_proto_results = iat_per_pair_per_proto_stats(df)
     print("\nNormal Packets:")
 
