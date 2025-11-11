@@ -53,8 +53,6 @@ def print_features_for_all_models(output_dir):
 
     return
 
-from stackedDenoisingAutoEncoder import SDA 
-#run mode 1 "model":
 def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
     '''
         The output here should be six trained models, each one with the best hyperparameters found.
@@ -62,7 +60,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
 
     '''
     print('start creating models')
-    layer_types = ["Dense", "Conv1D"]
+    layer_types = ["Dense", "Einsum"]
     activations = ["relu", "elu", "tanh"]
     numberOfLayers = [i for i in range(3,8)]  # from 3 to 7 layers
     optimizers = ['adam', 'gradient_descent']
