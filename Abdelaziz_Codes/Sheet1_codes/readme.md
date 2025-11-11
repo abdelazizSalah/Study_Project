@@ -2,7 +2,6 @@
 - To run the task:
   - > python task2_script.py
 
-
 ## 🎯 Goal
 The goal of this task is to analyze the **similarity between network traffic datasets** (provided as `.pcap` files).  
 We will compare both **normal** and **attack** traffic across multiple datasets using **Chebyshev distance** and visualize the results using **histograms** and **t-SNE** plots.
@@ -66,3 +65,20 @@ We will compare both **normal** and **attack** traffic across multiple datasets 
 - Histogram logic must also be implemented manually.
 
 ---
+
+# 🧰 Library Overview
+
+| Library / Module | Description |
+|------------------|-------------|
+| `multiprocessing` | Enables running code in parallel across multiple CPU cores to speed up heavy computations. |
+| `sklearn.manifold.TSNE` | Performs t-distributed stochastic neighbor embedding for visualizing high-dimensional data in 2D or 3D. |
+| `sklearn.preprocessing.StandardScaler` | Normalizes features by removing the mean and scaling to unit variance. |
+| `scapy.all.rdpcap` | Reads packets directly from a `.pcap` file for network traffic analysis. |
+| `os`, `time` | Provides functions for interacting with the operating system and measuring execution time. |
+| `pandas` | Used for loading, organizing, and analyzing structured tabular data efficiently. |
+| `pathlib.Path` | Simplifies handling and manipulation of filesystem paths in an object-oriented way. |
+| `ipaddress` | Handles and validates IP addresses and networks (IPv4 & IPv6). |
+| `concurrent.futures` | Offers high-level thread and process-based parallelism using executors for concurrent tasks. |
+| `numpy` | Core numerical computing library for fast array operations and mathematical computations. |
+| `itertools.combinations` | Generates all possible unordered pairs or combinations from a dataset. |
+| `matplotlib.pyplot` | Creates static, animated, or interactive visual plots and charts. |

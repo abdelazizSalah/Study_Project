@@ -522,6 +522,7 @@ def main():
 
 print('start task2 processing')
 start = time.time()
+print(f'Running in testing mode? {TESTING}')
 main()
 end = time.time()
 
