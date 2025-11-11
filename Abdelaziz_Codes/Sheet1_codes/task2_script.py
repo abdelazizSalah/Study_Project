@@ -419,6 +419,8 @@ def worker(file_path, shared_hist, lock):
 def task2fMultiProcessing(label='QUT_attacked_taskE', folder = "chebyshev_blocks"):
      
         files = [os.path.join(folder, f) for f in os.listdir(folder) if f"{label}" in f]
+        if TESTING:
+            files = files[:2]
 
         shared_hist = mp.Array('q', [0]*5)
         lock = mp.Lock()
