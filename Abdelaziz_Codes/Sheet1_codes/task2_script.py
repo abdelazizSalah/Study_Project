@@ -573,13 +573,13 @@ def main():
     # task2e for QUT only
  #   print('processing task 2e Q')
 #    QUT_Normal = task2e_optimized('all_packets_QUT_control_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
-    QUT_Attacked = task2e_optimized('all_packets_QUT_attacked_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
+    # QUT_Attacked = task2e_optimized('all_packets_QUT_attacked_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
    
     
     # task2f for QUT only
   #  print('processing task 2f Q ')
-   # task2f(QUT_Normal, bins=4, label='QUT_Normal_taskF')
-    #task2f(QUT_Attacked, bins=4, label='QUT_Attacked_taskF')
+    task2f(QUT_Normal, bins=4, label='QUT_Normal_taskF')
+    task2f(QUT_Attacked, bins=4, label='QUT_Attacked_taskF')
 
 
 

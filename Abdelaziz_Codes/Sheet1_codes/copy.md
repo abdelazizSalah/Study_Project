@@ -287,3 +287,9 @@ Killed
 
 ## Handlind all attacking files with multi cores: 
 ![alt text](image-4.png)
+
+# TSNE on the whole attack dataset
+![alt text](image-5.png)
+
+# TSNE on control 5000 packets
+![alt text](TSNE_5000_Control.png)
