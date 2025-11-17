@@ -3,3 +3,7 @@
 /Abdelaziz_Codes/Sheet1_codes/*.npy
 /Abdelaziz_Codes/Sheet1_codes/chebyshev_blocks/*.npy
 
+__pycache__/
+*.pyc
+.idea/
+.venv/
