@@ -5,7 +5,7 @@ import time
 import pandas as pd
 from Assignment2.Task1.file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv
 from sequence_alignment import iat_gap_threshold, find_threshold_iat_kmeans, group_into_communication_sessions, \
-    group_into_communication_sessions_optimized
+    group_into_communication_sessions_optimized, start_sequence_alignment
 
 
 #--task preprocess --dataset-dir /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset --output-file /home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv
@@ -55,24 +55,31 @@ def release_main():
 
 
 
-def test_main():
-    df=read_df_from_csv("/home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv")
 
-
-
+def find_threshold():
     threshold, small_cluster, large_cluster= iat_gap_threshold(df)
     print(threshold)
     print(len(small_cluster))
     print(len(large_cluster))
     #threshold: 0.1656239032745361
 
-    unique_keys = df["session_id"].unique()
-    print(unique_keys)
-    print(len(unique_keys))
+
+def create_communication_groups(df):
     df_grouped=group_into_communication_sessions_optimized(df, 0.1656)
     with pd.option_context('display.max_columns', None, 'display.max_rows', None):
         print(df_grouped[["session_id", "iat_session_pair", "group_id"]].head(500))
     print(df_grouped[["session_id", "timestamp", "group_id"]].columns)
+    return df_grouped
+
+
+
+def test_main():
+    df=read_df_from_csv("/home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv")
+    df_first_500 = df.head(10)
+
+    start_sequence_alignment(df_first_500)
+
+
 
 
 if __name__ == "__main__":
