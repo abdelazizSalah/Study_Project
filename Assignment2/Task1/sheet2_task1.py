@@ -11,26 +11,8 @@ from communication_sessions import group_into_communication_sessions_optimized, 
 
 #--task preprocess --dataset-dir /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset --output-file /home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv
 
-def release_main():
+def release_main_reverse1(args):
     start = time.time()   # ⏱️ start timer
-
-    parser = argparse.ArgumentParser(
-        description="Argument handling for preprocessing or X (QUT)."
-    )
-
-    # Task and dataset selection
-    parser.add_argument(
-        "--task", required=True, choices=["preprocess", ""],
-        help="Choose 'preprocess' or ''."
-    )
-
-    # --- Preprocessing arguments ---
-    parser.add_argument("--dataset-dir", help="QUT preprocess: directory with all PCAPs in the dataset")
-    parser.add_argument("--output-file", help="Preprocess: path to output file (CSV for QUT)")
-
-    args = parser.parse_args()
-
-    print(f"TASK     = {args.task}")
 
     if args.task == "preprocess":
         # validate args

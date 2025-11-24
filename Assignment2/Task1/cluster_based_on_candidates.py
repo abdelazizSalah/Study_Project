@@ -1,4 +1,4 @@
-from Assignment2.Task1.kmeans import cluster_single_keyword_kmedoids
+from kmeans import cluster_single_keyword_kmedoids
 
 
 def validate_cluster():

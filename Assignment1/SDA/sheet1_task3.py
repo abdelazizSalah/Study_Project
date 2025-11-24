@@ -84,7 +84,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
                                     for bias in biasOptions: 
                                         sda = SDA(
                                             numLayers= numLayer,
-                                            hiddenNodesPerLayer = [M], # Ask how can we reduce this, if this is the output size? 
+                                            hiddenNodesPerLayer = [M // pow(2,i) for i in range(0, numLayer)], # Ask how can we reduce this, if this is the output size? 
                                             dropoutPerLayer = [dropOut],
                                             encodingActivationPerLayer = [activation],
                                             decodingActivationPerLayer = [activation],
@@ -100,7 +100,7 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
 
                                         # also the model is written in the given directory.
                                         print(f"\ncreating SDA with hyper parameters: {layer_type.upper()} model with activation {activation} ...")
-                                        finalModel, trainingData, validationData, testingData, reconstructionMSE = sda.getSDAModel(ds_train, ds_validation, ds_test,'models_and_data/')
+                                        finalModel, _, _, _, reconstructionMSE = sda.getSDAModel(ds_train, ds_validation, ds_test,'models_and_data/')
                                         print(f"Model created and trained. Reconstruction MSE on test set: {reconstructionMSE}")
                                         if reconstructionMSE < bestMSE:
                                             bestMSE = reconstructionMSE
@@ -116,10 +116,11 @@ def create_and_train_all_optimized_models(M, ds_train,ds_validation, ds_test):
                                                 "optimizer": optimizer,
                                                 "bias": bias
                                             }
-            bestModels.append((bestModel, best_hyperparameters))
+            bestModels.append((bestModel, best_hyperparameters)) # use them with libraries better :)
+            bestModel.save(f"models_and_data/model_{layer_type.lower()}_{activation}.keras")
             
 
-    return bestModel, best_hyperparameters
+    return bestModels, best_hyperparameters
 
 
 
@@ -195,17 +196,15 @@ def parse_args():
     return args
 
 
-def main():
+def sheet1_task3_main(args):
     start = time.time()   #  start timer
-
-    args = parse_args()
-
+    print(f'running sheet1 task3 with {args}')
     normal_path = Path("models_and_data/dataset_normal.npy")
     attack_path = Path("models_and_data/dataset_attack.npy")
     have_normal = normal_path.exists()
     have_attack = attack_path.exists()
 
-    #verify that normal dataset already exists in file (required for mode features and mode classify)
+    # verify that normal dataset already exists in file (required for mode features and mode classify)
     if not have_normal:
         print(
             f"No dataset file found for normal packets ('models_and_data/dataset_normal.npy')! The dataset will be created from the pcap files in{args.pcap_dir_attack}. This may take a while...")
@@ -271,5 +270,3 @@ def main_for_tests():
 
     return
 
-if __name__ == "__main__":
-    main()

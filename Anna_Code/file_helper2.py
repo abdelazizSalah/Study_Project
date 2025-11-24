@@ -2,7 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 
-from Anna_Code.process_pcap import pcap_extract_values
+from process_pcap import pcap_extract_values
 
 
 def save_df_as_parquet(df, path):
