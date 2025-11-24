@@ -1,10 +1,24 @@
 import os
 import pandas as pd
-from pathlib import Path
-
+import json
 from process_pcap_t2 import pcap_extract_values
+import numpy as np
 
-#
+
+def save_alignment_and_candidates_npz(filepath, aligned_messages, keyword_candidates):
+    np.savez_compressed(
+        filepath,
+        aligned=np.array(aligned_messages, dtype=object),
+        candidates=np.array(keyword_candidates, dtype=object)
+    )
+    print("✔ Saved compressed:", filepath)
+
+
+def load_alignment_and_candidates_npz(filepath):
+    data = np.load(filepath, allow_pickle=True)
+    return data["aligned"].tolist(), data["candidates"].tolist()
+
+
 def save_df_as_parquet(df, path):
     df.to_parquet(path, compression="zstd", index=False)
     return 0

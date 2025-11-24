@@ -4,8 +4,9 @@ from pathlib import Path
 import time
 import pandas as pd
 from Assignment2.Task1.file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv
-from sequence_alignment import iat_gap_threshold, find_threshold_iat_kmeans, group_into_communication_sessions, \
-    group_into_communication_sessions_optimized, start_sequence_alignment
+from Assignment2.Task1.unit_fields import build_fields_and_candidates_from_alignment
+from Assignment2.Task1.sequence_alignment import start_sequence_alignment
+from communication_sessions import group_into_communication_sessions_optimized, iat_gap_threshold
 
 
 #--task preprocess --dataset-dir /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset --output-file /home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv
@@ -75,12 +76,31 @@ def create_communication_groups(df):
 
 def test_main():
     df=read_df_from_csv("/home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv")
-    df_first_500 = df.head(10)
+    #print(len(df))
+    df_first_100 = df.head(500)
 
-    start_sequence_alignment(df_first_500)
+    #group into client and server messages
+
+    alignment_client, alignment_server=start_sequence_alignment(df_first_100)
+    #print(len(alignment_server[0]))
+
+    unit_fields_client, merged_fields_client, keyword_candidates_client = build_fields_and_candidates_from_alignment(alignment_client)
+
+    #save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
+
+    unit_fields_server, merged_fields_server, keyword_candidates_server = build_fields_and_candidates_from_alignment(alignment_server)
+    #save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
 
 
+    #load from file:
+    #alignment_client_from_file, keyword_candidates_client_from_file=load_alignment_and_candidates_npz("client_alignment_and_candidates.npz"
 
+    #print sequences
+    #show_alignment_block_without_indices(alignment_client_from_file)
+
+    #print keywords
+    #for kc in keyword_candidates_client_from_file[:50]:
+    #    print(kc)
 
 if __name__ == "__main__":
     test_main()
