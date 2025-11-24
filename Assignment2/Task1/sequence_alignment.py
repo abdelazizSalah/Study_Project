@@ -13,20 +13,15 @@ from Assignment2.Task1.sequence_alignment_print import show_full_alignment
 #todo: implement this in preprocessing!
 #filter out everything that doesnt start with 0300 (not s7comm)
 #filter out tiny "heartbeat" packets (03 00 00 07 02 F0) (not s7comm)
-def filter_sequences(sequence_list):
-    """
-    Filtert nur gültige S7-Datenpakete heraus.
-    Bedingungen:
-    - Muss mit TPKT beginnen: 03 00
-    - Muss COTP Data TPDU enthalten: 02 F0
-    - Muss S7 Protocol ID enthalten: 32
-    - Muss mindestens 15 Bytes haben
-    """
+def filter_s7_packets(df, data_col="data"):
 
-    result = []
-    indices = []
+    indices_to_keep = []
 
-    for idx, seq in enumerate(sequence_list):
+    for idx, seq in df[data_col].items():
+
+        if not isinstance(seq, str):
+            # falls NaN / None / komische Typen: verwerfen
+            continue
 
         # remove spaces & lowercase for consistent processing
         hex_clean = seq.replace(" ", "").lower()
@@ -47,21 +42,18 @@ def filter_sequences(sequence_list):
             continue
 
         # --- 3) COTP Data TPDU: 02 F0 muss vorkommen ---
-        # typischerweise an Position 4–5, aber wir suchen im gesamten Paket
         if "02f0" not in hex_clean:
             continue
 
-        # --- 4) S7 Protocol ID: 32 ----
-        # normalerweise direkt nach 02 F0 80
-        # aber wir suchen direkt nach "32"
+        # --- 4) S7 Protocol ID: 32 muss vorkommen ---
         if "32" not in hex_clean:
             continue
 
         # Wenn alle Bedingungen erfüllt sind → gültiges S7-Datenpaket
-        result.append(seq)
-        indices.append(idx)
+        indices_to_keep.append(idx)
 
-    return result
+    # nur die gültigen Zeilen behalten
+    return df.loc[indices_to_keep].copy()
 
 
 #input: "02 F0 A3" ...
@@ -378,12 +370,16 @@ def print_alignment(alignment, used_indices):
 
 
 def start_sequence_alignment(df):
+    df_s7 = filter_s7_packets(df, data_col="data")
 
-    client_df, server_df= seperate_client_and_server(df)
+    # 3) Danach in Client / Server aufteilen
+    client_df, server_df = seperate_client_and_server(df_s7)
 
     #client
     sequence_list_as_hex_client=client_df["data"].tolist()
-    sequence_list_as_hex_client=filter_sequences(sequence_list_as_hex_client)
+
+
+
     distance_score_matrix_client=get_distance_score_matrix(sequence_list_as_hex_client)
     alignment_client, used_indices_client= build_progressive_alignment(sequence_list_as_hex_client,distance_score_matrix_client)
 
@@ -394,10 +390,14 @@ def start_sequence_alignment(df):
 
     #server
     sequence_list_as_hex_server = server_df["data"].tolist()
-    sequence_list_as_hex_server = filter_sequences(sequence_list_as_hex_server)
+
+    #sequence_list_as_hex_server = filter_sequences(sequence_list_as_hex_server)
+
     distance_score_matrix_server = get_distance_score_matrix(sequence_list_as_hex_server)
     alignment_server, used_indices_server =build_progressive_alignment(sequence_list_as_hex_server,distance_score_matrix_server)
-    show_alignment_block(alignment_server, used_indices_server)
+
+    #print("Server Alignment")
+    #show_alignment_block(alignment_server, used_indices_server)
 
 
     return alignment_client, alignment_server

@@ -3,6 +3,9 @@ import sys
 from pathlib import Path
 import time
 import pandas as pd
+
+from Assignment2.Task1.cluster_based_on_candidates import clustering_messages_by_keywords,  \
+    create_and_analyze_clusters
 from Assignment2.Task1.file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv
 from Assignment2.Task1.unit_fields import build_fields_and_candidates_from_alignment
 from Assignment2.Task1.sequence_alignment import start_sequence_alignment
@@ -86,21 +89,26 @@ def test_main():
 
     unit_fields_client, merged_fields_client, keyword_candidates_client = build_fields_and_candidates_from_alignment(alignment_client)
 
-    #save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
+    create_and_analyze_clusters(alignment_client, keyword_candidates_client)
+    print(keyword_candidates_client[1])
+    return
 
-    unit_fields_server, merged_fields_server, keyword_candidates_server = build_fields_and_candidates_from_alignment(alignment_server)
-    #save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
+    # save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
 
+    unit_fields_server, merged_fields_server, keyword_candidates_server = build_fields_and_candidates_from_alignment(
+        alignment_server)
+    # save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
 
-    #load from file:
-    #alignment_client_from_file, keyword_candidates_client_from_file=load_alignment_and_candidates_npz("client_alignment_and_candidates.npz"
+    # load from file:
+    # alignment_client_from_file, keyword_candidates_client_from_file=load_alignment_and_candidates_npz("client_alignment_and_candidates.npz"
 
-    #print sequences
-    #show_alignment_block_without_indices(alignment_client_from_file)
+    # print sequences
+    # show_alignment_block_without_indices(alignment_client_from_file)
 
-    #print keywords
-    #for kc in keyword_candidates_client_from_file[:50]:
+    # print keywords
+    # for kc in keyword_candidates_client_from_file[:50]:
     #    print(kc)
+
 
 if __name__ == "__main__":
     test_main()
