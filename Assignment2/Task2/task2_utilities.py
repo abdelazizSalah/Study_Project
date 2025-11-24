@@ -1,5 +1,7 @@
 
 import numpy as np
+from dataclasses import dataclass
+from enum import Enum
 import random
 from dataclasses import dataclass
 from typing import List, Literal
@@ -32,6 +34,11 @@ class KeywordCandidate:
     # return len
     def __len__(self):
         return self.end_idx - self.start_idx + 1
+
+
+class FieldType(Enum):
+    STATIC = 0
+    DYNAMIC = 1
 
 
 # -----------------------------
@@ -249,7 +256,14 @@ def compute_similarity_scores_for_keyword(sim_matrix, clusters, threshold=0.7):
         for m in members:
             msg_to_cluster[m] = c_id
 
+    
+    # assign unclustered messages to a special cluster to avoid neglecting empty clusters and length mismatch
+    for msg_index in range(sim_matrix.shape[0]):
+        if msg_index not in msg_to_cluster:
+            msg_to_cluster[msg_index] = -1   # “noise” cluster
+
     n = sim_matrix.shape[0]
+
 
     # Compare each pair (i < j)
     for i in range(n):
@@ -395,3 +409,33 @@ def compute_ps_scores(filtered_keywords: List[KeywordCandidate], aligned_msgs):
         ps_list.append(ps)
     return ps_list
 
+
+def determine_empty_indices(aligned_msgs):
+    """
+    Determine indices which have None values in any message.
+    """
+    none_indices_client = set()
+    for i, msg in enumerate(aligned_msgs):
+        for j, field in enumerate(msg):
+            if field is None:
+                none_indices_client.add(j)
+    # none_indices_server = set()
+    # for i, msg in enumerate(msgs_server):
+    #     for j, field in enumerate(msg):
+    #         if field is None:
+    #             none_indices_server.add(j)
+    return none_indices_client
+
+
+def print_physical_bytes_after_keyword(aligned_msgs: np.ndarray, keyword: KeywordCandidate):
+    """
+    Print the physical bytes in the aligned messages that lie after the end index of the given keyword.
+    """
+    print("Physical bytes after the keyword:")
+
+    # print all bytes which are not none
+    for _ , msg in enumerate(aligned_msgs):
+        for j in range(keyword.end_idx + 1, len(msg)):
+            if msg[j] is not None:
+                print(msg[j], end=' ')
+        print()  # new line per message
