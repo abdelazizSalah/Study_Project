@@ -488,7 +488,6 @@ def compute_structure_coherence(aligned_msgs, clusters):
 
         # think of it as matrix of size (num_members, msg_len)
         total_positions = len(members) * msg_len
-        print(ref)
         for msg_idx in members:
             diffs = 0
             msg = aligned_msgs[msg_idx]

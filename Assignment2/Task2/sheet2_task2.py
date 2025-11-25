@@ -261,25 +261,16 @@ def sheet2_task2_reverse2(args = None):
 
 
     
-    best_idx_client_multiplication, best_score_client_multiplication = task2_c_multiplication(pms_client, prs, ps_client_list)
-    best_idx_server_multiplication, best_score_server_multiplication = task2_c_multiplication(pms_server, prs, ps_server_list)
-
-    print(f"Best keyword client with final multiplication score: {best_score_client_multiplication}")
-
-    print(f"Best keyword server with final multiplication score: {best_score_server_multiplication}")
-
-    # print keywords with best idx
-    if best_idx_client_multiplication < len(filtered_candidates_client):
-        best_keyword_client = filtered_candidates_client[best_idx_client_multiplication]
-        print(f"Best keyword client with multiplication: start_idx={best_keyword_client.start_idx}, end_idx={best_keyword_client.end_idx}, length={len(best_keyword_client)}")
-    else:
-        print("Best keyword client index is out of range of filtered candidates.")
-
-    if best_idx_server_multiplication < len(filtered_candidates_server):
-        best_keyword_server = filtered_candidates_server[best_idx_server_multiplication]
-        print(f"Best keyword server with multiplication: start_idx={best_keyword_server.start_idx}, end_idx={best_keyword_server.end_idx}, length={len(best_keyword_server)}")
-    else:
-        print("Best keyword server index is out of range of filtered candidates.")
+    # print physical bytes after best keyword candidate
+    print_physical_bytes_after_keyword(
+        msgs_client,
+        best_keyword_client
+    )
+    print_physical_bytes_after_keyword(
+        msgs_server,
+        best_keyword_server 
+    )
+    return
         
 # -----------------------------
 # Example run
