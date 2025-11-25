@@ -454,18 +454,22 @@ def task2fMultiProcessing(label='QUT_attacked_taskE', folder = "chebyshev_blocks
 
 
 
-def main(): 
+# Go back to the root of the project 
+
+
+def sheet1_task2(): 
     
     # task2a preprocessing for QUT 
+    root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     print('processing task 2a Q')
-    QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow = task2a_flows_creation_QUT('../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', 'QUT_attacked')
-    QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow = task2a_flows_creation_QUT('../../DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/control/', 'QUT_normal')
+    QUT_Attacked_2mins_flow, QUT_Attacked_4mins_flow, QUT_Attacked_6mins_flow = task2a_flows_creation_QUT(root_path + '/DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/attacks/', 'QUT_attacked')
+    QUT_Control_2mins_flow, QUT_Control_4mins_flow, QUT_Control_6mins_flow = task2a_flows_creation_QUT(root_path + '/DataSets/2017QUT_S7comm/LabelledDataset/output/2017QUT_S7comm/control/', 'QUT_normal')
     
     # task2a preprocessing for Electra
     print('processing task 2a E')
 
-    Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow = task2a_flows_creation_Electra('../../DataSets/electra_s7comm/output/attacked/combined_attacked.csv', 'Electra_attacked')
-    Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow = task2a_flows_creation_Electra('../../DataSets/electra_s7comm/output/normal/combined_normal.csv', 'Electra_normal')
+    Electra_Attacked_2mins_flow, Electra_Attacked_4mins_flow, Electra_Attacked_6mins_flow = task2a_flows_creation_Electra(root_path + '/DataSets/electra_s7comm/output/attacked/combined_attacked.csv', 'Electra_attacked')
+    Electra_Normal_2mins_flow, Electra_Normal_4mins_flow, Electra_Normal_6mins_flow = task2a_flows_creation_Electra(root_path + '/DataSets/electra_s7comm/output/normal/combined_normal.csv', 'Electra_normal')
 
     # task2b for QUT
     print('processing task 2b Q')
@@ -511,22 +515,13 @@ def main():
    
     # task2e for QUT only
     print('processing task 2e Q')
-    task2e_optimized('all_packets_QUT_control_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
+    task2e_optimized('all_packets_QUT_control_taskE.npy', root_path + '/DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set',label='QUT_control_taskE')
     print('processing task 2f Q')
     task2fMultiProcessing(label='QUT_control_taskE')
 
     if not TESTING:
-        task2e_optimized('all_packets_QUT_attacked_taskE.npy', '../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
+        task2e_optimized('all_packets_QUT_attacked_taskE.npy', root_path + '/DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks', label='QUT_attacked_taskE')
         task2fMultiProcessing(label='QUT_attacked_taskE')
-
-
-print('start task2 processing')
-start = time.time()
-print(f'Running in testing mode? {TESTING}')
-main()
-end = time.time()
-
-print(f'whole process in {end - start} secs')
 
 
 

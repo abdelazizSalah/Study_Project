@@ -67,6 +67,7 @@ def show_full_alignment(alignment, used_indices, cols_per_block=32, max_rows=Non
         start = end
 
 
+# use this for print.
 def show_alignment_block_without_indices(alignment, start_col=0, end_col=40, max_rows=None):
     """
     Hilfsfunktion: Gibt einen Spaltenblock des Alignments aus.

@@ -3,11 +3,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.testing.print_coercion_tables import print_new_cast_table
-from Assignment2.Task1.kmeans import kmeans_iat_clusters, plot_iat_kmeans_clusters
+from kmeans import kmeans_iat_clusters, plot_iat_kmeans_clusters
 from Bio.Align import PairwiseAligner
 from sequence_alignment_print import show_alignment_block
 
-from Assignment2.Task1.sequence_alignment_print import show_full_alignment
+from sequence_alignment_print import show_full_alignment
 
 
 #todo: implement this in preprocessing!

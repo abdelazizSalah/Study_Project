@@ -5,6 +5,7 @@ import pandas as pd
 #input: candidates dictionary, aligned msgs [[],[]]
 #output: dictionary: {(0,23,234),[idx3,idx6,idx7,...]}
 #-> key: tupel with content of candidate fields, according list of idxs that belong to that content
+from kmeans import cluster_single_keyword_kmedoids
 def cluster_by_keyword(aligned_msgs, kc):
 
     clusters = {}

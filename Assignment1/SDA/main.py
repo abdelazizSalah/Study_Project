@@ -7,7 +7,7 @@ import numpy as np
 
 import sys
 sys.path.append('../Anna_Code')  
-from Anna_Code.file_helper import list_files_by_filetype
+from file_helper import list_files_by_filetype
 
 from stackedDenoisingAutoEncoder import SDA
 from autoencoder import hyperparameter_search, create_train_evaluate_model
