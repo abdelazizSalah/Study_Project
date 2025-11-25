@@ -14,46 +14,82 @@ from Assignment2.Task1.sequence_alignment_print import show_full_alignment
 #filter out everything that doesnt start with 0300 (not s7comm)
 #filter out tiny "heartbeat" packets (03 00 00 07 02 F0) (not s7comm)
 def filter_s7_packets(df, data_col="data"):
+    """
+    Filtert S7-Pakete und entfernt die ersten 7 Bytes (TPKT + COTP)
+    aus der Hex-Sequenz im data_col.
+
+    Bedingungen:
+    - Hex-String muss mit 03 00 (TPKT) beginnen
+    - Enthält 02 F0 (COTP Data TPDU)
+    - Nach Entfernen der ersten 7 Bytes (TPKT + COTP) muss:
+        - der erste Byte 0x32 (S7 Protocol ID) sein
+        - die verbleibende S7-Sequenz mindestens 12 Bytes lang sein
+
+    Rückgabe: Kopie von df nur mit gültigen S7-Paketen,
+              data_col enthält nur noch die S7-PDU ab 0x32.
+    """
 
     indices_to_keep = []
+    cleaned_hex_by_idx = {}
 
     for idx, seq in df[data_col].items():
 
         if not isinstance(seq, str):
-            # falls NaN / None / komische Typen: verwerfen
+            # NaN / None / komische Typen überspringen
             continue
 
-        # remove spaces & lowercase for consistent processing
+        # Leerzeichen raus, alles lowercase
         hex_clean = seq.replace(" ", "").lower()
 
-        # --- 1) Muss mit TPKT beginnen: 03 00 ----
+        # Muss mit TPKT beginnen: 03 00 ...
         if not hex_clean.startswith("0300"):
             continue
 
-        # convert to byte list for easier structural checks
+        # In Bytes umwandeln
         try:
-            byte_list = [int(hex_clean[i:i+2], 16) for i in range(0, len(hex_clean), 2)]
+            byte_list = [
+                int(hex_clean[i:i+2], 16)
+                for i in range(0, len(hex_clean), 2)
+            ]
         except ValueError:
-            # invalid hex string
+            # Ungültiger Hex-String
             continue
 
-        # minimum s7comm header length: 10 bytes
-        if len(byte_list) < 10:
+        # Mindestens TPKT(4) + COTP(3) + bisschen S7
+        if len(byte_list) < 7:
             continue
 
-        # --- 3) COTP Data TPDU: 02 F0 muss vorkommen ---
+        # COTP Data TPDU: 02 F0 muss vorkommen (irgendwo im Header)
         if "02f0" not in hex_clean:
             continue
 
-        # --- 4) S7 Protocol ID: 32 muss vorkommen ---
-        if "32" not in hex_clean:
+        # *** WICHTIG: ab hier arbeiten wir mit dem S7-Teil ***
+        # Erste 7 Bytes abschneiden (TPKT + COTP)
+        s7_bytes = byte_list[7:]
+
+        # Jetzt Mindestlänge auf den S7-Teil anwenden:
+        # mindestens 12 Bytes ab S7-Start (z.B. 0x32 + Header)
+        if len(s7_bytes) < 12:
             continue
 
-        # Wenn alle Bedingungen erfüllt sind → gültiges S7-Datenpaket
+        # Optional, aber sinnvoll: prüfen, dass S7 wirklich mit 0x32 beginnt
+        if s7_bytes[0] != 0x32:
+            continue
+
+        # Wenn wir hier sind: gültiges S7-Paket nach deinen Kriterien
         indices_to_keep.append(idx)
 
-    # nur die gültigen Zeilen behalten
-    return df.loc[indices_to_keep].copy()
+        # S7-Teil wieder in Hex mit Leerzeichen
+        s7_hex_spaced = " ".join(f"{b:02x}" for b in s7_bytes)
+        cleaned_hex_by_idx[idx] = s7_hex_spaced
+
+    # Nur die gültigen Zeilen behalten
+    df_out = df.loc[indices_to_keep].copy()
+
+    # data_col durch S7-PDU (ab 0x32) ersetzen
+    df_out[data_col] = df_out.index.map(cleaned_hex_by_idx.get)
+
+    return df_out
 
 
 #input: "02 F0 A3" ...
@@ -383,10 +419,11 @@ def start_sequence_alignment(df):
     distance_score_matrix_client=get_distance_score_matrix(sequence_list_as_hex_client)
     alignment_client, used_indices_client= build_progressive_alignment(sequence_list_as_hex_client,distance_score_matrix_client)
 
-    #print sequence alignment +
+    #print sequence alignment
     print("Client Alignment")
-    show_alignment_block(alignment_client, used_indices_client)
+    #show_alignment_block(alignment_client, used_indices_client)
 
+    show_full_alignment(alignment_client, used_indices_client, cols_per_block=32, max_rows=None)
 
     #server
     sequence_list_as_hex_server = server_df["data"].tolist()

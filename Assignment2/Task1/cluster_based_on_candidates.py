@@ -225,8 +225,8 @@ def create_and_analyze_clusters(alignment, keyword_candidates):
     display_payload_analysis_results(results)
     #print(keyword_clusters[])
     print_cluster_lengths_for_candidate(
-        alignment=alignment_client,
-        keyword_candidates=keyword_candidates_client,
+        alignment=alignment,
+        keyword_candidates=keyword_candidates,
         keyword_clusters=keyword_clusters,
         candidate_idx=1,
     )

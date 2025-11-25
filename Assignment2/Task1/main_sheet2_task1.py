@@ -6,7 +6,8 @@ import pandas as pd
 
 from Assignment2.Task1.cluster_based_on_candidates import clustering_messages_by_keywords,  \
     create_and_analyze_clusters
-from Assignment2.Task1.file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv
+from Assignment2.Task1.file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv, \
+    save_alignment_and_candidates_npz
 from Assignment2.Task1.unit_fields import build_fields_and_candidates_from_alignment
 from Assignment2.Task1.sequence_alignment import start_sequence_alignment
 from communication_sessions import group_into_communication_sessions_optimized, iat_gap_threshold
@@ -80,6 +81,8 @@ def create_communication_groups(df):
 def test_main():
     df=read_df_from_csv("/home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv")
     #print(len(df))
+
+    #todo: filter out s7comm part before the creation of communication sessions
     df_first_100 = df.head(500)
 
     #group into client and server messages
@@ -91,14 +94,14 @@ def test_main():
 
     create_and_analyze_clusters(alignment_client, keyword_candidates_client)
     print(keyword_candidates_client[1])
-    return
 
-    # save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
+
+    save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
 
     unit_fields_server, merged_fields_server, keyword_candidates_server = build_fields_and_candidates_from_alignment(
         alignment_server)
-    # save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
-
+    save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
+    return
     # load from file:
     # alignment_client_from_file, keyword_candidates_client_from_file=load_alignment_and_candidates_npz("client_alignment_and_candidates.npz"
 
