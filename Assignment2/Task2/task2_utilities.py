@@ -443,11 +443,43 @@ def compute_remote_coupling(clusters_client, clusters_server, client_to_server_m
     # Final PR is average over all client clusters (this was not clear in the task, but I assumed it should be like this).
     return sum(pr_values) / len(pr_values)
 
+
+
+def create_mapping(msgs_client, msgs_server):
+    '''
+        Input:
+            msgs_client: List of client messages (list of lists)
+            msgs_server: List of server messages (list of lists)
+        Logic:
+            map messages based on the 4th and 5th index values, they are realated from viewing the pcap files. 
+        Output:
+            mapping_indicies: dict mapping from client message index to server message index
+    
+    '''
+    mapping_indicies = {} # client idx to server index
+    print("Sample msgs_client:")
+    print(f'len client msgs: {len(msgs_client)}')
+    print(f'len server msgs: {len(msgs_server)}')
+    min_len = min(len(msgs_client), len(msgs_server))
+    for i in range (min_len):
+        for j in range(4,5):
+            if msgs_client[i][j] is not None and msgs_client[i][j] == msgs_server[i][j] and msgs_client[i][j+1] is not None and msgs_client[i][j+1] == msgs_server[i][j+1]:
+                print(f"msg {i} client: {hex(msgs_client[i][j])} {hex(msgs_client[i][j+1])}")
+                print(f"msg {i} server: {hex(msgs_server[i][j])} {hex(msgs_server[i][j+1])}")
+                print("  --> Match")
+                mapping_indicies[i] = i
+            else:
+                print("  --> No Match")
+                continue
+    
+    return mapping_indicies
+
 def compute_pr_for_keyword(msgs_client, msgs_server, clusters_client, clusters_server):
 
     # I must have mapping from client msg idx to server msg idx
     # Assuming that first message in client corresponds to first message in server, and so on.
-    client_to_server_mapping = {i: i for i in range(min(len(msgs_client), len(msgs_server)))}
+
+    client_to_server_mapping = create_mapping(msgs_client, msgs_server)
     pr = compute_remote_coupling(clusters_client, clusters_server, client_to_server_mapping)
     print(f"Remote coupling probability pr: {pr}")
     return pr
@@ -548,8 +580,9 @@ def print_physical_bytes_after_keyword(aligned_msgs: np.ndarray, keyword: Keywor
     print("Physical bytes after the keyword:")
 
     # print all bytes which are not none
-    for _ , msg in enumerate(aligned_msgs):
+    for i , msg in enumerate(aligned_msgs):
+        print(f'physical data of message number {i}')
         for j in range(keyword.end_idx + 1, len(msg)):
             if msg[j] is not None:
-                print(msg[j], end=' ')
+                print(hex(msg[j]), end=' ')
         print()  # new line per message

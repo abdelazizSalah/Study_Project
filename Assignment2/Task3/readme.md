@@ -13,6 +13,8 @@
       - Task1
       - Task2
       - Task3
+        - client_alignment_and_candidates.npz
+        - server_alignment_and_candidates.npz
 - otherwise, you will need to change the directories strings manually.
 ## How to use
 - first install all requirements

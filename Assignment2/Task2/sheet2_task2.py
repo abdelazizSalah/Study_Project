@@ -163,7 +163,7 @@ def task2_c_multiplication(pms, prs, ps_list):
 
 
 def load_alignment_and_candidates_npz(filepath):
-    data = np.load(filepath, allow_pickle=True)
+    data = np.load(filepath, allow_pickle=True) # pickle is usually needed if we have non-numeric data, such as objects and json-like structures
     return data["aligned"].tolist(), data["candidates"].tolist()
 
 
@@ -182,7 +182,6 @@ def convert_candidates(key_word_candidates):
     ]
 
     return converted_candidates
-
 
 
 def sheet2_task2_reverse2(args = None):
@@ -208,18 +207,17 @@ def sheet2_task2_reverse2(args = None):
     msgs_client, key_word_candidates_client = load_alignment_and_candidates_npz("client_alignment_and_candidates.npz")
     msgs_server, key_word_candidates_server = load_alignment_and_candidates_npz("server_alignment_and_candidates.npz")
 
-    
-    # determine indicies of columns which contains NONE values in any row
-    none_indices_client = determine_empty_indices(msgs_client)
-    none_indices_server = determine_empty_indices(msgs_server)
-
-
+    # print msgs server values at index 4,5 in hex format
     keyword_candidates_client = convert_candidates(key_word_candidates_client)
     keyword_candidates_server = convert_candidates(key_word_candidates_server)
 
     #convert msgs_client from list of lists to numpy array
     msgs_client = np.array(msgs_client)
     msgs_server = np.array(msgs_server)
+
+    # determine none indices for client and server
+    none_indices_client = determine_empty_indices(msgs_client)
+    none_indices_server = determine_empty_indices(msgs_server)
 
 
     # performing Task 2.a
