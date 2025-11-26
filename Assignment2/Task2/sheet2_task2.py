@@ -188,7 +188,12 @@ def convert_candidates(key_word_candidates):
 def sheet2_task2_reverse2(args = None):
     
     # assign to variable
-    mxLen = args.max_len if args is not None else 4
+    if args is not None and args.max_len is not None and args.max_len > 0:
+        mxLen = args.max_len
+    else:
+        print('Error: Max length argument is required and should be > 0')
+        return
+
 
     # msgs_client_gen, unit_fields_client, merged_fields_client, keyword_candidates_client_gen = generate_dummy_data_for_task2(
     #     n_msgs=20 if TESTING else 1000,
