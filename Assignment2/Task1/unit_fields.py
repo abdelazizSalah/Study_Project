@@ -2,23 +2,12 @@ import numpy as np
 
 
 def detect_unit_fields(aligned_msgs):
-    """
-    aligned_msgs: NumPy-Array shape (n_msgs, msg_len), dtype=object (Bytes oder None)
 
-    Rückgabe:
-        Liste von dicts mit:
-        {
-            "start": spaltenindex,
-            "end":   spaltenindex (am Anfang immer == start),
-            "is_static": True/False
-        }
-    """
     unit_fields = []
 
     for col in range(aligned_msgs.shape[1]):
         col_vals = aligned_msgs[:, col]
 
-        # Wenn irgendwo ein Gap ist -> dynamic
         if any(v is None for v in col_vals):
             is_static = False
         else:
@@ -37,19 +26,7 @@ def detect_unit_fields(aligned_msgs):
 
 
 def merge_static_fields(unit_fields):
-    """
-    unit_fields: Liste von dicts wie aus detect_unit_fields()
 
-    Merge nur aufeinanderfolgende statische Felder.
-    Dynamische bleiben Einzelfelder.
-
-    Rückgabe: Liste von dicts:
-        {
-            "start": start_index,
-            "end": end_index,
-            "is_static": True/False
-        }
-    """
     merged = []
     i = 0
     n = len(unit_fields)
@@ -77,7 +54,6 @@ def merge_static_fields(unit_fields):
             })
             i = j
         else:
-            # dynamisches Feld bleibt wie es ist
             merged.append({
                 "start": uf["start"],
                 "end": uf["end"],
@@ -89,11 +65,7 @@ def merge_static_fields(unit_fields):
 
 
 def build_keyword_candidates(merged_fields):
-    """
-    merged_fields: Liste von dicts mit start/end/is_static
 
-    Rückgabe: Liste von dicts mit zusätzlicher field_id
-    """
     keyword_candidates = []
     for i, f in enumerate(merged_fields):
         kc = {
@@ -109,14 +81,7 @@ def build_keyword_candidates(merged_fields):
 
 
 def build_fields_and_candidates_from_alignment(alignment):
-    """
-    alignment: List[List[int | None]]
 
-    Rückgabe:
-        unit_fields:   Liste von dicts (start=end=col, is_static)
-        merged_fields: Liste von dicts (gemergte statische Blöcke)
-        keyword_candidates: Liste von dicts (wie merged_fields, plus field_id)
-    """
     aligned_np = np.array(alignment, dtype=object)
 
     unit_fields = detect_unit_fields(aligned_np)

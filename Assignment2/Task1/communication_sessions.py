@@ -1,4 +1,4 @@
-from kmeans import kmeans_iat_clusters,plot_iat_kmeans_clusters
+from Assignment2.Task1.sequence_alignment import filter_s7_packets
 import numpy as np
 
 
@@ -13,8 +13,8 @@ def group_into_communication_sessions(df, threshold):
     # iterate rows in order
     for _, pkt in df.iterrows():
 
-        # condition: start a new group
-        if (pkt["session_id"] != prev_session_id) or (pkt["iat_session_pair"] > threshold) or (pkt["iat_session_pair"].isna()): #todo: does this make sense?
+        # different session ID / iat bigger than threshold / start of new file -> new communication session group!
+        if (pkt["session_id"] != prev_session_id) or (pkt["iat_session_pair"] > threshold) or (pkt["iat_session_pair"].isna()):
             current_group += 1
             print("new group")
 
@@ -37,7 +37,6 @@ def group_into_communication_sessions_optimized(df, threshold):
         (df["iat_session_pair"].isna())
     )
 
-    # cumulative sum of True/False → 1,2,3,... group ids
     df["group_id"] = new_group.cumsum()
 
     return df
@@ -49,7 +48,7 @@ def group_into_communication_sessions_optimized(df, threshold):
 def iat_gap_threshold(df):
     iats = df["iat_session_pair"].dropna().to_numpy()
     # only consider the ones with smallest threshold
-    filtered_iats = iats[iats < 0.3]    #todo: proof that meaningfull region is below this value
+    filtered_iats = iats[iats < 1.0]    #todo: proof that meaningfull region is below this value
     iats_sorted = np.sort(filtered_iats)
 
     diffs = np.diff(iats_sorted)
@@ -64,16 +63,11 @@ def iat_gap_threshold(df):
     return threshold, small_cluster, large_cluster
 
 
-def find_threshold_iat_kmeans(df):
-    #iat_values=df["iat_session_pair"].dropna()
+def create_communication_sessions(df):
+    df_s7 = filter_s7_packets(df)   #ensure df only contains s7comm packets
 
-    iats = df["iat_session_pair"].dropna().to_numpy()
-    filtered_iats = iats[iats < 0.3]
+    #find threshold
+    threshold, small_cluster, large_cluster =iat_gap_threshold(df_s7)
 
-    #cluster all iats
-    iats, labels, centers, threshold = kmeans_iat_clusters(filtered_iats, 2)
-    plot_iat_kmeans_clusters(iats, labels, centers, threshold, "kmeans_clusters_filtered.png")
-
-
-
-
+    df=group_into_communication_sessions_optimized(df_s7, threshold)
+    return df

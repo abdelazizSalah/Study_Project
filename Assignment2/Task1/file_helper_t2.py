@@ -1,7 +1,5 @@
 import os
 import pandas as pd
-import json
-from process_pcap_t2 import pcap_extract_values
 import numpy as np
 
 
@@ -11,7 +9,7 @@ def save_alignment_and_candidates_npz(filepath, aligned_messages, keyword_candid
         aligned=np.array(aligned_messages, dtype=object),
         candidates=np.array(keyword_candidates, dtype=object)
     )
-    print("✔ Saved compressed:", filepath)
+    print("Saved compressed:", filepath)
 
 
 def load_alignment_and_candidates_npz(filepath):
@@ -50,32 +48,5 @@ def list_files_by_filetype(root_path, filetype):
     return pcap_files
 
 
-#used for QUT_S7Comm
-#one large file for attack dataset and control dataset
-def create_large_csv_file_from_pcaps(input_path_pcap, output_csv_file):
 
-    pcap_files=list_files_by_filetype(input_path_pcap,"pcap")
-
-    first_control_file=1
-    for path in pcap_files:
-
-        filename = os.path.basename(path)
-        try:
-            write_header = first_control_file
-
-            if first_control_file:
-                file_mode = 'w'
-                first_control_file=0
-            else: file_mode='a'
-
-            df_pcap=pcap_extract_values(path)
-            save_df_to_csv(df_pcap, output_csv_file, mode=file_mode, header=write_header)
-            print(f"File {path} done.")
-        except Exception as e:
-            print(f"Exception in {filename}:\n{e}")
-
-    print("\n\nCreated CSV from PCAP files\n\n")
-
-
-    return 0
 
