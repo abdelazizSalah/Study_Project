@@ -1,19 +1,11 @@
 import os
-from traceback import print_stack
-
-import numpy as np
+from file_helper_t2 import list_files_by_filetype, save_df_to_csv
 from scapy.all import PcapReader, TCP, IP
 import pandas as pd
-from scapy.layers.sctp import SCTP
 
 
-"""
-Extract all the important values from a pcap file and summarize them in a dataframe.
-"""
-#
 #checks if port number corresponds to the one for s7comm
 def check_if_app_proto_is_s7comm(srcport,dstport):
-    #todo: additional way of detection?
     ports=[srcport,dstport]
 
     for p in ports:
@@ -43,7 +35,6 @@ def pcap_extract_values(pcap_path):
 
     first_ts=None
 
-
     with (PcapReader(pcap_path) as pcap):
 
         for pkt in pcap:
@@ -53,14 +44,13 @@ def pcap_extract_values(pcap_path):
                 src_ip = pkt[IP].src
                 dst_ip = pkt[IP].dst
             except Exception as e:  #missing IP layer triggers exception
-                #print(f"Exception no IP layer - {e}")
                 continue  #s7commm would have IP layer
 
-            if TCP in pkt:
+            if TCP in pkt: #s7comm only runs on tcp
                 src_port = int(pkt[TCP].sport)
                 dst_port = int(pkt[TCP].dport)
             else:
-                continue #s7comm only runs on tcp
+                continue
 
             if not  check_if_app_proto_is_s7comm(src_port,dst_port):
                 continue
@@ -109,3 +99,36 @@ def pcap_extract_values(pcap_path):
 
             #print(ts, frame_len, src_ip, dst_ip, src_port, dst_port, l4_proto, app_proto, header_len, app_len, iat_pair, iat_proto_pair)
     return pd.DataFrame(records)
+
+
+
+#used for QUT_S7Comm
+def preprocess_dataset(input_path_pcap, output_csv_file):
+
+    pcap_files=list_files_by_filetype(input_path_pcap,"pcap")
+    if len(pcap_files)==0:
+        print("No pcap files found in the specified dataset directory.")
+        return -1
+    first_control_file=1
+    for path in pcap_files:
+
+        filename = os.path.basename(path)
+        try:
+            write_header = first_control_file
+
+            if first_control_file:
+                file_mode = 'w'
+                first_control_file=0
+            else: file_mode='a'
+
+            df_pcap=pcap_extract_values(path)
+            # saving to csv
+            print('saving to csv')
+            save_df_to_csv(df_pcap, output_csv_file, mode=file_mode, header=write_header)
+            print(f"File {path} done.")
+        except Exception as e:
+            print(f"Exception in {filename}:\n{e}")
+
+    print("\n\nCreated CSV from PCAP files\n\n")
+
+    return 0

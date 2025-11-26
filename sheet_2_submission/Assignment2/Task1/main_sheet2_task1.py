@@ -1,91 +1,106 @@
 import argparse
 import sys
 from pathlib import Path
-import time
-import pandas as pd
 
-from Assignment2.Task1.cluster_based_on_candidates import clustering_messages_by_keywords,  \
-    create_and_analyze_clusters
-from Assignment2.Task1.file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv, \
-    save_alignment_and_candidates_npz
-from Assignment2.Task1.unit_fields import build_fields_and_candidates_from_alignment
-from Assignment2.Task1.sequence_alignment import start_sequence_alignment
-from file_helper_t2 import create_large_csv_file_from_pcaps, read_df_from_csv
+from cluster_based_on_candidates import create_and_analyze_clusters
+from file_helper_t2 import read_df_from_csv, save_df_to_csv, \
+    save_alignment_and_candidates_npz, load_alignment_and_candidates_npz
+from process_pcap_t2 import preprocess_dataset
 from unit_fields import build_fields_and_candidates_from_alignment
 from sequence_alignment import start_sequence_alignment
-from communication_sessions import group_into_communication_sessions_optimized, iat_gap_threshold
+from file_helper_t2 import  read_df_from_csv
+from unit_fields import build_fields_and_candidates_from_alignment
+from sequence_alignment import start_sequence_alignment
+from communication_sessions import create_communication_sessions
+
+# add sheet_2_submission to python path
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.append(str(ROOT))
 
 
-#--task preprocess --dataset-dir /home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset --output-file /home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv
 
-def release_main():
-    start = time.time()   # ⏱️ start timer
+def release_main_reverse1(args):
+    if args is None:
+        print("ERROR: No arguments provided to reverse_1 main function.")
+        return
+    print(f"[reverse_1] Running task: {args.task}")
 
-    parser = argparse.ArgumentParser(
-        description="Argument handling for preprocessing or X (QUT)."
-    )
-
-    # Task and dataset selection
-    parser.add_argument(
-        "--task", required=True, choices=["preprocess", ""],
-        help="Choose 'preprocess' or ''."
-    )
-
-    # --- Preprocessing arguments ---
-    parser.add_argument("--dataset-dir", help="QUT preprocess: directory with all PCAPs in the dataset")
-    parser.add_argument("--output-file", help="Preprocess: path to output file (CSV for QUT)")
-
-    args = parser.parse_args()
-
-    print(f"TASK     = {args.task}")
-
+    #example: --task preprocess --dataset-dir "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set" --output-file "preprocess.csv"
     if args.task == "preprocess":
-        # validate args
-        if not args.dataset_dir  or not args.output_file:
-            sys.exit("Missing required args for QUT preprocess: --attack-dir --control-dir --output-file")
+        # raw PCAPs -> preprocessed CSV
+        preprocess_dataset(
+            args.dataset_dir,
+            args.output_file
+        )
 
-        dataset_dir = Path(args.dataset_dir)
-        output_file = Path(args.output_file)
+    # example: --task sessions --preprocessed-file "preprocessQUT.csv" --output-file "communicationSessions.csv"
+    elif args.task == "sessions":
+        # preprocessed CSV -> sessions CSV
+        df=read_df_from_csv(args.preprocessed_file)
+        df=create_communication_sessions(df)
+        save_df_to_csv(df,args.output_file)
 
-        if not dataset_dir.is_dir():
-            sys.exit(f"--attack-dir not found or not a directory: {dataset_dir}")
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+#--task align_keywords --preprocessed-file "preprocessQUT.csv"
+    elif args.task == "align_keywords":
+        # preprocessed CSV -> alignments + keyword candidates (combined file)
+        df=read_df_from_csv(args.preprocessed_file)
+        df_first_500 = df.head(500)
 
-        print("MODE: QUT preprocess")
-        print(f"attack_dir  = {dataset_dir}")
-        print(f"output_file = {output_file}")
+        print("Creating sequence alignment and keyword candidates for client traffic and saving it to 'client_alignment_and_candidates.npz'.")
+        alignment_client, alignment_server = start_sequence_alignment(df_first_500)
 
-        create_large_csv_file_from_pcaps(str(dataset_dir), str(output_file))
+        _, _, keyword_candidates_client = build_fields_and_candidates_from_alignment(
+            alignment_client)
+        save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client,
+                                          keyword_candidates_client)
 
-    end = time.time()  # ⏹️ end timer
-    elapsed = end - start
-    print(f"⏱️ main() executed in {elapsed:.2f} seconds")
+        print("Creating sequence alignment and keyword candidates for server traffic and saving it to 'server_alignment_and_candidates.npz'.")
+        _, _, keyword_candidates_server = build_fields_and_candidates_from_alignment(
+            alignment_server)
+        save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server,
+                                          keyword_candidates_server)
+
+#example: #--task cluster_validate --preprocessed-file "preprocessQUT.csv"
+    elif args.task == "cluster_validate":
+
+        client_path = Path("client_alignment_and_candidates.npz")
+        server_path = Path("server_alignment_and_candidates.npz")
+
+        missing = []
+        for p in [client_path, server_path]:
+            if not p.exists():
+                missing.append(p)
+
+        if missing:
+            print("ERROR: Required alignment/keyword files not found:")
+            print("\nPlease run the 'align_keywords' task first to generate these files.")
+            # terminate the program with non-zero exit code
+            sys.exit(1)
+
+        print("Cluster analysis for Client:\n\n")
+        alignment_client_from_file, keyword_candidates_client= load_alignment_and_candidates_npz(
+            "client_alignment_and_candidates.npz")
+        create_and_analyze_clusters(alignment_client_from_file, keyword_candidates_client)
+
+        print("Cluster analysis for Server:\n\n")
+        alignment_server_from_file, keyword_candidates_server= load_alignment_and_candidates_npz(
+            "server_alignment_and_candidates.npz")
+        create_and_analyze_clusters(alignment_server_from_file, keyword_candidates_server)
 
 
-
-
-def find_threshold():
-    threshold, small_cluster, large_cluster= iat_gap_threshold(df)
-    print(threshold)
-    print(len(small_cluster))
-    print(len(large_cluster))
-    #threshold: 0.1656239032745361
-
-
-def create_communication_groups(df):
-    df_grouped=group_into_communication_sessions_optimized(df, 0.1656)
-    with pd.option_context('display.max_columns', None, 'display.max_rows', None):
-        print(df_grouped[["session_id", "iat_session_pair", "group_id"]].head(500))
-    print(df_grouped[["session_id", "timestamp", "group_id"]].columns)
-    return df_grouped
+    else:
+        raise ValueError(f"Unknown task for reverse_1: {args.task}")
+    return
 
 
 
 def test_main():
+
+    #call preprocessor instead
+    #df=pcap_extract_values(args.dataset_dir)
     df=read_df_from_csv("/home/dW5kZWFk/uni/study_project/datasets/output/task2/preprocessQUT.csv")
     #print(len(df))
 
-    #todo: filter out s7comm part before the creation of communication sessions
     df_first_100 = df.head(500)
 
     #group into client and server messages
@@ -98,13 +113,13 @@ def test_main():
     create_and_analyze_clusters(alignment_client, keyword_candidates_client)
     print(keyword_candidates_client[1])
 
+    #save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
 
-    save_alignment_and_candidates_npz("client_alignment_and_candidates.npz", alignment_client, keyword_candidates_client)
-
-    unit_fields_server, merged_fields_server, keyword_candidates_server = build_fields_and_candidates_from_alignment(
-        alignment_server)
-    save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
+    #unit_fields_server, merged_fields_server, keyword_candidates_server = build_fields_and_candidates_from_alignment(
+    #    alignment_server)
+    #save_alignment_and_candidates_npz("server_alignment_and_candidates.npz", alignment_server, keyword_candidates_server)
     return
+
     # load from file:
     # alignment_client_from_file, keyword_candidates_client_from_file=load_alignment_and_candidates_npz("client_alignment_and_candidates.npz"
 
@@ -117,4 +132,4 @@ def test_main():
 
 
 if __name__ == "__main__":
-    test_main()
+    release_main()

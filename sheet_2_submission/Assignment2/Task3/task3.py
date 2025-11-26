@@ -10,6 +10,7 @@
 
 import argparse
 import sys, os
+from pathlib import Path
 
 def print_help():
     help_text = """
@@ -79,7 +80,7 @@ def print_help():
         # mode3: classify
             --pcap-dir-control : Directory with PCAP/PCAPNG files for normal packets (recursive)
             --pcap-dir-attack : Directory with PCAP/PCAPNG files for attack packets (recursive)
-            --y : Threshold γ for MSE-based classifier.
+            --y : Threshold for MSE-based classifier.
             
             Example:
             python task3.py -s sda --mode classify --pcap-dir-control data/control_pcaps --pcap-dir-attack data/attack_pcaps --y 0.01
@@ -88,7 +89,7 @@ def print_help():
                 - Ensure both dataset_control.npy and dataset_attack.npy exist (or create them if they do not exist)
                 - Load the model models_and_data/model_dense_relu.keras (default)
                 - Classify each packet as normal or attack based on reconstruction error:
-                    avg(MSE) > γ  -> attack
+                    avg(MSE) >   -> attack
                     otherwise     -> normal
                 - Print counts of TP, FP, TN, FN and related metrics
     
@@ -103,7 +104,18 @@ def print_help():
         Electra dataset:
                 python task3.py -s statistics --task stats --dataset electra --stats-input-file /data/processed/electra.parquet --stats-output-dir /data/stats/electra
     Reverse Engineering Task 1:
-        python task3.py -s reverse_1 
+
+        Argument parser for Sheet 2 - Reverse Engineering Task 1 (reverse_1).
+        Modes (task):
+            preprocess        : extract S7 values / sequences from raw PCAPs
+            sessions          : create communication sessions (from preprocessed data)
+            align_keywords    : sequence alignment and keyword candidate creation (from preprocessed data)
+            cluster_validate  : clustering + cluster validation based on alignment/keywords (from alignemnt and keyword candidates)
+    
+        python task3.py -s reverse_1 --task preprocess --dataset-dir "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set" --output-file "preprocess.csv"
+        python task3.py -s reverse_1 --task sessions --preprocessed-file "preprocessQUT.csv" --output-file "communicationSessions.csv"
+        python task3.py -s reverse_1 --task align_keywords --preprocessed-file "preprocessQUT.csv"
+        python task3.py -s reverse_1 --task cluster_validate --preprocessed-file "preprocessQUT.csv"
 
     Reverse Engineering Task 2:
         python task3.py -s reverse_2 (no args then defualt max_len = 4 is used)
@@ -230,23 +242,85 @@ def sheet2_task2_args(parser, remaining_args):
 
     return args
 
-def sheet2_task1_args(parser, remaining_args):
+# def sheet2_task1_args(parser, remaining_args):
     
-    # Task and dataset selection
+#     # Task and dataset selection
+#     parser.add_argument(
+#         "--task", required=True, choices=["preprocess", ""],
+#         help="Choose 'preprocess' or ''."
+#     )
+
+#     # --- Preprocessing arguments ---
+#     parser.add_argument("--dataset-dir", help="QUT preprocess: directory with all PCAPs in the dataset")
+#     parser.add_argument("--output-file", help="Preprocess: path to output file (CSV for QUT)")
+
+#     args = parser.parse_args(remaining_args)
+
+#     print(f"TASK     = {args.task}")
+#     return args
+
+
+
+def sheet2_task1_args(parser, remaining_args):
+    """
+    Argument parser for Sheet 2 - Reverse Engineering Task 1 (reverse_1).
+    Modes (task):
+        preprocess        : extract S7 values / sequences from raw PCAPs
+        sessions          : create communication sessions (from preprocessed data)
+        align_keywords    : sequence alignment and keyword candidate creation (from preprocessed data)
+        cluster_validate  : clustering + cluster validation based on alignment/keywords (from alignemnt and keyword candidates)
+    """
+
     parser.add_argument(
-        "--task", required=True, choices=["preprocess", ""],
-        help="Choose 'preprocess' or ''."
+        "--task",
+        required=True,
+        choices=["preprocess", "sessions", "align_keywords", "cluster_validate"],
+        help="Operation mode for reverse_1."
     )
 
-    # --- Preprocessing arguments ---
-    parser.add_argument("--dataset-dir", help="QUT preprocess: directory with all PCAPs in the dataset")
-    parser.add_argument("--output-file", help="Preprocess: path to output file (CSV for QUT)")
+    parser.add_argument(
+        "--dataset-dir",
+        help="Directory with all PCAP/PCAPNG files of the dataset (used in 'preprocess')."
+    )
+    # preprocessed file (input for 'sessions' and 'align_keywords')
+    parser.add_argument(
+        "--preprocessed-file",
+        help="Path to preprocessed packets file (used in 'sessions' and 'align_keywords')."
+    )
+    # generic output file:
+    # - preprocess  -> preprocessed file
+    # - sessions    -> sessions file
+    # - cluster_validate -> clusters + validation results
+    parser.add_argument(
+        "--output-file",
+        help="Output file path. For 'preprocess': preprocessed CSV; "
+             "for 'sessions': sessions CSV; for 'cluster_validate': "
+             "clusters + validation results."
+    )
 
     args = parser.parse_args(remaining_args)
-
-    print(f"TASK     = {args.task}")
+    # ---- check for presence of required arguments ----
+    missing = []
+    if args.task == "preprocess":
+        if args.dataset_dir is None:
+            missing.append("--dataset-dir")
+        if args.output_file is None:
+            missing.append("--output-file")
+    elif args.task == "sessions":
+        if args.preprocessed_file is None:
+            missing.append("--preprocessed-file")
+        if args.output_file is None:
+            missing.append("--output-file")
+    elif args.task == "align_keywords":
+        if args.preprocessed_file is None:
+            missing.append("--preprocessed-file")
+    if missing:
+        parser.error(f"Task '{args.task}' requires: {', '.join(missing)}")
+    # debug print similar to sheet1_task1_args
+    print(f"TASK (reverse_1) = {args.task}")
+    for arg, value in vars(args).items():
+        print(f"{arg:20s}: {value}")
     return args
-
 
 
 def load_all_modules():
@@ -283,11 +357,10 @@ def load_all_modules():
 def main():
     ##########################  Loading Modules #####################
     load_all_modules()
-    from pathlib import Path
     from sheet1_task1 import release_main
     from task2_script import sheet1_task2
     from sheet1_task3 import sheet1_task3_main
-    # from sheet2_task1 import release_main_reverse1
+    from main_sheet2_task1 import release_main_reverse1
     from sheet2_task2 import sheet2_task2_reverse2
     ########################## Finish loading #####################
 

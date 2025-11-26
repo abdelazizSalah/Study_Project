@@ -1,4 +1,4 @@
-from Assignment2.Task1.sequence_alignment import filter_s7_packets
+from sequence_alignment import filter_s7_packets
 import numpy as np
 
 

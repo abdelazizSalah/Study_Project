@@ -1,6 +1,6 @@
 import math
 from Bio.Align import PairwiseAligner
-from Assignment2.Task1.sequence_alignment_print import show_alignment_block
+from sequence_alignment_print import show_alignment_block
 
 
 #filter out everything that doesnt start with 0300 (not s7comm)

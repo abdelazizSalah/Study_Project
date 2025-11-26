@@ -6,3 +6,5 @@ tensorflow
 keras
 scapy
 matplotlib
+Bio
+biopython
