@@ -10,7 +10,6 @@ from sequence_alignment_print import show_alignment_block
 from sequence_alignment_print import show_full_alignment
 
 
-#todo: implement this in preprocessing!
 #filter out everything that doesnt start with 0300 (not s7comm)
 #filter out tiny "heartbeat" packets (03 00 00 07 02 F0) (not s7comm)
 def filter_s7_packets(df, data_col="data"):
