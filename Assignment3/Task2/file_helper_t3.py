@@ -1,8 +1,30 @@
 import os
 import pandas as pd
 from pathlib import Path
+import json
 
-#
+#input: training_indices and test_indices for all folds [[],[],[],...] - k lists
+def save_k_fold_results(training_indices, test_indices, filename):
+    with open(filename, "w") as f:
+        json.dump({
+            "train_indices": training_indices,
+            "test_indices": test_indices
+        }, f)
+
+    return
+
+
+def load_k_fold_results(filename):
+
+    with open(filename) as f:
+        folds = json.load(f)
+
+    train = folds["train_indices"]
+    test  = folds["test_indices"]
+    return train, test
+
+
+
 def save_df_as_parquet(df, path):
     df.to_parquet(path, compression="zstd", index=False)
     return 0

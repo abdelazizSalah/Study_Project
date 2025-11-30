@@ -61,9 +61,11 @@ WaterTankOnManu_Flooding: 71688
 Process finished with exit code 0
 """
 
-def print_amount_of_different_labels(labels):
+
+def print_size_of_different_attack_types(labels):
 
     unique, counts = np.unique(labels, return_counts=True)
 
     for u, c in zip(unique, counts):
         print(f"{u}: {c}")
+
