@@ -1,0 +1,5 @@
+- Task1 requires working on bytes level, so I can only work on QUT, not electra.
+- for N-gram, how many N-grams should I do, and how should I determine the value of N? should I make 2,3 ? on what basis?
+- while training should I test for different values of N, or I should combine all N together
+    - my current assumption is that I create from 2-gram up to N-gram, and I combine all of them together. 
+- What does N_seen_i means ? is it boolean ?  or is it the number of times this N_gram was seen in the test packet? 
