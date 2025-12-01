@@ -1,6 +1,8 @@
-from Assignment2.Task1.kmeans import cluster_single_keyword_kmedoids
+import math
 import numpy as np
 import pandas as pd
+
+
 #function creates clusters by values for one keyword!
 #input: candidates dictionary, aligned msgs [[],[]]
 #output: dictionary: {(0,23,234),[idx3,idx6,idx7,...]}
@@ -13,7 +15,6 @@ def cluster_by_keyword(aligned_msgs, kc):
     end   = kc["end"]
 
     for i, msg in enumerate(aligned_msgs):
-        # value als tuple, damit es dictionary-key werden kann
         field_value = tuple(msg[start : end + 1])   #+1 weil exklusiv
 
         if field_value not in clusters:
@@ -44,37 +45,154 @@ def clustering_messages_by_keywords(aligned_msgs, keyword_candidates):
     return final_clusters
 
 
-def analyze_amount_and_size():
+#for single keyword candidate
+def compute_cluster_compactness(cluster_dict, total_msgs):
 
-    return
+    sizes = [len(idx_list) for idx_list in cluster_dict.values() if len(idx_list) > 0]
+
+    if not sizes or total_msgs == 0:
+        return {
+            "num_clusters": 0,
+            "num_messages": total_msgs,
+            "avg_cluster_size": math.nan,
+            "min_cluster_size": math.nan,
+            "max_cluster_size": math.nan,
+            "singleton_fraction": math.nan,
+        }
+
+    num_clusters = len(sizes)
+    num_messages = total_msgs
+
+    avg_cluster_size = num_messages / float(num_clusters)
+    min_cluster_size = min(sizes)
+    max_cluster_size = max(sizes)
+
+    singletons = sum(1 for s in sizes if s == 1)
+    singleton_fraction = singletons / float(num_clusters)
+
+    return {
+        "num_clusters": num_clusters,
+        "num_messages": num_messages,
+        "avg_cluster_size": float(avg_cluster_size),
+        "min_cluster_size": int(min_cluster_size),
+        "max_cluster_size": int(max_cluster_size),
+        "singleton_fraction": float(singleton_fraction),
+    }
+
+
+def analyze_cluster_compactness(keyword_candidates, keyword_clusters, total_msgs,
+                                almost_static_threshold=0.9):
+
+
+    results = []
+
+    for i, cluster_dict in enumerate(keyword_clusters):
+        candidate = keyword_candidates[i]
+
+        info = {
+            "field_id": candidate.get("field_id", i),
+            "start": candidate.get("start", None),
+            "end": candidate.get("end", None),
+        }
+
+        is_static_flag = candidate.get("is_static", False)
+
+        if is_static_flag:
+            info.update({
+                "num_clusters": 0,
+                "num_messages": total_msgs,
+                "avg_cluster_size": math.nan,
+                "min_cluster_size": math.nan,
+                "max_cluster_size": math.nan,
+                "singleton_fraction": math.nan,
+            })
+            results.append(info)
+            continue
+
+        if not isinstance(cluster_dict, dict) or len(cluster_dict) == 0:
+            info.update({
+                "num_clusters": 0,
+                "num_messages": total_msgs,
+                "avg_cluster_size": math.nan,
+                "min_cluster_size": math.nan,
+                "max_cluster_size": math.nan,
+                "singleton_fraction": math.nan,
+            })
+            results.append(info)
+            continue
+
+        sizes = [len(idx_list) for idx_list in cluster_dict.values() if len(idx_list) > 0]
+
+        if total_msgs > 0 and sizes:
+            largest_frac = max(sizes) / float(total_msgs)
+        else:
+            largest_frac = 0.0
+
+        if largest_frac >= almost_static_threshold:
+            info.update({
+                "num_clusters": 0,
+                "num_messages": total_msgs,
+                "avg_cluster_size": math.nan,
+                "min_cluster_size": math.nan,
+                "max_cluster_size": math.nan,
+                "singleton_fraction": math.nan,
+            })
+            results.append(info)
+            continue
+
+        metrics = compute_cluster_compactness(cluster_dict, total_msgs)
+        info.update(metrics)
+        results.append(info)
+
+    return results
+
+
+def display_cluster_compactness_results(results, top_n=10, sort_by="avg_cluster_size", ascending=False):
+
+    df = pd.DataFrame(results)
+
+    df_valid = df.dropna(subset=["avg_cluster_size"])
+
+    df_valid["Position"] = df_valid.apply(
+        lambda row: f"{int(row['start'])}:{int(row['end'])}", axis=1  # Added int() for cleaner display
+    )
+
+    if sort_by in df_valid.columns:
+        df_sorted = df_valid.sort_values(by=sort_by, ascending=ascending).copy()
+    else:
+        df_sorted = df_valid.copy()
+
+    cols = [
+        "field_id",
+        "Position",
+        "num_clusters",
+        "num_messages",
+        "avg_cluster_size",
+        "min_cluster_size",
+        "max_cluster_size",
+        "singleton_fraction",
+    ]
+
+    print("\n--- Cluster-Compactness-Analyse ---")
+    print(df_sorted[cols].head(top_n).to_string(index=False, float_format="%.4f"))
 
 
 #evaluates clusters for one keyword candidate
 #input: alignment list, cluster dictionary for one keyword candidate
 def evaluate_single_homogeneity(msg_lengths, cluster_dict):
-    """
-    Misst die Homogenität der Nachrichtenlängen innerhalb der Cluster
-    eines Kandidaten. msg_lengths[i] ist die effektive Länge der i-ten
-    Nachricht (ohne Gaps).
 
-    Rückgabe: gewichteter Mittelwert der Standardabweichungen
-    über alle Cluster (je kleiner, desto homogener).
-    """
 
     weighted_sum = 0.0
     total_weight = 0
 
     for message_indices in cluster_dict.values():
-        # Mindestens 2 Nachrichten für eine sinnvolle Std-Abweichung
         if len(message_indices) < 2:
             continue
 
-        # Längen der Nachrichten in diesem Cluster
         cluster_lengths = [msg_lengths[i] for i in message_indices]
 
         std_dev = np.std(cluster_lengths)
 
-        # Gewichtung nach Clustergröße
         weighted_sum += std_dev * len(message_indices)
         total_weight += len(message_indices)
 
@@ -87,20 +205,7 @@ def evaluate_single_homogeneity(msg_lengths, cluster_dict):
 
 
 def analyze_payload_lengths(alignment, keyword_candidates, keyword_clusters):
-    """
-    Berechnet für jeden Keyword-Kandidaten einen Homogenitäts-Score
-    basierend auf den effektiven Längen der Nachrichten (ohne Gaps).
 
-    - alignment: Liste der ausgerichteten Nachrichten (mit Gaps = None)
-    - keyword_candidates: Liste der Kandidaten-Dicts
-    - keyword_clusters: Liste der Cluster-Dicts (pro Kandidat)
-
-    Rückgabe: Liste von Dicts mit u.a. 'field_id', 'start', 'end',
-              'is_static', 'homogeneity_score'.
-    """
-
-    # 1) Effektive Längen (ohne Gaps) vorab berechnen
-    #    Falls deine Gaps anders kodiert sind, hier anpassen.
     msg_lengths = [
         sum(1 for b in seq if b is not None)
         for seq in alignment
@@ -118,16 +223,15 @@ def analyze_payload_lengths(alignment, keyword_candidates, keyword_clusters):
             "is_static": candidate.get("is_static", False)
         }
 
-        # Statische Felder nicht über Längen-Homogenität bewerten
+        #static candidates are not considered
         if candidate_info["is_static"]:
             candidate_info["homogeneity_score"] = float("nan")
 
-        # Dynamische Felder mit Cluster-Dict -> Score berechnen
+        #calculate score for dynamic fields
         elif isinstance(cluster_result, dict) and len(cluster_result) > 0:
             score = evaluate_single_homogeneity(msg_lengths, cluster_result)
             candidate_info["homogeneity_score"] = score
 
-        # Falls irgendwas schief ist -> als unbrauchbar markieren
         else:
             candidate_info["homogeneity_score"] = float("nan")
 
@@ -138,83 +242,28 @@ def analyze_payload_lengths(alignment, keyword_candidates, keyword_clusters):
 
 
 def display_payload_analysis_results(results):
-    """
-    Sortiert und zeigt die Ergebnisse der Payload-Längen-Analyse an.
-    """
-    if not results:
-        print("Keine Ergebnisse zur Anzeige vorhanden.")
-        return
 
-    print("\n--- Analyse der Payload-Längen-Homogenität ---")
+    print("\n--- Analysis of payload length homogeneity ---")
 
-    # 1. Konvertierung in Pandas DataFrame
+
     df = pd.DataFrame(results)
 
-    # 2. Statische Felder herausfiltern (NaNs)
+
     df_dynamic = df.dropna(subset=['homogeneity_score'])
     df_static = df[df['homogeneity_score'].isna()]
 
-    print(f"Es wurden {len(df_static)} statische oder unbrauchbare Kandidaten (Score=NaN) ignoriert.")
-
-    if df_dynamic.empty:
-        print("Keine dynamischen Kandidaten gefunden, die zur Analyse geeignet wären.")
-        return
-
-    # 3. Sortierung nach dem Homogenitäts-Score (aufsteigend: niedrigster Score ist bester)
-    # Der niedrigste Score bedeutet die geringste Varianz der Paketlänge im Cluster.
     df_sorted = df_dynamic.sort_values(by='homogeneity_score', ascending=True)
 
-    # 4. Ausgabe der Top 10 Kandidaten
-    print("\nTop 10 Keyword-Kandidaten (sortiert nach Längen-Homogenität):")
 
-    # Formatierung für bessere Lesbarkeit
+    print("\nBest Keyword Candidates:")
+
+
     df_output = df_sorted[['field_id', 'start', 'end', 'homogeneity_score']].head(10)
     df_output['Position'] = df_output.apply(lambda row: f"{row['start']}:{row['end']}", axis=1)
     df_output = df_output.rename(columns={'homogeneity_score': 'Homogenitäts-Score (Ziel: Min. 0.0)'})
 
-    # Ausgabe der Tabelle
     print(df_output.to_string(index=False, float_format="%.4f"))
 
-    print("\nDer Kandidat in der ersten Zeile ist das wahrscheinlichste Keyword (z.B. der Statuscode).")
-
-
-
-def print_cluster_lengths_for_candidate(alignment, keyword_candidates, keyword_clusters, candidate_idx):
-    """
-    Zeigt für einen Keyword-Kandidaten alle Cluster an,
-    wobei nur die effektiven Längen der Nachrichten (ohne Gaps) ausgegeben werden.
-    """
-
-    candidate = keyword_candidates[candidate_idx]
-    clusters = keyword_clusters[candidate_idx]
-
-    # Effektive Längen (Gaps ignorieren: None -> nicht mitzählen)
-    msg_lengths = [
-        sum(1 for b in seq if b is not None)
-        for seq in alignment
-    ]
-
-    print(f"\n### Keyword-Kandidat #{candidate_idx}: "
-          f"{candidate['field_id']} [{candidate['start']}:{candidate['end']}] "
-          f"- {len(clusters)} Value-Cluster ###\n")
-
-    for cluster_idx, (value, msg_indices) in enumerate(clusters.items()):
-        # Längen für alle Nachrichten in diesem Cluster
-        lengths = [msg_lengths[i] for i in msg_indices]
-
-        if not lengths:
-            continue
-
-        lengths_arr = np.array(lengths, dtype=float)
-
-        print("=" * 100)
-        print(f"Cluster {cluster_idx} – Feldwert: {value}  ->  {len(msg_indices)} Nachrichten")
-        print(f"Längen (ohne Gaps): {lengths}")
-        print(f"  min:   {lengths_arr.min():.0f}")
-        print(f"  max:   {lengths_arr.max():.0f}")
-        print(f"  mean:  {lengths_arr.mean():.2f}")
-        print(f"  std:   {lengths_arr.std():.2f}")
-        print()
 
 
 #idx keyword_candidates and keyword_clusters align!
@@ -224,12 +273,17 @@ def create_and_analyze_clusters(alignment, keyword_candidates):
     print(keyword_clusters[1])
     results=analyze_payload_lengths(alignment, keyword_candidates, keyword_clusters)
     display_payload_analysis_results(results)
-    #print(keyword_clusters[])
-    print_cluster_lengths_for_candidate(
-        alignment=alignment,
-        keyword_candidates=keyword_candidates,
-        keyword_clusters=keyword_clusters,
-        candidate_idx=1,
+
+
+    total_msgs = len(alignment)
+    compactness_results = analyze_cluster_compactness(
+        keyword_candidates,
+        keyword_clusters,
+        total_msgs
     )
+    display_cluster_compactness_results(compactness_results,
+                                        top_n=10,
+                                        sort_by="avg_cluster_size",
+                                        ascending=False)
 
     return
