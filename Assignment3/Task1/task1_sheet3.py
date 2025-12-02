@@ -53,13 +53,14 @@ Finding optimal threshold:
     - calculate detection rate (true positive rate) and false positive rate for the current threshold.
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
-TESTING = False
+TESTING = True
 import argparse
 import numpy as np
 from collections import defaultdict
 from math import log2
 from scapy.all import rdpcap
 import os
+import pickle
 
 # ----------------------------------------------------------
 # BLOOM FILTER
@@ -122,8 +123,6 @@ def train_ngram_models(train_packets, n):
                     total_seen += 1
                 else:
                     ngram_count[g] += 1
-    
-    print(ngram_count)
 
     # normalized weights
     weights = {curr_gram: c / total_seen for curr_gram, c in ngram_count.items()}
@@ -138,7 +137,7 @@ def score_packet(packet, bloom, weights, n):
     T = 0
     score_sum = 0
     for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
-        # print(f'current packet is: {packet}')
+        # # print(f'current packet is: {packet}')
         grams = extract_ngrams(packet, i)
         T += len(grams) # total number of n-grams in the current packet.
         if len(grams) == 0:
@@ -146,6 +145,7 @@ def score_packet(packet, bloom, weights, n):
 
 
         local_count = {}
+        # print(f'First 5 n-grams: {grams[:5]}, and its length is {len(grams)}')  # # print first 5 n-grams for debugging
         for g in grams:
             g = bytes(g)
             local_count[g] = local_count.get(g, 0) + 1
@@ -165,19 +165,30 @@ def score_packet(packet, bloom, weights, n):
 
 def compute_metrics(y_true, y_pred):
     """
-    y_true: list of {0,1}
-    y_pred: list of {0,1}
+    y_true: list of {normal,attack}
+    y_pred: list of {normal,attack}
+
+    percision = TP / (TP + FP)
+    recall    = TP / (TP + FN)
+    accuracy  = (TP + TN) / (TP + TN + FP + FN)
+
+    tp = true positive
+    tn = true negative
+    fp = false positive
+    fn = false negative
+
+    return: accuracy, precision, recall
     """
-    tp = sum((yt == 1 and yp == 1) for yt, yp in zip(y_true, y_pred))
-    tn = sum((yt == 0 and yp == 0) for yt, yp in zip(y_true, y_pred))
-    fp = sum((yt == 0 and yp == 1) for yt, yp in zip(y_true, y_pred))
-    fn = sum((yt == 1 and yp == 0) for yt, yp in zip(y_true, y_pred))
-
-    accuracy  = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+    tp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'attack' and yp == 'attack')
+    tn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'normal' and yp == 'normal')
+    fp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'normal' and yp == 'attack')
+    fn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'attack' and yp == 'normal')
+    accuracy = (tp + tn) / (tp + tn + fp + fn) if len(y_true) > 0 else 0
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-    recall    = tp / (tp + fn) if (tp + fn) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
-    return accuracy, precision, recall
+    return accuracy, precision, recall, f1_score
 
 
 def find_best_threshold(test_set, scores):
@@ -190,6 +201,7 @@ def find_best_threshold(test_set, scores):
     best_acc = -1
     best_prec = -1
     best_rec = -1
+    best_f1 = -1
     best_t = None
 
     # -------------------------------------------------
@@ -201,7 +213,7 @@ def find_best_threshold(test_set, scores):
     # -------------------------------------------------
     # 2. Sweep thresholds between 0 and 1
     # -------------------------------------------------
-    # print how many normal, and how many attack labels are in y_true
+    # # print how many normal, and how many attack labels are in y_true
     num_normal = sum(1 for label in y_true if label == 'normal')
     num_attack = sum(1 for label in y_true if label == 'attack')
     print(f'Number of normal packets: {num_normal}, Number of attack packets: {num_attack}\n total: {len(y_true)}')
@@ -209,29 +221,37 @@ def find_best_threshold(test_set, scores):
 
     highest_prec = -1
     highest_rec = -1
+    highest_acc = -1
+    highest_f1 = -1
     for t in np.linspace(0, 1, 1000):
+        # print(f'Evaluating threshold: {t:.4f}')
         # 3. Predict using threshold t
-        y_pred = ['normal' if s >= t else 'attack' for s in scores] # 
+        y_pred = ['normal' if s >= t else 'attack' for s in scores] 
 
         # 4. Compute metrics
-        acc, prec, rec = compute_metrics(y_true, y_pred)
+        acc, prec, rec, f1_score = compute_metrics(y_true, y_pred)
 
         # 5. Compare with previous best
         if prec > highest_prec:
             highest_prec = prec
         if rec > highest_rec:
             highest_rec = rec
+        if acc > highest_acc:
+            highest_acc = acc
+        if f1_score > highest_f1:
+            highest_f1 = f1_score
         
-        if acc > best_acc:
+        if f1_score > best_f1: # if I prioritize recall, all of them will be normal, and if I prioritize precision, all of them will be attack.
             best_acc = acc
             best_prec = prec
             best_rec = rec
+            best_f1 = f1_score
             best_t = t
     print(f'Highest Precision observed: {highest_prec}'
           f', Highest Recall observed: {highest_rec}'
-        f'highest Accuracy observed: {best_acc}')
-
-    return best_t, best_acc, best_prec, best_rec
+        f', Highest Accuracy observed: {highest_acc}'
+        f', Highest F1 Score observed: {highest_f1}')
+    return best_t, best_acc, best_prec, best_rec, best_f1
 
 
 # ----------------------------------------------------------
@@ -240,7 +260,7 @@ def find_best_threshold(test_set, scores):
 def test_model(test_packets, bloom, weights, n, threshold):
     results = []
     for i, pkt in enumerate(test_packets):
-        s = score_packet(pkt, bloom, weights, n)
+        s = score_packet(pkt[0], bloom, weights, n)
         label = "NORMAL" if s >= threshold else "ATTACK"
         results.append((i, s, label))
     return results
@@ -263,7 +283,7 @@ def load_all_modules():
         '''
     )
 
-    print('loading all necessary modules')
+    # print('loading all necessary modules')
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     sheet1_codes_path = os.path.abspath(os.path.join(curr_dir, '..', '..','Assignment1','Abdelaziz_Codes' ,'Sheet1_codes'))
     sys.path.append(sheet1_codes_path)
@@ -280,27 +300,26 @@ def load_and_label_data():
     if os.path.exists("all_packets_control.npy"):
         data_normal_arrays = np.load("all_packets_control.npy", allow_pickle=True)
     else:
-        data_normal_arrays = generate_bytes_array_from_packet_list(normal_pcap_path, pad = False)
-    print(f"[*] Training model on {len(data_normal_arrays)} packets...")
-    print(data_normal_arrays[0].shape)
-    print(data_normal_arrays[0][0:2])
+        data_normal_arrays = generate_bytes_array_from_packet_list(normal_pcap_path, pad = False, label = 'control')
+ 
 
     print(f"[*] Loading attacked packets...")
     data_attacked = []
-    if os.path.exists("all_packets_attacked.npy"):
-        data_attacked = np.load("all_packets_attacked.npy", allow_pickle=True)
+    if os.path.exists("all_packets_attack.npy"):
+        data_attacked = np.load("all_packets_attack.npy", allow_pickle=True)
     else:
-        data_attacked = generate_bytes_array_from_packet_list(attacked_pcap_path, pad = False)
+        data_attacked = generate_bytes_array_from_packet_list(attacked_pcap_path, pad = False, label = 'attack')
     
     labeled_data =[ ]
+    i = 0
     for array in data_normal_arrays:
         for pkt in array:
             labeled_data.append( (pkt, 'normal') )
-    for array in data_attacked:
-        for pkt in array:
-            labeled_data.append( (pkt, 'attack') )
-    print(labeled_data[0:2])
-    # print(labeled_data[0][:2])
+    i = 0 
+    for array in data_attacked[-2]:
+        # for pkt in array:
+        labeled_data.append( (pkt, 'attack') )
+
     return labeled_data
 
 # ----------------------------------------------------------
@@ -313,42 +332,63 @@ def sheet3_task1():
     labeled_data = load_and_label_data()
     
     # split data into training and testing sets
+    # 80% should be from random indicies for training, and 20% for testing but I should not include same packets in both sets.
+    # np.random.shuffle(labeled_data) # to ensure now random distribution and not first packets are normal and last are attack
     split_idx = int(0.8 * len(labeled_data))
+    print(f'current split index is: {split_idx}, total data length is: {len(labeled_data)}')
     train_packets = labeled_data[:split_idx]
-    test_packets = [pkt[0] for pkt in labeled_data[split_idx:]]  # only packets, no labels
+    test_packets = labeled_data[split_idx:] 
     if TESTING:
-        train_packets = train_packets[:50]  # use only first 10 packets for testing
-        test_packets = test_packets[:20]  # use only first 10 packets for testing
-        print(f'train packets {train_packets[:2]}')
-        print(f'test packets {test_packets[:2]}')
+        # include 8000 from normal packets and 2000 from attack packets in the train set
+        train_packets = [pkt for pkt in train_packets if pkt[1] == 'normal'][:8000] + [pkt for pkt in train_packets if pkt[1] == 'attack'][:2000]
+
+        # include 2000 normal packets and 1000 attack packets in the test set
+        test_packets = [pkt for pkt in train_packets if pkt[1] == 'normal'][:2000] + [pkt for pkt in test_packets if pkt[1] == 'attack'][:1000]
+        # print(f'train packets {train_packets[:2]}')
+        # print(f'test packets {test_packets[:2]}')
+        print(f'len(test_packets): {len(test_packets)}, len(train_packets): {len(train_packets)}')
+
 
     print("[*] Training model...")
-    bloom, weights = train_ngram_models(train_packets, n)
+    if os.path.exists('bloom_filter.pkl') and os.path.exists('ngram_weights.pkl'):
+        
+        with open('bloom_filter.pkl', 'rb') as f:
+            bloom = pickle.load(f)
+        with open('ngram_weights.pkl', 'rb') as f:
+            weights = pickle.load(f)
+        print(f"[*] Loaded pre-trained model from disk. Number of n-grams in model: {len(weights)}")
+        print('-------------------------------------')
+    else:
+        bloom, weights = train_ngram_models(train_packets, n)
+        # save the bloom filter and weights to disk for future use
+        # with open('bloom_filter.pkl', 'wb') as f:
+        #     pickle.dump(bloom, f)
+        # with open('ngram_weights.pkl', 'wb') as f:
+        #     pickle.dump(weights, f)
+        print(f"[*] Training completed. Number of n-grams in model: {len(weights)}")
+        print('-------------------------------------')
+
 
     print("[*] Scoring test packets for threshold search...")
-    test_scores = [score_packet(pkt, bloom, weights, n)
+    test_scores = [score_packet(pkt[0], bloom, weights, n)
                     for pkt in test_packets]
-    print("[*] Sample test scores:", test_scores)
-    print(sum(test_scores))
+    print("[*] Sample test scores:", test_scores[:10])
     print('-------------------------------------')
 
     # # Find optimal threshold
-    best_t, best_acc, best_prec, best_rec = find_best_threshold(train_packets,scores=test_scores)
-    print(f"[+] Optimal threshold found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}")
+    best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(test_packets,scores=test_scores)
+    print(f"[+] Optimal threshold found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}, F1 Score={best_f1:.4f}")
     print('-------------------------------------')
 
 
-    # threshold = find_optimal_threshold(test_scores) # todo: this should be optimized
-    # print(f"[+] Optimal threshold found: {threshold:.4f}")
-    # print('-------------------------------------')
-
-    # threshold = 0.04  # for testing purposes
     print("[*] Testing model...")
     results = test_model(test_packets, bloom, weights, n, best_t)
 
-    for idx, score, label in results:
-        print(f"Packet {idx}: Score={score:.4f} → {label}")
-
+    # print how many normal and how many attack packets were detected
+    normal_detected = sum(1 for _, _, label in results if label == 'NORMAL')
+    attack_detected = sum(1 for _, _, label in results if label == 'ATTACK')
+    print(f'Number of NORMAL packets detected: {normal_detected}, Number of ATTACK packets detected: {attack_detected}\n total: {len(results)}')
+    print("[*] Sample results (index, score, label):", results[:10])
 
 if __name__ == "__main__":
     sheet3_task1()

@@ -307,8 +307,9 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
     """
     start = time.time()
     pcap_files = list_files_by_filetype(pcap_files_path, "pcap")
+    print(f'number of pcap files to be processed: {pcap_files}')
     if TESTING: 
-        pcap_files = [pcap_files[0]]
+        pcap_files = [pcap_files[0]] if label == 'control' else pcap_files  # for testing, use only first pcap file
 
     print(f'the pcap file to be processed {pcap_files}')
     all_packets = []

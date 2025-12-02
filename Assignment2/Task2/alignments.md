@@ -1,0 +1,1 @@
+- we should have comparison for keywords on the same index in clusters.
