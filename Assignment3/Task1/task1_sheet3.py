@@ -162,21 +162,76 @@ def score_packet(packet, bloom, weights, n):
 # ----------------------------------------------------------
 # SEARCH FOR BEST THRESHOLD
 # ----------------------------------------------------------
-def find_optimal_threshold(train_scores):
-    best_t = 0
+
+def compute_metrics(y_true, y_pred):
+    """
+    y_true: list of {0,1}
+    y_pred: list of {0,1}
+    """
+    tp = sum((yt == 1 and yp == 1) for yt, yp in zip(y_true, y_pred))
+    tn = sum((yt == 0 and yp == 0) for yt, yp in zip(y_true, y_pred))
+    fp = sum((yt == 0 and yp == 1) for yt, yp in zip(y_true, y_pred))
+    fn = sum((yt == 1 and yp == 0) for yt, yp in zip(y_true, y_pred))
+
+    accuracy  = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall    = tp / (tp + fn) if (tp + fn) > 0 else 0
+
+    return accuracy, precision, recall
+
+
+def find_best_threshold(test_set, scores):
+    """
+    test_set: list of (packet, true_label)
+              true_label = 1 -> NORMAL
+              true_label = 0 -> ATTACK
+    """
+
     best_acc = -1
+    best_prec = -1
+    best_rec = -1
+    best_t = None
 
-    # brute-force over 1000 points between 0 and 1
+    # -------------------------------------------------
+    # 1. Compute scores for all test packets ONCE only
+    # -------------------------------------------------
+    # scores = [score_packet(pkt, bloom, weights, n) for pkt, _ in test_set]
+    y_true = [label for _, label in test_set]
+
+    # -------------------------------------------------
+    # 2. Sweep thresholds between 0 and 1
+    # -------------------------------------------------
+    # print how many normal, and how many attack labels are in y_true
+    num_normal = sum(1 for label in y_true if label == 'normal')
+    num_attack = sum(1 for label in y_true if label == 'attack')
+    print(f'Number of normal packets: {num_normal}, Number of attack packets: {num_attack}\n total: {len(y_true)}')
+
+
+    highest_prec = -1
+    highest_rec = -1
     for t in np.linspace(0, 1, 1000):
-        preds = [1 if s >= t else 0 for s in train_scores]  # 1=normal, 0=attack
-        true = [1] * len(train_scores)  # training packets are all normal
+        # 3. Predict using threshold t
+        y_pred = ['normal' if s >= t else 'attack' for s in scores] # 
 
-        acc = np.mean([1 if preds[i] == true[i] else 0 for i in range(len(true))])
+        # 4. Compute metrics
+        acc, prec, rec = compute_metrics(y_true, y_pred)
+
+        # 5. Compare with previous best
+        if prec > highest_prec:
+            highest_prec = prec
+        if rec > highest_rec:
+            highest_rec = rec
+        
         if acc > best_acc:
             best_acc = acc
+            best_prec = prec
+            best_rec = rec
             best_t = t
+    print(f'Highest Precision observed: {highest_prec}'
+          f', Highest Recall observed: {highest_rec}'
+        f'highest Accuracy observed: {best_acc}')
 
-    return best_t
+    return best_t, best_acc, best_prec, best_rec
 
 
 # ----------------------------------------------------------
@@ -221,6 +276,7 @@ def load_and_label_data():
     from utilities import generate_bytes_array_from_packet_list
 
     # check if .npy files already exist, read it if yes, else generate it from pcap
+    print(f"[*] Loading normal packets...")
     if os.path.exists("all_packets_control.npy"):
         data_normal_arrays = np.load("all_packets_control.npy", allow_pickle=True)
     else:
@@ -229,12 +285,12 @@ def load_and_label_data():
     print(data_normal_arrays[0].shape)
     print(data_normal_arrays[0][0:2])
 
+    print(f"[*] Loading attacked packets...")
     data_attacked = []
     if os.path.exists("all_packets_attacked.npy"):
         data_attacked = np.load("all_packets_attacked.npy", allow_pickle=True)
     else:
-        pass
-        data_attacked = generate_bytes_array_from_packet_list(attacked_pcap_path)
+        data_attacked = generate_bytes_array_from_packet_list(attacked_pcap_path, pad = False)
     
     labeled_data =[ ]
     for array in data_normal_arrays:
@@ -274,14 +330,21 @@ def sheet3_task1():
                     for pkt in test_packets]
     print("[*] Sample test scores:", test_scores)
     print(sum(test_scores))
-
-    threshold = find_optimal_threshold(test_scores) # todo: this should be optimized
-    print(f"[+] Optimal threshold found: {threshold:.4f}")
     print('-------------------------------------')
+
+    # # Find optimal threshold
+    best_t, best_acc, best_prec, best_rec = find_best_threshold(train_packets,scores=test_scores)
+    print(f"[+] Optimal threshold found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}")
+    print('-------------------------------------')
+
+
+    # threshold = find_optimal_threshold(test_scores) # todo: this should be optimized
+    # print(f"[+] Optimal threshold found: {threshold:.4f}")
+    # print('-------------------------------------')
 
     # threshold = 0.04  # for testing purposes
     print("[*] Testing model...")
-    results = test_model(test_packets, bloom, weights, n, threshold)
+    results = test_model(test_packets, bloom, weights, n, best_t)
 
     for idx, score, label in results:
         print(f"Packet {idx}: Score={score:.4f} → {label}")
