@@ -148,6 +148,7 @@ def task2_c_additions(pms, prs, ps_list):
     # return the highest probability keyword with its index
     best_idx = np.argmax(final_scores)
     return best_idx, final_scores[best_idx]
+
 def task2_c_multiplication(pms, prs, ps_list):
     """
     Combine pm, pr, ps into final score.
@@ -275,8 +276,3 @@ def sheet2_task2_reverse2(args = None):
     )
     return
         
-# -----------------------------
-# Example run
-# -----------------------------
-if __name__ == "__main__":
-    sheet2_task2_reverse2()

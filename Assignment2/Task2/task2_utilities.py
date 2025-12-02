@@ -477,8 +477,6 @@ def create_mapping(msgs_client, msgs_server):
 def compute_pr_for_keyword(msgs_client, msgs_server, clusters_client, clusters_server):
 
     # I must have mapping from client msg idx to server msg idx
-    # Assuming that first message in client corresponds to first message in server, and so on.
-
     client_to_server_mapping = create_mapping(msgs_client, msgs_server)
     pr = compute_remote_coupling(clusters_client, clusters_server, client_to_server_mapping)
     print(f"Remote coupling probability pr: {pr}")
@@ -518,7 +516,6 @@ def compute_structure_coherence(aligned_msgs, clusters):
         gap_counts = []
 
         # think of it as matrix of size (num_members, msg_len)
-        total_positions = len(members) * msg_len
         for msg_idx in members:
             diffs = 0
             msg = aligned_msgs[msg_idx]
@@ -560,8 +557,8 @@ def determine_empty_indices(aligned_msgs):
     """
     Determine indices which have None values in any message.
     """
-    none_indices_client = set()
-    for i, msg in enumerate(aligned_msgs):
+    none_indices_client = set() # set to avoid duplicates
+    for _, msg in enumerate(aligned_msgs):
         for j, field in enumerate(msg):
             if field is None:
                 none_indices_client.add(j)
