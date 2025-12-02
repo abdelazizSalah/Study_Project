@@ -1,7 +1,9 @@
 
 from collections import defaultdict
 import numpy as np
-
+from sklearn.preprocessing import LabelEncoder
+from constants import ALL_POSSIBLE_LABELS
+from Assignment3.Task2.constants import ATTACK_LABELS
 
 """
 operations on the dataset based on the label array and ds array
@@ -32,3 +34,26 @@ def get_attack_idx_by_type(labels):
                                             #   "ReactorOn": [idx1, idx2, idx3, ...],
                                             #   "WaterTankOff": [idx7, idx8, ...],
                                             #}
+
+
+
+#Label encoder
+
+
+
+# Initialisieren Sie den Encoder nur einmal
+
+#ecnodes text labels into numberical ones using LabelEncoder() class
+def encode_labels(global_label_encoder, labels):
+    try:
+        numeric_labels = global_label_encoder.transform(labels)
+        return numeric_labels
+    except ValueError as e:
+        print(f"Error when encoding labels {e}")
+        return np.array([])
+
+#decodes numberical labels into text labels using LabelEncoder() class
+def decode_labels(global_label_encoder, numeric_labels):
+    # Die inverse_transform-Methode des LabelEncoders verwenden
+    text_predictions = global_label_encoder.inverse_transform(numeric_labels)
+    return text_predictions

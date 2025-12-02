@@ -29,14 +29,14 @@ def read_pcap_bytes_re(pcap_file, M):
     try:
         if os.path.getsize(pcap_file) == 0:
             print(f"Skipping empty pcap: {pcap_file}")
-            return []
+            return [], []
         pkts = rdpcap(str(pcap_file))
     except Scapy_Exception as e:
         print(f"Skipping unreadable pcap {pcap_file}: {e}")
-        return []
+        return [], []
 
     packet_arrays_file = []
-
+    timestamps_file=[]
     for p in pkts:
         # Muss TCP mit Port 102 sein
         if not p.haslayer(TCP):
@@ -75,13 +75,12 @@ def read_pcap_bytes_re(pcap_file, M):
         if not physical_bytes:
             continue
 
+        timestamp = p.time
         fixed = to_fixed_bytes(physical_bytes, M)
         packet_arrays_file.append(fixed)
+        timestamps_file.append(timestamp)
+    return packet_arrays_file, timestamps_file
 
-        #debug
-        header = payload[:phys_start].hex()
-        print(f"header removed:{header}")
-    return packet_arrays_file
 
 #input: single packet in binary, length M
 #output: array for packet with required length
@@ -98,25 +97,28 @@ def to_fixed_bytes(raw, M) -> np.ndarray:
 
 
 #input: pcap file
-#output: packet list for that file [[2,244,23,...],[33,213,112,..]]
+#output: packet list for that file [[2,244,23,...],[33,213,112,..]], list with timestamps
 def read_pcap_bytes_raw(pcap_file, M):
     try:
         # check if file is empty
         if os.path.getsize(pcap_file) == 0:
             print(f"Skipping empty pcap: {pcap_file}")
-            return []
+            return [], []
 
         pkts = rdpcap(str(pcap_file))
     except Scapy_Exception as e:
         print(f"Skipping unreadable pcap {pcap_file}: {e}")
-        return []
+        return [], []
 
 
     packet_arrays_file=[]
+    timestamps_file=[]
     for p in pkts:
+        timestamp = p.time
         raw=bytes(p)
         packet_arrays_file.append(to_fixed_bytes(raw, M))
-    return packet_arrays_file
+        timestamps_file.append(timestamp)
+    return packet_arrays_file, timestamps_file
 
 
 
@@ -153,7 +155,7 @@ def extract_attack_type(pcap_path: str):
 
 #used for QUT_S7Comm
 #output: file with features for the complete byte length (raw), file with features for byte length starting from keyword (re), file with label for each index of the feature files
-def pcaps_feature_and_attack_label_extraction(input_path_attack_pcap,input_path_control_pcap,output_file_raw_features,output_file_re_features, output_file_labels_raw, output_file_labels_re):
+def pcaps_feature_and_attack_label_extraction(input_path_attack_pcap,input_path_control_pcap,output_file_raw_features,output_file_re_features, output_file_labels_raw, output_file_labels_re, output_file_timestamps_raw, output_file_timestamps_re):
 
     pcap_files_control=list_files_by_filetype(input_path_control_pcap,"pcap")
     pcap_files_attack = list_files_by_filetype(input_path_attack_pcap, "pcap")
@@ -161,17 +163,18 @@ def pcaps_feature_and_attack_label_extraction(input_path_attack_pcap,input_path_
 
     full_byte_list_raw=[]
     full_label_list_raw = []
+    full_timestamp_list_raw = []
 
     full_byte_list_re=[]
     full_label_list_re = []
-
+    full_timestamp_list_re=[]
 
     #control files!
     for path in pcap_files_control:
 
-        """
+
         # extract n bytes of length M for file
-        byte_lists_for_file_raw = read_pcap_bytes_raw(path, 100)
+        byte_lists_for_file_raw, timestamps_file_raw = read_pcap_bytes_raw(path, 100)
         if not byte_lists_for_file_raw:
             print(f"No packets in {path}, skipping.")
             continue
@@ -183,14 +186,17 @@ def pcaps_feature_and_attack_label_extraction(input_path_attack_pcap,input_path_
 
         full_byte_list_raw.extend(byte_lists_for_file_raw)
         full_label_list_raw.extend((label_list_for_file_raw))
-        """
-        byte_lists_for_file_re=read_pcap_bytes_re(path,100)
+        full_timestamp_list_raw.extend(timestamps_file_raw)
+
+        #RE
+        byte_lists_for_file_re, timestamps_file_re=read_pcap_bytes_re(path,100)
         if not byte_lists_for_file_re:
             print(f"No packets in {path}, skipping.")
             continue
         label_list_for_file_re = ["CONTROL"] * len(byte_lists_for_file_re)
         full_byte_list_re.extend(byte_lists_for_file_re)
         full_label_list_re.extend((label_list_for_file_re))
+        full_timestamp_list_re.extend(timestamps_file_re)
 
         print(f"File {path} done.")
 
@@ -205,8 +211,8 @@ def pcaps_feature_and_attack_label_extraction(input_path_attack_pcap,input_path_
         # (-> eg huge pcap files in the parent directory that summarize them)
         if label_for_file is None:
             continue
-        """
-        byte_lists_for_file_raw = read_pcap_bytes_raw(path, 100)
+
+        byte_lists_for_file_raw, timestamps_file_raw = read_pcap_bytes_raw(path, 100)
 
         if not byte_lists_for_file_raw:
             print(f"No packets in {path}, skipping.")
@@ -216,32 +222,36 @@ def pcaps_feature_and_attack_label_extraction(input_path_attack_pcap,input_path_
 
         full_byte_list_raw.extend(byte_lists_for_file_raw)
         full_label_list_raw.extend((label_list_for_file_raw))
-        """
-        byte_lists_for_file_re = read_pcap_bytes_re(path, 100)
+        full_timestamp_list_raw.extend(timestamps_file_raw)
+
+        byte_lists_for_file_re,timestamps_file_re = read_pcap_bytes_re(path, 100)
         if not byte_lists_for_file_re:
             print(f"No packets in {path}, skipping.")
             continue
         label_list_for_file_re = [label_for_file] * len(byte_lists_for_file_re)
         full_byte_list_re.extend(byte_lists_for_file_re)
         full_label_list_re.extend((label_list_for_file_re))
-
+        full_timestamp_list_re.extend((timestamps_file_re))
         print(f"File {path} done.")
 
     print("\n\nAttack dataset done\n\n")
 
     #save raw array and labels
-    #full_feature_array_raw=np.array(full_byte_list_raw, dtype=np.uint8)
-    #full_label_array_raw=np.array(full_label_list_raw)
-
-    #np.save(output_file_raw_features, full_feature_array_raw)
-    #np.save(output_file_labels_raw, full_label_array_raw)
+    full_feature_array_raw=np.array(full_byte_list_raw, dtype=np.uint8)
+    full_label_array_raw=np.array(full_label_list_raw)
+    full_timestamp_array_raw=np.array(full_timestamp_list_raw)
+    np.save(output_file_raw_features, full_feature_array_raw)
+    np.save(output_file_labels_raw, full_label_array_raw)
+    np.save(output_file_timestamps_raw, full_timestamp_array_raw)
 
     #save re array and labels
     full_feature_array_re = np.array(full_byte_list_re, dtype=np.uint8)
     full_label_array_re = np.array(full_label_list_re)
+    full_timestamp_array_re=np.array(full_timestamp_list_re)
 
     np.save(output_file_re_features, full_feature_array_re)
     np.save(output_file_labels_re, full_label_array_re)
+    np.save(output_file_timestamps_re, full_timestamp_array_re)
 
     return 0
 
