@@ -53,7 +53,7 @@ Finding optimal threshold:
     - calculate detection rate (true positive rate) and false positive rate for the current threshold.
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
-TESTING = True
+TESTING = False
 import argparse
 import numpy as np
 from collections import defaultdict
