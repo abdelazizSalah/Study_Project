@@ -94,6 +94,17 @@ def binary_rf_predict(X_test, t_test):
             'Predicted_Label': []
         })
 
+    y_pred_numeric = rf_clf.predict(X_test)  # 0/1
+
+    y_pred_attack = np.where(y_pred_numeric == 1, 'Attack', 'Normal')  # 1=attack, 0=no attack
+
+    prediction_report = pd.DataFrame({
+        'Timestamp (Unix)': t_test,
+        'Predicted_Label': y_pred_attack
+    })
+
+    return prediction_report
+
 
 #input: indices for one fold of one scenario!
 def execute_fold_rf(ds, numeric_labels, timestamps,train_indices, test_indices):
