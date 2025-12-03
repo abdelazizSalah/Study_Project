@@ -448,13 +448,13 @@ def compute_bloom_weights_and_counts(train_packets, n):
     else:
         bloom, weights, ngram_count_training = train_ngram_models(train_packets, n)
         # save the bloom filter and weights to disk for future use
-        # with open('bloom_filter.pkl', 'wb') as f:
-        #     pickle.dump(bloom, f)
-        # with open('ngram_weights.pkl', 'wb') as f:
-        #     pickle.dump(weights, f)
-        # # store ngram_count_training for future use
-        # with open('ngram_count_training.pkl', 'wb') as f:
-        #     pickle.dump(ngram_count_training, f)
+        with open('bloom_filter.pkl', 'wb') as f:
+            pickle.dump(bloom, f)
+        with open('ngram_weights.pkl', 'wb') as f:
+            pickle.dump(weights, f)
+        # store ngram_count_training for future use
+        with open('ngram_count_training.pkl', 'wb') as f:
+            pickle.dump(ngram_count_training, f)
         print(f"[*] Training completed. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
     return bloom, weights, ngram_count_training
@@ -522,17 +522,37 @@ def sheet3_task1():
     # normal packets should have high scores, while attack packets should have low scores
     validation_scores = [score_packet(pkt[0], bloom, weights,ngram_count_training, n)
                     for pkt in validation_packets]
+    # save validation scores to a file
+    with open('validation_scores.txt', 'w') as f:
+        f.write("Index\tScore\tLabel\n")
+        for index, (_, label) in enumerate(validation_packets):
+            f.write(f"{index}\t{validation_scores[index]:.6f}\t{label}\n")
     print("[*] Sample validation scores:", validation_scores[:10])
     print('-------------------------------------')
 
     print("[*] Finding optimal threshold...")
     best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(validation_packets,scores=validation_scores)
+    # save best threshold to a file
+    with open('best_metrics.txt', 'w') as f:
+        f.write(f"Best Threshold: {best_t:.6f}\n")
+        f.write(f"Accuracy: {best_acc:.6f}\n")
+        f.write(f"Precision: {best_prec:.6f}\n")
+        f.write(f"Recall: {best_rec:.6f}\n")
+        f.write(f"F1 Score: {best_f1:.6f}\n")
     print(f"[+] Optimal threshold on validation found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}, F1 Score={best_f1:.4f}")
     print('-------------------------------------')
 
 
     print("[*] Testing model with the best threshold from validation found...")
     results = test_model(test_packets, bloom, weights, ngram_count_training, n, best_t) 
+
+    # save results to a file
+    with open('test_results.txt', 'w') as f:
+        f.write("Index\tScore\tLabel\n")
+        for index, score, label in results:
+            f.write(f"{index}\t{score:.6f}\t{label}\n")
+    print("[*] Test results saved to test_results.txt")
+
 
    
 if __name__ == "__main__":

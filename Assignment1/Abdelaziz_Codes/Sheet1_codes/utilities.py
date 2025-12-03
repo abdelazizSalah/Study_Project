@@ -14,15 +14,7 @@ from pathlib import Path
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor,as_completed
 import numpy as np
-from itertools import combinations
 import matplotlib.pyplot as plt
-from multiprocessing import get_context
-# from cuml.manifold import TSNE
-# from cuml.preprocessing import StandardScaler
-# import cupy as cp
-# cp.cuda.Device(1).use()   # use GPU 1 instead of GPU 0
-
-
 output_dir = Path('../../DataSets/electra_s7comm/output')
 
 #################### Multi-threading splitting of Electra dataset into normal and attacked files.
