@@ -53,7 +53,7 @@ Finding optimal threshold:
     - calculate detection rate (true positive rate) and false positive rate for the current threshold.
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
-TESTING = True
+TESTING = False
 import numpy as np
 import math
 import os
@@ -88,8 +88,6 @@ class BloomFilter:
         ln_p = math.log(false_positive_rate) # math.log is natural logarithm (ln)
         self.required_number_of_bits = int(-(number_of_ngrams * ln_p) / (math.log(2) ** 2)) # optimal size in bits The Bloom filter size formula is \(m=-(n*\ln (p))/(\ln (2)^{2})\)
         self.number_of_hash_functions = math.ceil((self.required_number_of_bits / number_of_ngrams) * math.log(2)) # k = (m / n) * ln(2)
-        
-        print(f'required_number_of_bits: {self.required_number_of_bits}, number_of_hash_functions: {self.number_of_hash_functions}')
         self.byte_array = bytearray(self.required_number_of_bits // 8 + 1)  # +1 to handle any remainder bits
         # bytes array is an efficient way to store bits in python, each byte has 8 bits, so number of bytes = ceil(number of bits / 8)
         # I could have used also boolean array, but 1 boolean = 1 byte, so it is less efficient in terms of space.
@@ -174,7 +172,6 @@ def train_ngram_models(train_packets, n):
         - determine the optimal threshold for classification based on training data.
     '''
 
-    print(f'length of ngrams is {len(train_packets) * 1000}')
     ngram_count = {}
     total_seen = 0 # total number of distinct n-grams seen during training
 
@@ -201,7 +198,7 @@ def train_ngram_models(train_packets, n):
     # then I will do 010011 for example which is 3-gram, so I will now count total seen different from the 100 of 2-grams, I will check how many 3-grams only.
             
     # sample from weights
-    print(f'weights are: {list(weights.items())[:20]}')
+    print(f'samples of weights are: {list(weights.items())[:20]}')
 
     return bloom, weights, ngram_count
 
@@ -281,7 +278,7 @@ def compute_metrics(y_true, y_pred): # recheck this logic.
     tn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'normal' and yp == 'normal')
     fp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'normal' and yp == 'attack')
     fn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 'attack' and yp == 'normal')
-    accuracy = (tp + tn) / (tp + tn + fp + fn) if len(y_true) > 0 else 0
+    accuracy = (tp + tn) / (tp + tn + fp + fn) if (tp + tn + fp + fn) > 0 else 0
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
@@ -359,8 +356,19 @@ def test_model(test_packets, bloom, weights, ngram_count, n, threshold):
     results = []
     for i, pkt in enumerate(test_packets):
         s = score_packet(pkt[0], bloom, weights, ngram_count, n)
-        label = "NORMAL" if s >= threshold else "ATTACK"
+        label = "normal" if s >= threshold else "attack"
         results.append((i, s, label))
+    # compute metrics for the test set
+    y_true = [label for _, label in test_packets]
+    y_pred = [label for _, _, label in results]
+    acc, prec, rec, f1_score = compute_metrics(y_true, y_pred)
+    print(f"[*] Test Set Results: Accuracy={acc:.4f}, Precision={prec:.4f}, Recall={rec:.4f}, F1 Score={f1_score:.4f}")
+    # print how many normal and how many attack packets were detected
+    normal_detected = sum(1 for _, _, label in results if label == 'normal')
+    attack_detected = sum(1 for _, _, label in results if label == 'attack')
+    print(f'Number of NORMAL packets detected: {normal_detected}, Number of ATTACK packets detected: {attack_detected}\n total: {len(results)}')
+    print("[*] Sample results (index, score, label):", results[:10])
+
     return results
 
 
@@ -410,14 +418,18 @@ def load_and_label_data():
     
     labeled_data_normal =[ ]
     labeled_data_attack =[ ]
-    i = 0
     for array in data_normal_arrays:
         for pkt in array:
-            labeled_data_normal.append( (pkt, 'normal') )
-    i = 0 
-    for array in data_attacked[-2]:# this logic should be the same as normal.
-        # for pkt in array:
-        labeled_data_attack.append( (pkt, 'attack') )
+            labeled_data_normal.append( (pkt, 'normal') ) 
+
+    if TESTING:
+        for array in data_attacked[-2]:# this logic should be the same as normal.
+            # for pkt in array:
+            labeled_data_attack.append( (pkt, 'attack') )
+    else:
+        for array in data_attacked:
+            for pkt in array:
+                labeled_data_attack.append( (pkt, 'attack') )
     return labeled_data_normal, labeled_data_attack
 
 def compute_bloom_weights_and_counts(train_packets, n):
@@ -476,10 +488,10 @@ def split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.6, valida
     test_packets = test_normal + test_attack # both normal and attack packets for testing
     if TESTING:
         # include 8000 from normal packets and 2000 from attack packets in the train set
-        train_packets = train_packets[:8000]
-        validation_packets = validation_normal[:2000] + validation_attack[:8000]
+        train_packets = train_packets[:80000]
+        validation_packets = validation_normal[:20000] + validation_attack[:80000]
         # include 2000 normal packets and 2000 attack packets in the test set
-        test_packets = test_normal[:2000] + test_attack[:2000]
+        test_packets = test_normal[:10000] + test_attack[:30000]
         print(f'len(train_packets): {len(train_packets)}')
         print(f'len(validation_packets): {len(validation_packets)}')
         print(f'len(test_packets): {len(test_packets)}')
@@ -493,11 +505,11 @@ def sheet3_task1():
     # load and label data
     n = 3  # default n-gram size
     print('[*] Loading and labeling data...')
-    labeled_data_normal, labeled_data_attack = load_and_label_data() # todo: I can use labeled_data_normal for bloom filter training only. 
+    labeled_data_normal, labeled_data_attack = load_and_label_data() 
     
     # split data into training and testing sets
     print("[*] Splitting data into training and testing sets...")
-    train_packets, test_packets, validation_packets = split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.8)
+    train_packets, test_packets, validation_packets = split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.6, validation_ratio=0.2)
 
 
     # compute bloom filter, weights, and ngram counts from training data
@@ -515,18 +527,13 @@ def sheet3_task1():
 
     print("[*] Finding optimal threshold...")
     best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(validation_packets,scores=validation_scores)
-    print(f"[+] Optimal threshold found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}, F1 Score={best_f1:.4f}")
+    print(f"[+] Optimal threshold on validation found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}, F1 Score={best_f1:.4f}")
     print('-------------------------------------')
 
 
     print("[*] Testing model with the best threshold from validation found...")
     results = test_model(test_packets, bloom, weights, ngram_count_training, n, best_t) 
 
-    # print how many normal and how many attack packets were detected
-    normal_detected = sum(1 for _, _, label in results if label == 'NORMAL')
-    attack_detected = sum(1 for _, _, label in results if label == 'ATTACK')
-    print(f'Number of NORMAL packets detected: {normal_detected}, Number of ATTACK packets detected: {attack_detected}\n total: {len(results)}')
-    print("[*] Sample results (index, score, label):", results[:10])
-
+   
 if __name__ == "__main__":
     sheet3_task1()
