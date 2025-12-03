@@ -1,5 +1,17 @@
 - Task1 requires working on bytes level, so I can only work on QUT, not electra.
-- for N-gram, how many N-grams should I do, and how should I determine the value of N? should I make 2,3 ? on what basis?
-- while training should I test for different values of N, or I should combine all N together
+- for N-gram, how many N-grams should I do, and how should I determine the value of N? should I make 2,3 ? and on what basis?
+- Should I train the n-gram and Bloom filter on normal packets only ? 
+  - I think this makes sense because I want to find out attacks, so if we found something that does not exist in the normal before, we can say it is attack, or what do you think?
+- while training should I consider for different values of N, or I should combine all N together
     - my current assumption is that I create from 2-gram up to N-gram, and I combine all of them together. 
-- What does N_seen_i means ? is it boolean ?  or is it the number of times this N_gram was seen in the test packet? 
+- What does N_seen_i means ? is it boolean ?  or is it the number of times this N_gram was seen in the training packet? 
+  - I also think that it should be number of n-grams in test packet not training, because we are dividing by the total number of N-grams in Test packets, and it can be the case that N-seen in the training is much larger than total number of n-grams during test, thus the score will not belong to [0,1] anymore.
+- Does T mean total number of distinct n-grams, or I should also count redundant n-grams?
+  - I think I should count redundant n-grams too. 
+- While computing wi, I should divide by total number of n-grams seen during training, so the question here, should I divide by the unique seen ngrams, or I should also count redundant ones.
+  - I think i should also count redundant, because otherwise the weight can be larger that 1
+    - i.e. (unique n-gram = 3), but second n-gram appeared 12 times ;)
+- Also for wi, should I divide by all n-grams seen (2-gram, 3-gram, etc.. ) or I should compute the weight with respect to certain n, so I compute the weight regard 2-gram only, then the weight regard 3-gram only and so on. 
+  - i.e. total n-grams = 10, total 2-gram = 6, total 3-gram = 4
+    - so wi for one gram in 2-gram set should be (# occ / 6) or (# orcc / 10) ? => same question for T.
+- For searching for the optimal threshold, I train the model, then I try different threshold values, and for each threshold I evaluate the model metrics (accuracy, percision, recall, f1-score), then I return the best threshold based on f1-score, because it is the harmonic mean of percision, when I did it on percision only, I got all packets as attack, and when I did it on recall, I got all packets as normal, and when I did it on accuracy, both percision and recall was not good, so do you suggest also to do it on f1-score, or would you recommend something better metric?

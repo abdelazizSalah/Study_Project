@@ -54,35 +54,104 @@ Finding optimal threshold:
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
 TESTING = True
-import argparse
 import numpy as np
-from collections import defaultdict
-from math import log2
-from scapy.all import rdpcap
+import math
 import os
 import pickle
+import hashlib
+import mmh3  # MurmurHash3 library for fast hashing
 
 # ----------------------------------------------------------
 # BLOOM FILTER
 # ----------------------------------------------------------
 class BloomFilter:
-    def __init__(self, size=500000, hash_count=5):
-        self.size = size
-        self.hash_count = hash_count
-        self.bit_array = np.zeros(size, dtype=bool)
+    '''
+        Bloom Filter implementation
+        - uses multiple hash functions to set bits in a bit array
+        - automatically computes the optimal size (m bits)
+        - automatically computes the optimal number of hash functions (k)
+        - stores bits efficiently using bytearray
+        - uses double hashing (h1 + i * h2) to generate multiple hash values
+        - supporting adding elements and checking membership
+    '''
+    def __init__(self, false_positive_rate=0.01, number_of_ngrams=10000):
+        '''
+            Constructor to initialize the Bloom filter
+            false_positive_rate: desired false positive rate (between 0 and 1)
+            number_of_ngrams: expected number of n-grams to be stored in the filter
+        
+        '''
 
-    def _hashes(self, ngram):
-        h1 = hash(ngram)
-        for i in range(self.hash_count):
-            yield (h1 + i * 7919) % self.size
+        if number_of_ngrams <= 0 or false_positive_rate <=0 or false_positive_rate >=1:
+            raise ValueError("Number of n-grams must be positive and false_positive_rate must be in (0,1) range")
+        
+        ln_p = math.log(false_positive_rate) # math.log is natural logarithm (ln)
+        self.required_number_of_bits = int(-(number_of_ngrams * ln_p) / (math.log(2) ** 2)) # optimal size in bits The Bloom filter size formula is \(m=-(n*\ln (p))/(\ln (2)^{2})\)
+        self.number_of_hash_functions = math.ceil((self.required_number_of_bits / number_of_ngrams) * math.log(2)) # k = (m / n) * ln(2)
+        
+        print(f'required_number_of_bits: {self.required_number_of_bits}, number_of_hash_functions: {self.number_of_hash_functions}')
+        self.byte_array = bytearray(self.required_number_of_bits // 8 + 1)  # +1 to handle any remainder bits
+        # bytes array is an efficient way to store bits in python, each byte has 8 bits, so number of bytes = ceil(number of bits / 8)
+        # I could have used also boolean array, but 1 boolean = 1 byte, so it is less efficient in terms of space.
+
+
+    def _set_certain_bit(self, bit_index):
+        '''
+            Set a certain bit in the Bloom filter
+            bit_index: index of the bit to set
+        
+        '''
+
+        byte_index = bit_index // 8
+        bit_position = bit_index % 8
+        self.byte_array[byte_index] |= (1 << bit_position) # set the bit using orwise operation by shifting 1 to the left by bit_position
+    
+    def _get_certain_bit(self, bit_index):
+        '''
+            Get the value of a certain bit in the Bloom filter
+            bit_index: index of the bit to get
+            returns: 1 if the bit is set, 0 otherwise
+        '''
+        byte_index = bit_index // 8
+        bit_position = bit_index % 8
+        return (self.byte_array[byte_index] >> bit_position) & 1 # get the bit using andwise operation by shifting right by bit_position till the 0th position which include my 1.
+
+        
+    def _hashes(self, data: bytes):
+        '''
+            Generate k hash values for the given data using double hashing
+            data: byte sequence to be hashed
+            yields: k hash values in the range [0, m-1]
+        '''
+        # First hash: MurmurHash3 (extremely fast, 64-bit output)
+        h1, _ = mmh3.hash64(data, seed=0, signed=False)
+
+        # Second hash: BLAKE2b (strong entropy, 64-bit output)
+        blake = hashlib.blake2b(data, digest_size=8).digest()
+        h2 = int.from_bytes(blake, "big") | 1  # ensure h2 is odd, to avoid cycles, and try to have all k hash values different
+
+        # Produce k hash values using double hashing
+        for i in range(self.number_of_hash_functions):
+            yield (h1 + i * h2) % self.required_number_of_bits # return one value now, but remember where we left off to continue later.
+
 
     def add(self, ngram):
+        '''
+            Add an n-gram to the Bloom filter
+            ngram: byte sequence representing the n-gram
+        '''
+        # I wanted to check if the element already exist, but I thought that due to collisions, it is better to just set the bits again.
         for h in self._hashes(ngram):
-            self.bit_array[h] = True
+            self._set_certain_bit(h)
 
     def __contains__(self, ngram):
-        return all(self.bit_array[h] for h in self._hashes(ngram))
-
+        '''
+            Check if an n-gram is in the Bloom filter
+            ngram: byte sequence representing the n-gram
+            returns: True if n-gram is probably in the filter, False if definitely not in the filter
+        '''
+        return all(self._get_certain_bit(h) for h in self._hashes(ngram)) # all check that all bits are set to 1, which means the n-gram is probably in the filter.
+        # I said probably because of false positives, and collisions. 
 
 # ----------------------------------------------------------
 # N-GRAM EXTRACTION
@@ -105,36 +174,68 @@ def train_ngram_models(train_packets, n):
         - determine the optimal threshold for classification based on training data.
     '''
 
-
-    bloom = BloomFilter()
+    print(f'length of ngrams is {len(train_packets) * 1000}')
     ngram_count = {}
-
     total_seen = 0 # total number of distinct n-grams seen during training
 
+    print(f'starting to train n-gram model...\n number of training packets: {len(train_packets)}')
     for pkt in train_packets:
         for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
             # pass only first element in the tuple (packet, label)
             grams = extract_ngrams(pkt[0], i)
             for g in grams:
                 g = bytes(g)
-                if g not in ngram_count:
-                    bloom.add(g)
-                    ngram_count[g] = 1
-                    total_seen += 1
-                else:
-                    ngram_count[g] += 1
+                ngram_count[g] = ngram_count.get(g, 0) + 1
+                total_seen += 1
+    
+    # add n-grams to bloom filter
+    print('starting to add n-grams to bloom filter...')
+    bloom = BloomFilter(false_positive_rate=0.01, number_of_ngrams=len(train_packets)*1000) # assuming each packet has 1000 distinct n-grams on average
+    for curr_gram in ngram_count.keys():
+        bloom.add(curr_gram)
 
     # normalized weights
-    weights = {curr_gram: c / total_seen for curr_gram, c in ngram_count.items()}
+    print('starting to normalize weights...')
+    weights = {curr_gram: c / total_seen for curr_gram, c in ngram_count.items()} # I count the weights only to certan n-grams seen in training data
+    # i.e. 0100 was seen 5 times, and total 2-grams are 100, then weight of 0100 = 5/100 = 0.05
+    # then I will do 010011 for example which is 3-gram, so I will now count total seen different from the 100 of 2-grams, I will check how many 3-grams only.
+            
+    # sample from weights
+    print(f'weights are: {list(weights.items())[:20]}')
 
-    return bloom, weights
+    return bloom, weights, ngram_count
 
 
 # ----------------------------------------------------------
 # SCORE A PACKET
 # ----------------------------------------------------------
-def score_packet(packet, bloom, weights, n):
-    T = 0
+def score_packet(packet, bloom, weights, ngram_count, n): 
+    '''
+    Input:
+        - packet: byte sequence of test packet
+        - bloom: trained bloom filter from training phase
+        - weights: trained n-gram weights from training phase
+        - ngram_count: trained n-gram counts from training phase
+        - n: maximum n-gram size
+    Logic:
+        - for every test packet:
+            - Extract its n-grams. 
+            - T = total number of n-grams in the current packet.
+            - Using bloom-filter check which of its n-grams were seen during training. 
+            - For each n-gram:
+                - If it was seen during training:
+                    - get its weight (wi) from the training phase.
+                    - get N_seen_i from ngram_count which is frequency of n-gram i in the training phase.
+                    - compute score contribution: (N_seen_i * wi) # I assume N_seen_i = frequency of n-gram i in the training packets
+            - Compute total score for the packet:
+                - Score = (sum of (N-grams found in the packet * normalized weight of how often this n-gram was seen during training)) / Total number of n-grams in the current packet.
+                - Score should be between [0, 1]
+
+        - returns: score of the packet based on the trained model
+    
+    '''
+    
+    T = 0 # represent total number of n-grams in the current packet.
     score_sum = 0
     for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
         # # print(f'current packet is: {packet}')
@@ -143,19 +244,16 @@ def score_packet(packet, bloom, weights, n):
         if len(grams) == 0:
             continue
 
-
-        local_count = {}
-        # print(f'First 5 n-grams: {grams[:5]}, and its length is {len(grams)}')  # # print first 5 n-grams for debugging
-        for g in grams:
+        
+        for g in grams: # iterate for each gram in the current packet
             g = bytes(g)
-            local_count[g] = local_count.get(g, 0) + 1
-
-        for g, cnt in local_count.items():
-            if g in bloom: # if it was seen during training, get N_seen and weight
-                w = weights.get(g, 0)
-                score_sum += w * cnt
-
-    final_score = score_sum / T
+            if g in bloom: # if it was seen during training
+                w = weights.get(g, 0) # get its weight from the training phase
+                # N_seen_i = ngram_count.get(g, 0) # get its count from the training phase
+                score_sum += w  # compute score contribution: (N_seen_i * wi)
+                # when I include N_seen_i, the score becomes > 1, and I think this is because we double count the counts.
+    
+    final_score = score_sum / T if T > 0 else 0
     return final_score
 
 
@@ -163,7 +261,7 @@ def score_packet(packet, bloom, weights, n):
 # SEARCH FOR BEST THRESHOLD
 # ----------------------------------------------------------
 
-def compute_metrics(y_true, y_pred):
+def compute_metrics(y_true, y_pred): # recheck this logic.
     """
     y_true: list of {normal,attack}
     y_pred: list of {normal,attack}
@@ -191,7 +289,7 @@ def compute_metrics(y_true, y_pred):
     return accuracy, precision, recall, f1_score
 
 
-def find_best_threshold(test_set, scores):
+def find_best_threshold(test_set, scores): # recheck this logic.
     """
     test_set: list of (packet, true_label)
               true_label = 1 -> NORMAL
@@ -257,10 +355,10 @@ def find_best_threshold(test_set, scores):
 # ----------------------------------------------------------
 # TESTING
 # ----------------------------------------------------------
-def test_model(test_packets, bloom, weights, n, threshold):
+def test_model(test_packets, bloom, weights, ngram_count, n, threshold):
     results = []
     for i, pkt in enumerate(test_packets):
-        s = score_packet(pkt[0], bloom, weights, n)
+        s = score_packet(pkt[0], bloom, weights, ngram_count, n)
         label = "NORMAL" if s >= threshold else "ATTACK"
         results.append((i, s, label))
     return results
@@ -310,79 +408,119 @@ def load_and_label_data():
     else:
         data_attacked = generate_bytes_array_from_packet_list(attacked_pcap_path, pad = False, label = 'attack')
     
-    labeled_data =[ ]
+    labeled_data_normal =[ ]
+    labeled_data_attack =[ ]
     i = 0
     for array in data_normal_arrays:
         for pkt in array:
-            labeled_data.append( (pkt, 'normal') )
+            labeled_data_normal.append( (pkt, 'normal') )
     i = 0 
-    for array in data_attacked[-2]:
+    for array in data_attacked[-2]:# this logic should be the same as normal.
         # for pkt in array:
-        labeled_data.append( (pkt, 'attack') )
+        labeled_data_attack.append( (pkt, 'attack') )
+    return labeled_data_normal, labeled_data_attack
 
-    return labeled_data
-
-# ----------------------------------------------------------
-# MAIN ENTRY (CLI)
-# ----------------------------------------------------------
-def sheet3_task1():
-
-    n = 3  # default n-gram size
-    print('[*] Loading and labeling data...')
-    labeled_data = load_and_label_data()
+def compute_bloom_weights_and_counts(train_packets, n):
     
-    # split data into training and testing sets
-    # 80% should be from random indicies for training, and 20% for testing but I should not include same packets in both sets.
-    # np.random.shuffle(labeled_data) # to ensure now random distribution and not first packets are normal and last are attack
-    split_idx = int(0.8 * len(labeled_data))
-    print(f'current split index is: {split_idx}, total data length is: {len(labeled_data)}')
-    train_packets = labeled_data[:split_idx]
-    test_packets = labeled_data[split_idx:] 
-    if TESTING:
-        # include 8000 from normal packets and 2000 from attack packets in the train set
-        train_packets = [pkt for pkt in train_packets if pkt[1] == 'normal'][:8000] + [pkt for pkt in train_packets if pkt[1] == 'attack'][:2000]
-
-        # include 2000 normal packets and 1000 attack packets in the test set
-        test_packets = [pkt for pkt in train_packets if pkt[1] == 'normal'][:2000] + [pkt for pkt in test_packets if pkt[1] == 'attack'][:1000]
-        # print(f'train packets {train_packets[:2]}')
-        # print(f'test packets {test_packets[:2]}')
-        print(f'len(test_packets): {len(test_packets)}, len(train_packets): {len(train_packets)}')
-
-
     print("[*] Training model...")
-    if os.path.exists('bloom_filter.pkl') and os.path.exists('ngram_weights.pkl'):
+    if os.path.exists('bloom_filter.pkl') and os.path.exists('ngram_weights.pkl') and os.path.exists('ngram_count_training.pkl'):
         
         with open('bloom_filter.pkl', 'rb') as f:
             bloom = pickle.load(f)
         with open('ngram_weights.pkl', 'rb') as f:
             weights = pickle.load(f)
+        with open('ngram_count_training.pkl', 'rb') as f:
+            ngram_count_training = pickle.load(f)
         print(f"[*] Loaded pre-trained model from disk. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
     else:
-        bloom, weights = train_ngram_models(train_packets, n)
+        bloom, weights, ngram_count_training = train_ngram_models(train_packets, n)
         # save the bloom filter and weights to disk for future use
         # with open('bloom_filter.pkl', 'wb') as f:
         #     pickle.dump(bloom, f)
         # with open('ngram_weights.pkl', 'wb') as f:
         #     pickle.dump(weights, f)
+        # # store ngram_count_training for future use
+        # with open('ngram_count_training.pkl', 'wb') as f:
+        #     pickle.dump(ngram_count_training, f)
         print(f"[*] Training completed. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
+    return bloom, weights, ngram_count_training
 
 
-    print("[*] Scoring test packets for threshold search...")
-    test_scores = [score_packet(pkt[0], bloom, weights, n)
-                    for pkt in test_packets]
-    print("[*] Sample test scores:", test_scores[:10])
+def split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.6, validation_ratio=0.2):
+    '''
+    Splits the labeled data into training, validation, and testing sets.
+    Normal packets are split into (train ratio)% training, (validation ratio)% validation, and (1 - train ratio - validation ratio)% testing sets.
+    Attack packets are split into 0% training, (validation ratio)% validation, and (1 - validation ratio)% testing sets.
+    Returns:
+        - train_packets: list of (packet, label) tuples for training
+        - test_packets: list of (packet, label) tuples for testing
+        - validation_packets: list of (packet, label) tuples for validation
+    
+    
+    '''
+    # split data into training, validaiton and testing sets
+    split_idx_normal = int(train_ratio * len(labeled_data_normal)) # [ 60% normal packets for training, 20% for validation, 20% for testing ]
+    train_normal, remaining_normal = labeled_data_normal[:split_idx_normal], labeled_data_normal[split_idx_normal:]
+    split_idx_normal_val = int(validation_ratio * len(remaining_normal))
+    validation_normal, test_normal = remaining_normal[:split_idx_normal_val], remaining_normal[split_idx_normal_val:]
+
+    # split attack data into validation and testing sets only => [ 0% attack packets for training, 80% for validation, 20% for testing ]
+    split_idx_attack = int(validation_ratio * len(labeled_data_attack))
+    test_attack,validation_attack =  labeled_data_attack[:split_idx_attack], labeled_data_attack[split_idx_attack:]
+   
+    # assign the sets
+    train_packets = train_normal  # only normal packets for training
+    validation_packets = validation_normal + validation_attack # both normal and attack packets for validation
+    test_packets = test_normal + test_attack # both normal and attack packets for testing
+    if TESTING:
+        # include 8000 from normal packets and 2000 from attack packets in the train set
+        train_packets = train_packets[:8000]
+        validation_packets = validation_normal[:2000] + validation_attack[:8000]
+        # include 2000 normal packets and 2000 attack packets in the test set
+        test_packets = test_normal[:2000] + test_attack[:2000]
+        print(f'len(train_packets): {len(train_packets)}')
+        print(f'len(validation_packets): {len(validation_packets)}')
+        print(f'len(test_packets): {len(test_packets)}')
+    return train_packets, test_packets, validation_packets
+    
+# ----------------------------------------------------------
+# MAIN ENTRY (CLI)
+# ----------------------------------------------------------
+def sheet3_task1():
+
+    # load and label data
+    n = 3  # default n-gram size
+    print('[*] Loading and labeling data...')
+    labeled_data_normal, labeled_data_attack = load_and_label_data() # todo: I can use labeled_data_normal for bloom filter training only. 
+    
+    # split data into training and testing sets
+    print("[*] Splitting data into training and testing sets...")
+    train_packets, test_packets, validation_packets = split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.8)
+
+
+    # compute bloom filter, weights, and ngram counts from training data
+    print("[*] Train n-gram model and compute bloom filter, weights, and ngram counts...")
+    bloom, weights, ngram_count_training = compute_bloom_weights_and_counts(train_packets, n)
+
+
+    print("[*] Scoring validation packets for threshold search...")
+    # validation should be on both normal and attack packets
+    # normal packets should have high scores, while attack packets should have low scores
+    validation_scores = [score_packet(pkt[0], bloom, weights,ngram_count_training, n)
+                    for pkt in validation_packets]
+    print("[*] Sample validation scores:", validation_scores[:10])
     print('-------------------------------------')
 
-    # # Find optimal threshold
-    best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(test_packets,scores=test_scores)
+    print("[*] Finding optimal threshold...")
+    best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(validation_packets,scores=validation_scores)
     print(f"[+] Optimal threshold found: {best_t:.4f} with Accuracy={best_acc:.4f}, Precision={best_prec:.4f}, Recall={best_rec:.4f}, F1 Score={best_f1:.4f}")
     print('-------------------------------------')
 
 
-    print("[*] Testing model...")
-    results = test_model(test_packets, bloom, weights, n, best_t)
+    print("[*] Testing model with the best threshold from validation found...")
+    results = test_model(test_packets, bloom, weights, ngram_count_training, n, best_t) 
 
     # print how many normal and how many attack packets were detected
     normal_detected = sum(1 for _, _, label in results if label == 'NORMAL')
