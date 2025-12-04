@@ -54,6 +54,7 @@ Finding optimal threshold:
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
 TESTING = False
+import sys
 import numpy as np
 import math
 import os
@@ -177,13 +178,13 @@ def train_ngram_models(train_packets, n):
 
     print(f'starting to train n-gram model...\n number of training packets: {len(train_packets)}')
     for pkt in train_packets:
-        for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
+        # for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
             # pass only first element in the tuple (packet, label)
-            grams = extract_ngrams(pkt[0], i)
-            for g in grams:
-                g = bytes(g)
-                ngram_count[g] = ngram_count.get(g, 0) + 1
-                total_seen += 1
+        grams = extract_ngrams(pkt[0], n)
+        for g in grams:
+            g = bytes(g)
+            ngram_count[g] = ngram_count.get(g, 0) + 1
+            total_seen += 1
     
     # add n-grams to bloom filter
     print('starting to add n-grams to bloom filter...')
@@ -206,7 +207,7 @@ def train_ngram_models(train_packets, n):
 # ----------------------------------------------------------
 # SCORE A PACKET
 # ----------------------------------------------------------
-def score_packet(packet, bloom, weights, ngram_count, n): 
+def score_packet(packet, bloom, weights, n): 
     '''
     Input:
         - packet: byte sequence of test packet
@@ -234,22 +235,22 @@ def score_packet(packet, bloom, weights, ngram_count, n):
     
     T = 0 # represent total number of n-grams in the current packet.
     score_sum = 0
-    for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
+    # for i in range(2,n+1):# generating many n-grams till the maximum n (include n).
         # # print(f'current packet is: {packet}')
-        grams = extract_ngrams(packet, i)
-        T += len(grams) # total number of n-grams in the current packet.
-        if len(grams) == 0:
-            continue
+    grams = extract_ngrams(packet, n)
+    T += len(grams) # total number of n-grams in the current packet.
+    if len(grams) == 0:
+        return 0
 
-        
-        for g in grams: # iterate for each gram in the current packet
-            g = bytes(g)
-            if g in bloom: # if it was seen during training
-                w = weights.get(g, 0) # get its weight from the training phase
-                # N_seen_i = ngram_count.get(g, 0) # get its count from the training phase
-                score_sum += w  # compute score contribution: (N_seen_i * wi)
-                # when I include N_seen_i, the score becomes > 1, and I think this is because we double count the counts.
     
+    for g in grams: # iterate for each gram in the current packet
+        g = bytes(g)
+        if g in bloom: # if it was seen during training
+            w = weights.get(g, 0) # get its weight from the training phase
+            # N_seen_i = ngram_count.get(g, 0) # get its count from the training phase
+            score_sum += w  # compute score contribution: (N_seen_i * wi)
+            # when I include N_seen_i, the score becomes > 1, and I think this is because we double count the counts.
+
     final_score = score_sum / T if T > 0 else 0
     return final_score
 
@@ -352,10 +353,10 @@ def find_best_threshold(test_set, scores): # recheck this logic.
 # ----------------------------------------------------------
 # TESTING
 # ----------------------------------------------------------
-def test_model(test_packets, bloom, weights, ngram_count, n, threshold):
+def test_model(test_packets, bloom, weights, n, threshold):
     results = []
     for i, pkt in enumerate(test_packets):
-        s = score_packet(pkt[0], bloom, weights, ngram_count, n)
+        s = score_packet(pkt[0], bloom, weights, n)
         label = "normal" if s >= threshold else "attack"
         results.append((i, s, label))
     # compute metrics for the test set
@@ -457,7 +458,7 @@ def compute_bloom_weights_and_counts(train_packets, n):
             pickle.dump(ngram_count_training, f)
         print(f"[*] Training completed. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
-    return bloom, weights, ngram_count_training
+    return bloom, weights
 
 
 def split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.6, validation_ratio=0.2):
@@ -501,9 +502,18 @@ def split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.6, valida
 # MAIN ENTRY (CLI)
 # ----------------------------------------------------------
 def sheet3_task1():
+    # read n from command line arguments
+    print('-------------------------------------')
+    print("[*] Starting N-gram based Detection Method...")
+    
+    if len(sys.argv) > 1:
+        n = int(sys.argv[1])
+    else:
+        # print a hint how to call it in command line
+        raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
 
+        # n = 3  # default n-gram size
     # load and label data
-    n = 3  # default n-gram size
     print('[*] Loading and labeling data...')
     labeled_data_normal, labeled_data_attack = load_and_label_data() 
     
@@ -514,13 +524,13 @@ def sheet3_task1():
 
     # compute bloom filter, weights, and ngram counts from training data
     print("[*] Train n-gram model and compute bloom filter, weights, and ngram counts...")
-    bloom, weights, ngram_count_training = compute_bloom_weights_and_counts(train_packets, n)
+    bloom, weights = compute_bloom_weights_and_counts(train_packets, n)
 
 
     print("[*] Scoring validation packets for threshold search...")
     # validation should be on both normal and attack packets
     # normal packets should have high scores, while attack packets should have low scores
-    validation_scores = [score_packet(pkt[0], bloom, weights,ngram_count_training, n)
+    validation_scores = [score_packet(pkt[0], bloom, weights, n)
                     for pkt in validation_packets]
     # save validation scores to a file
     with open('validation_scores.txt', 'w') as f:
@@ -544,7 +554,7 @@ def sheet3_task1():
 
 
     print("[*] Testing model with the best threshold from validation found...")
-    results = test_model(test_packets, bloom, weights, ngram_count_training, n, best_t) 
+    results = test_model(test_packets, bloom, weights, n, best_t) 
 
     # save results to a file
     with open('test_results.txt', 'w') as f:
