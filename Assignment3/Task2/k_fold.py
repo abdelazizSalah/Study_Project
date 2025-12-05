@@ -15,7 +15,7 @@ def get_train_indices_by_fold(all_indices, test_fold):
     # difference between sets A\B (A without B)
     train_indices = list(all_indices_set - current_fold_indices_set)
 
-    return train_indices
+    return train_indices    #they will be sorted!
 
 
 #splits dataset into k folds
@@ -118,11 +118,12 @@ def scenario1(labels, k):
     return training_indices, test_indices
 
 
-def start_folding(ds, labels, k):
+
+#todo: debug
+def test_folding(ds, labels, k):
 
     training_indices, test_indices=scenario1(labels,5)
 
-    return
     print(ds[0])
     #create list of indices:
     num_samples = len(ds)

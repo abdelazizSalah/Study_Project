@@ -2,6 +2,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import json
+import numpy as np
 
 #input: training_indices and test_indices for all folds [[],[],[],...] - k lists
 def save_k_fold_results(training_indices, test_indices, filename):

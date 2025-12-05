@@ -42,3 +42,5 @@ ATTACK_LABELS = [
     "ConveyorBeltOn_Flooding",
     "ChangeUpperThreshold_Flooding",
 ]
+
+ALL_POSSIBLE_LABELS = ["CONTROL"] + ATTACK_LABELS
