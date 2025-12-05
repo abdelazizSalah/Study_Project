@@ -22,6 +22,10 @@ def split_attack_control(labels):
     return control_indices,attack_indices
 
 
+#returns list of all indices that correspond to a certain attack type
+def get_indices_for_attack_type(labels, attack_type):
+    return [i for i, lab in enumerate(labels) if lab == attack_type]
+
 
 def get_attack_idx_by_type(labels):
     attack_idx_by_type = defaultdict(list)  #defaultdict: automatically creates a new list, when a new key is used
@@ -51,6 +55,7 @@ def encode_labels(global_label_encoder, labels):
     except ValueError as e:
         print(f"Error when encoding labels {e}")
         return np.array([])
+
 
 #decodes numberical labels into text labels using LabelEncoder() class
 def decode_labels(global_label_encoder, numeric_labels):
