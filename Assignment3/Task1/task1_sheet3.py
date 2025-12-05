@@ -53,7 +53,7 @@ Finding optimal threshold:
     - calculate detection rate (true positive rate) and false positive rate for the current threshold.
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
-TESTING = False
+TESTING = True
 import sys
 import numpy as np
 import math
@@ -511,8 +511,8 @@ def sheet3_task1():
     else:
         # print a hint how to call it in command line
         raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
-
         # n = 3  # default n-gram size
+
     # load and label data
     print('[*] Loading and labeling data...')
     labeled_data_normal, labeled_data_attack = load_and_label_data() 
