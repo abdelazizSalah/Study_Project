@@ -14,15 +14,7 @@ from pathlib import Path
 import ipaddress
 from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor,as_completed
 import numpy as np
-from itertools import combinations
 import matplotlib.pyplot as plt
-from multiprocessing import get_context
-# from cuml.manifold import TSNE
-# from cuml.preprocessing import StandardScaler
-# import cupy as cp
-# cp.cuda.Device(1).use()   # use GPU 1 instead of GPU 0
-
-
 output_dir = Path('../../DataSets/electra_s7comm/output')
 
 #################### Multi-threading splitting of Electra dataset into normal and attacked files.
@@ -292,7 +284,7 @@ def read_pcap_as_byte_sequences(pcap_path):
     
 
 
-def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label = 'control'):
+def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set', label = 'control', pad = True):
     """
     This function reads packet data from pcap files, processes them using multithreading, converts them
     into a NumPy array, and saves the array to a file.
@@ -307,8 +299,9 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
     """
     start = time.time()
     pcap_files = list_files_by_filetype(pcap_files_path, "pcap")
+    print(f'number of pcap files to be processed: {pcap_files}')
     if TESTING: 
-        pcap_files = [pcap_files[0]]
+        pcap_files = [pcap_files[0]] if label == 'control' else pcap_files  # for testing, use only first pcap file
 
     print(f'the pcap file to be processed {pcap_files}')
     all_packets = []
@@ -327,8 +320,9 @@ def generate_bytes_array_from_packet_list(pcap_files_path='../../DataSets/2017QU
 
     print('padding the packets')
     # padd all of them to the max length
-    for i in range(len(all_packets)):
-        all_packets[i] = [pkt.ljust(max_len, b'\0') for pkt in all_packets[i]]
+    if pad:
+        for i in range(len(all_packets)):
+            all_packets[i] = [pkt.ljust(max_len, b'\0') for pkt in all_packets[i]]
         
     min_len = min(len(pkt) for pkt_list in all_packets for pkt in pkt_list)
     print(f'max packet len: {max_len}, min packet len: {min_len}')

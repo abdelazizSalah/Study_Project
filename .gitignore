@@ -2,7 +2,8 @@
 /Abdelaziz_Codes/Sheet1_codes/*.parquet
 /Abdelaziz_Codes/Sheet1_codes/*.npy
 /Abdelaziz_Codes/Sheet1_codes/chebyshev_blocks/*.npy
-
+Assignment3/Task1/*.npy
+Assignment3/Task1/*.pkl
 __pycache__/
 *.pyc
 .idea/
