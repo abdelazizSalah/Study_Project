@@ -12,9 +12,6 @@ from Assignment3.Task2.labels_helper import decode_labels, encode_labels
 import pandas as pd
 
 
-
-
-
 #########################################################OSVM
 
 def one_class_svm_train(X_train):
