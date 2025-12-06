@@ -9,12 +9,12 @@ from sklearn.preprocessing import LabelEncoder
 from Assignment3.Task2.constants import ALL_POSSIBLE_LABELS
 from Assignment3.Task2.debugging_helpers import create_balanced_train_test_indices
 from Assignment3.Task2.evaluation_validation import print_size_of_different_attack_types
+from Assignment3.Task2.feature_creation import train_and_save_models, create_features_for_ds
 from Assignment3.Task2.file_helper_t3 import save_k_fold_results, load_k_fold_results
-from Assignment3.Task2.k_fold import test_folding, test_results
 from Assignment3.Task2.random_forest import execute_scenario_rf
 from Assignment3.Task2.svm import execute_scenario_svm
 from elliptic_envelope import execute_scenario_ee
-from feature_creation import created_features_for_ds
+from feature_creation import create_features_for_ds, create_model
 from prepare_data_and_labels import pcaps_byte_and_metadata_extraction, find_M, \
     pcaps_byte_and_metadata_extraction
 from tensorflow import keras
@@ -132,7 +132,8 @@ def release_main():
     Uses training data from k-folds split for scenario 1 (which contains only control dps) to train autoencoder k times.
     
     Extracts Features for whole ds using the trained autoencoder for each split.
-    (It does not repeat this for s2 and s3 because the split of the testing data will be exactly the same)
+    (It does not repeat this for s2 and s3 because only control data can be used for training and
+    the control data per fold inside the training set will be the same for each scenario.)
     
     Prerequisites: Mode “Dataset_Preprocessing” was executed and mode “K_Fold” was executed with the same number of folds (k). 
     """
@@ -156,7 +157,8 @@ def release_main():
     RAW_LABELS_PATH = "datasets/raw_labels.npy"
     RE_LABELS_PATH = "datasets/re_labels.npy"
 
-
+    train_and_save_models()
+    create_features_for_ds(k)
 
     """mode == OCSVM"""
     """svm s1 -> ocsvm"""
@@ -254,10 +256,9 @@ def test_main():
 
 def extratestmainforlazypeople():
     start = time.time()
-    #create_and_save_all_folds(5)
-    labels_raw=np.load("datasets/raw_labels.npy")
-    labels_re = np.load("datasets/re_labels.npy")
-    test_results(labels_re)
+    #train_and_save_models()
+    create_features_for_ds(5)
+    #features0=np.load("datasets/raw_features_fold0.npy")
     end = time.time()  # end timer
     elapsed = end - start
     print(f"⏱️ main() executed in {elapsed:.2f} seconds")
