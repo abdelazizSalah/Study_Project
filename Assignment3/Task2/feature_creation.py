@@ -3,12 +3,11 @@ from pathlib import Path
 import tensorflow as tf
 from keras import regularizers
 from tensorflow import keras
-from tensorflow import keras
 from tensorflow.keras import layers
 
 import numpy as np
 
-from Assignment3.Task2.file_helper_t3 import load_k_fold_results
+from file_helper_t3 import load_k_fold_results
 
 
 def build_ics_ae_dense(

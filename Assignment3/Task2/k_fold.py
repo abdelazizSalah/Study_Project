@@ -3,10 +3,9 @@ import os
 import numpy as np
 import random
 
-from Assignment3.Task2.constants import ATTACK_LABELS
-from Assignment3.Task2.file_helper_t3 import save_k_fold_results, load_k_fold_results
-from labels_helper import get_amount_of_different_attack_types, get_attack_idx_by_type, split_attack_control, \
-    get_indices_for_attack_type
+from constants import ATTACK_LABELS
+from file_helper_t3 import save_k_fold_results
+from labels_helper import  split_attack_control, get_indices_for_attack_type
 
 
 #input:  Fold (indices) = test data, number of samples in the whole dataset

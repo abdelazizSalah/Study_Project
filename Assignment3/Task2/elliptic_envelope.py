@@ -1,11 +1,8 @@
-from Assignment3.Task2.labels_helper import encode_labels
-import numpy as np
-
-from Assignment3.Task2.svm import one_class_svm_train, one_class_svm_evaluate, split_training_and_test
+from labels_helper import encode_labels
+from svm import split_training_and_test
 from sklearn.covariance import EllipticEnvelope
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-import joblib
 
 def elliptic_envelope_train(X_train, contamination=0.05):
     """

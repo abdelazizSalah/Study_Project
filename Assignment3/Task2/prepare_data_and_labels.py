@@ -1,7 +1,7 @@
 from scapy.all import PcapReader, rdpcap, IP, IPv6, TCP, UDP, Ether
 from scapy.error import Scapy_Exception
 
-from Assignment3.Task2.constants import ATTACK_LABELS
+from constants import ATTACK_LABELS
 from file_helper_t3 import *
 import numpy as np
 

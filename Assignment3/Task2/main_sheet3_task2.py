@@ -6,19 +6,17 @@ import time
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-from Assignment3.Task2.constants import ALL_POSSIBLE_LABELS
-from Assignment3.Task2.debugging_helpers import create_balanced_train_test_indices
-from Assignment3.Task2.evaluation_validation import print_size_of_different_attack_types
-from Assignment3.Task2.feature_creation import train_and_save_models, create_features_for_ds
-from Assignment3.Task2.file_helper_t3 import save_k_fold_results, load_k_fold_results
-from Assignment3.Task2.random_forest import execute_scenario_rf
-from Assignment3.Task2.svm import execute_scenario_svm
+from constants import ALL_POSSIBLE_LABELS
+from debugging_helpers import create_balanced_train_test_indices
+from feature_creation import train_and_save_models, create_features_for_ds
+from file_helper_t3 import save_k_fold_results, load_k_fold_results
+from random_forest import execute_scenario_rf
+from svm import execute_scenario_svm
 from elliptic_envelope import execute_scenario_ee
 from feature_creation import create_features_for_ds, create_model
-from prepare_data_and_labels import pcaps_byte_and_metadata_extraction, find_M, \
+from prepare_data_and_labels import  find_M, \
     pcaps_byte_and_metadata_extraction
-from tensorflow import keras
-from k_fold import scenario1, create_and_save_all_folds
+from k_fold import scenario1
 
 
 def create_datasets_from_pcaps( input_path_pcap_attack, input_path_pcap_control):

@@ -1,9 +1,7 @@
 
 from scapy.all import rdpcap
 import numpy as np
-from pathlib import Path
 import tensorflow as tf
-from scapy.error import Scapy_Exception
 
 from file_helper import list_files_by_filetype
 

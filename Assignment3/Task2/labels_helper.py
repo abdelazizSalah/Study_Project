@@ -1,9 +1,6 @@
 
 from collections import defaultdict
 import numpy as np
-from sklearn.preprocessing import LabelEncoder
-from constants import ALL_POSSIBLE_LABELS
-from Assignment3.Task2.constants import ATTACK_LABELS
 
 """
 operations on the dataset based on the label array and ds array
