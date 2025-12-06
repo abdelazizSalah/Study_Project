@@ -10,8 +10,8 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from Assignment3.Task2.labels_helper import encode_labels
-from Assignment3.Task2.svm import split_training_and_test
+from labels_helper import encode_labels
+from svm import split_training_and_test
 
 
 def binary_rf_train(X_train, y_train,

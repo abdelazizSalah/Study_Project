@@ -1,11 +1,8 @@
-from Assignment3.Task2.labels_helper import encode_labels
-import numpy as np
-
-from Assignment3.Task2.svm import one_class_svm_train, one_class_svm_evaluate, split_training_and_test
+from labels_helper import encode_labels
+from svm import split_training_and_test
 from sklearn.covariance import EllipticEnvelope
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-import joblib
 
 def elliptic_envelope_train(X_train, contamination=0.05):
     """
@@ -128,6 +125,8 @@ def execute_fold_ee(ds, numeric_labels, timestamps,train_indices, test_indices):
 
 #train and test indices for each fold ([[][],...]
 def execute_scenario_ee(ds, labels, timestamps, train_indices,test_indices, global_label_encoder):
+
+    #toDo: takes ds from raw bytes and executes train_autoencoder_
 
     numeric_labels = encode_labels(global_label_encoder, labels)
     binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack

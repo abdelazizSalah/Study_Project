@@ -1,8 +1,11 @@
+import os
+
 import numpy as np
 import random
 
-from Assignment3.Task2.constants import ATTACK_LABELS
-from labels_helper import get_amount_of_different_attack_types, get_attack_idx_by_type, split_attack_control
+from constants import ATTACK_LABELS
+from file_helper_t3 import save_k_fold_results
+from labels_helper import  split_attack_control, get_indices_for_attack_type
 
 
 #input:  Fold (indices) = test data, number of samples in the whole dataset
@@ -18,15 +21,13 @@ def get_train_indices_by_fold(all_indices, test_fold):
     return train_indices    #they will be sorted!
 
 
+
 #splits dataset into k folds
 def create_folds_pure_python(data_indices, k):
 
     if k <= 1:
         raise ValueError("Choose K > 1")
 
-    # mix
-    random.seed(42) #same seed -> reproducable output for debugging todo: change to random
-    random.shuffle(data_indices)
 
     num_samples = len(data_indices) #number of samples (datapoints)
 
@@ -57,82 +58,191 @@ def create_folds_pure_python(data_indices, k):
     return folds    #[[],[],...] k lists inside
 
 
-#x = 8*22
-def choose_x_attack_indices_per_type(labels):
-    counts={}
-    attack_idx_by_type=get_attack_idx_by_type(labels)
+# k can't be > 8
+def create_folds_for_all_attack_types(labels, k):
+    """
+    returns dictionary with k folds for each attack type
+    attack_folds = {
+        "A": [fold0, fold1, ..., fold_k-1],
+        "B": [fold0, fold1, ..., fold_k-1],
+        "C": [...],
+        ...
+    }"""
 
-    #get attack type with least amount of values -> to know the amount to collect fromm each type
-    #8
-    for lab, idx_list in attack_idx_by_type.items():
-        length_of_indices = len(idx_list)
-        counts[lab] = length_of_indices
+    attack_folds = {}
 
-    n_per_type = min(counts.values())  # 8
+    for attack_label in ATTACK_LABELS:
+        # collect indices for this attack type
+        indices = [i for i, lab in enumerate(labels) if lab == attack_label]
 
-    rng = random.Random(42) #todo change to truly random
+        if len(indices) == 0:
+            print(f"WARNING: No samples found for attack type '{attack_label}'")
+            attack_folds[attack_label] = [[] for _ in range(k)] #add empty lists as value [[],[],...]
+            continue
 
-    chosen_attack_idx = []
-    #iterate over each type
-    for lab, idx_list in attack_idx_by_type.items():
-        idx_list = list(idx_list)
-        rng.shuffle(idx_list)
-        chosen_attack_idx.extend(idx_list[:n_per_type]) #choose 8 indices from each type
+        # optional but shouldn't happen with k<9 restriction in main
+        if len(indices) < k:
+            raise ValueError(
+                f"Attack type '{attack_label}' has only {len(indices)} samples, "
+                f"but k={k}. Cannot ensure appearance in all folds."
+            )
+
+        # create the k folds
+        folds = create_folds_pure_python(indices, k)
+
+        attack_folds[attack_label] = folds  #[[],[],...]
+
+    return attack_folds
 
 
-    return  chosen_attack_idx #list with 8*n indices (n=amount of different attack types)
+
+
 
 def scenario1(labels, k):
     """
     -training data: only control
-    -tests data (fold): control and attack
-        -> attack has x samples of each attack type (8, since x needs to represent all attack data)
+    -tests data (fold): control and attack (samples of each attack type)
     """
-    #split dataset into attack and control data by labels
-    control_indices, attack_indices=split_attack_control(labels)
 
-    #create folds with only control data
+    control_indices, attack_indices = split_attack_control(labels)
     folds_only_control=create_folds_pure_python(control_indices,k)
+    folds_by_attack_type=create_folds_for_all_attack_types(labels, k)
 
-    #get 8 attack indices for each type:
-    attack_indices_selection=choose_x_attack_indices_per_type(labels)
-    n_attack_indices=len(attack_indices_selection)    #176
+    training_indices = []  # [[],[]] sublist for each fold
+    test_indices = []  # [[],[]] sublist for each fold
 
-    print(len(folds_only_control[0]))
-    # check if fold size is smaller than 176
-    if n_attack_indices>len(folds_only_control[0]):
-        print("k too large")
-        return
+    for fold_idx in range(k):
+        #create test set
+        full_fold = list(folds_only_control[fold_idx])
+        #add attack data
+        for folds_by_type in folds_by_attack_type.values():
+             full_fold+= folds_by_type[fold_idx]   #add attack indices to test fold
 
-    training_indices=[] #[[],[]] sublist for each fold
-    test_indices=[]    #[[],[]] sublist for each fold
-
-    for control_fold in folds_only_control:
-        full_fold = control_fold + attack_indices_selection   #add attack indices to test fold
-
-        # also create trainings for each fold (only control ds as indices!)
-        training_indices_by_fold=get_train_indices_by_fold(control_indices, control_fold)
+        # create training set
+        training_indices_by_fold=get_train_indices_by_fold(control_indices, folds_only_control[fold_idx])
         training_indices.append(training_indices_by_fold)
         test_indices.append(full_fold)
 
-    return training_indices, test_indices
+
+    return training_indices, test_indices #for all folds [[],[],...]
+
+
+def scenario2(labels, k):
+    """
+    -training data: control and n-2 attack types (left out attack types are chosen randomly for each fold)
+    -tests data (fold): control and attack (samples of each attack type)
+    """
+
+    control_indices, attack_indices = split_attack_control(labels)
+    folds_only_control=create_folds_pure_python(control_indices,k)
+    folds_by_attack_type=create_folds_for_all_attack_types(labels, k)
+
+    training_indices = []  # [[],[]] sublist for each fold
+    test_indices = []  # [[],[]] sublist for each fold
+    removed_types_per_fold = []
+
+    attack_types = list(folds_by_attack_type.keys())
+
+
+    for fold_idx in range(k):
+        #remove two attack types for training data
+        removed_types = random.sample(attack_types, 2)
+        removed_types_per_fold.append(tuple(removed_types))
+
+        #add control data
+        full_fold = list(folds_only_control[fold_idx])   #test data only control
+        full_training_for_fold = get_train_indices_by_fold(control_indices, full_fold) #rest of control data -> training set
+
+        #add attack data
+        for attack_type, folds_by_type in folds_by_attack_type.items():
+             full_fold+= folds_by_type[fold_idx]   #add attack indices to test fold
+             if attack_type not in removed_types:
+                all_indices_for_attack_type=get_indices_for_attack_type(labels, attack_type)
+                training_indices_by_fold_by_attack_type= get_train_indices_by_fold(all_indices_for_attack_type,
+                                                                  folds_by_type[fold_idx])
+                full_training_for_fold+=training_indices_by_fold_by_attack_type
+
+
+        training_indices.append(full_training_for_fold)
+        test_indices.append(full_fold)
+
+
+    return training_indices, test_indices   #for all folds [[],[],...]
 
 
 
-#todo: debug
-def test_folding(ds, labels, k):
+def scenario3(labels, k):
+    """
+    -training data: control and 1 attack type (chosen randomly for each fold)
+    -tests data (fold): control and attack (samples of each attack type)
+    """
 
-    training_indices, test_indices=scenario1(labels,5)
+    control_indices, attack_indices = split_attack_control(labels)
+    folds_only_control=create_folds_pure_python(control_indices,k)
+    folds_by_attack_type=create_folds_for_all_attack_types(labels, k)
 
-    print(ds[0])
-    #create list of indices:
-    num_samples = len(ds)
+    training_indices = []  # [[],[]] sublist for each fold
+    test_indices = []  # [[],[]] sublist for each fold
+    removed_types_per_fold = []
 
-    all_indices = list(range(num_samples))
-    folds=create_folds_pure_python(all_indices,k)
-    print(folds[0][1])
-    index_fold1=folds[0][1]
-    print(labels[index_fold1])
+    attack_types = list(folds_by_attack_type.keys())
 
-    #train_indices=get_train_indices_for_fold(num_samples,folds[0])
-    return
+
+    for fold_idx in range(k):
+        #choose one attack type for training data
+        random_attack_type = random.choice(attack_types)
+
+        #add control data to test and training set
+        full_fold = list(folds_only_control[fold_idx])   #test data only control
+        full_training_for_fold = get_train_indices_by_fold(control_indices, full_fold) #rest of control data -> training set
+
+        #add attack data to test set
+        for folds_by_type in folds_by_attack_type.values():
+            full_fold += folds_by_type[fold_idx]  # add attack indices to test fold
+
+        #add random attack type to training set
+        all_indices_for_attack_type=get_indices_for_attack_type(labels, random_attack_type)
+        training_indices_by_fold_by_attack_type= get_train_indices_by_fold(all_indices_for_attack_type,
+                                                                  folds_by_attack_type[random_attack_type][fold_idx])
+        full_training_for_fold+=training_indices_by_fold_by_attack_type
+
+
+        training_indices.append(full_training_for_fold)
+        test_indices.append(full_fold)
+
+
+    return training_indices, test_indices   #for all folds [[],[],...]
+
+
+def create_and_save_all_folds(k):
+
+    labels_raw=np.load("datasets/raw_labels.npy")
+    labels_re=np.load("datasets/re_labels.npy")
+
+    scenario_numbers = [1, 2, 3]
+
+    scenario_functions = {
+        1: scenario1,
+        2: scenario2,
+        3: scenario3,
+    }
+
+    # exist_ok=True prevents an error if the directory already exists.
+    os.makedirs("k_fold_results", exist_ok=True)
+    for s_num in scenario_numbers:
+        scenario_func = scenario_functions[s_num]
+        train_indices, test_indices = scenario_func(labels_raw,k)
+        filename = f"k_fold_results/k_fold_s{s_num}_raw.json"
+        save_k_fold_results(train_indices, test_indices, filename)
+        print(f"Scenario {s_num} processed and results saved to {filename}")
+
+    for s_num in scenario_numbers:
+        scenario_func = scenario_functions[s_num]
+        train_indices, test_indices = scenario_func(labels_re,k)
+        filename = f"k_fold_results/k_fold_s{s_num}_re.json"
+        save_k_fold_results(train_indices, test_indices, filename)
+        print(f"Scenario {s_num} processed and results saved to {filename}")
+
+    return 42
+
+
