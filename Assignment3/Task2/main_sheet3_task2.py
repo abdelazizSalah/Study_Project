@@ -27,7 +27,7 @@ def create_datasets_from_pcaps( input_path_pcap_attack, input_path_pcap_control)
 
 
 def release_main():
-    global_label_encoder = LabelEncoder()
+    global_label_encoder = LabelEncoder() # use them to have the numeric labels first. 
     global_label_encoder.fit(ALL_POSSIBLE_LABELS)
 
 
