@@ -1,9 +1,19 @@
 from fine_tuning import * 
+import os
 import pandas as pd 
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.datasets import make_classification
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import make_scorer
+from sklearn.svm import OneClassSVM
+from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.metrics import recall_score, accuracy_score
+import numpy as np
+
 
 
 def load_dataset_csv_rf(file_path):
@@ -59,6 +69,51 @@ def load_dataset_svm(file_path):
     X_scaled = scaler.fit_transform(X)
 
     return X_scaled, y
+
+
+def load_elliptic_dataset(root_folder):
+    healthy_folder = os.path.join(root_folder, "Healthy")
+    broken_folder = os.path.join(root_folder, "BrokenTooth")
+
+    X = []
+    y = []
+
+    # Healthy = 0
+    for file in os.listdir(healthy_folder):
+        if file.endswith(".csv"):
+            df = pd.read_csv(os.path.join(healthy_folder, file))
+            X.append(df.values)     # append all rows
+            y += [0] * len(df)      # one label per row
+
+    # Broken = 1
+    for file in os.listdir(broken_folder):
+        if file.endswith(".csv"):
+            df = pd.read_csv(os.path.join(broken_folder, file))
+            X.append(df.values)
+            y += [1] * len(df)
+
+    # concatenate all CSVs vertically
+    X = np.vstack(X)
+    y = np.array(y, dtype=int)
+
+    return X, y
+
+
+
+def create_dataset_one_class_svm():
+    # Create an imbalanced dataset
+    X, y = make_classification(n_samples=100000, n_features=2, n_informative=2,
+                            n_redundant=0, n_repeated=0, n_classes=2,
+                            n_clusters_per_class=1,
+                            weights=[0.995, 0.005],
+                            class_sep=0.5, random_state=0)
+
+    # Convert the data from numpy array to a pandas dataframe
+    df = pd.DataFrame({'feature1': X[:, 0], 'feature2': X[:, 1], 'target': y})
+
+    # Check the target distribution
+    df['target'].value_counts(normalize = True)
+    return df[['feature1', 'feature2']], df['target'].values
 
 def encode_categorical(X):
     X_encoded = X.copy()
@@ -138,5 +193,100 @@ def testing_svm():
     test_accuracy_svm = best_svm.score(X_test, y_test)
     print(f'SVM Test Accuracy: {test_accuracy_svm}')
 
+
+def ocsvm_auc(y_true, y_scores):
+    return roc_auc_score(y_true, y_scores)
+
+
+
+def testing_one_class_svm():
+    print("Creating One-Class SVM dataset...")
+    X, y = create_dataset_one_class_svm()  
+    # IMPORTANT: y must be 0 (normal) or 1 (anomaly)
+
+    print("Splitting dataset...")
+
+    # TRAINING DATA = only normal samples
+    X_train_normal = X[y == 0]
+    y_train_normal = np.zeros(len(X_train_normal))   # OCSVM ignores labels but scorer needs it
+
+    # FULL SPLIT FOR EVALUATION (normal + anomalies)
+    X_temp, X_test, y_temp, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_temp, y_temp, test_size=0.25, random_state=42
+    )
+    # Grid Search for One-Class SVM
+    ocsvm = OneClassSVM()
+    best_ocsvm = grid_search_one_class_svm(
+        ocsvm,
+        X_train_normal,
+        y_train_normal,
+        X_val,
+        y_val,
+        scoring_metric='accuracy'  # using accuracy for simplicity
+    )
+
+
+    # -----------------------------
+    # TEST SET EVALUATION
+    # -----------------------------
+    y_test_pred_raw = best_ocsvm.predict(X_test)
+    y_test_pred = (y_test_pred_raw == -1).astype(int)
+    test_accuracy = accuracy_score(y_test, y_test_pred)
+    print("Best One-Class SVM Model:", best_ocsvm)
+    print(f"One-Class SVM Test Accuracy: {test_accuracy:.4f}")
+
+    return best_ocsvm
+
+
+def testing_elliptic_envelope():
+    '''
+    
+        Best parameters: {'contamination': 0.05, 'support_fraction': None}
+        Validation F1: 0.0429
+        Validation Recall: 0.0230
+        Validation Accuracy: 0.4890
+
+        Elliptic Envelope Test Results:
+        Recall:    0.0230
+        F1 Score:  0.0429
+        Accuracy:  0.4890
+    
+    '''
+    print("Loading Elliptic Envelope dataset...")
+    X, y = load_elliptic_dataset("Elliptic_data")
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=42
+    )
+
+    # Train ONLY on healthy samples
+    X_train_normal = X_train[y_train == 0]
+    y_train_normal = y_train[y_train == 0]  # all zeros
+
+    ee = EllipticEnvelope()
+
+    best_ee = grid_search_elliptic_envelope(
+        ee,
+        X_train_normal,
+        y_train_normal,  # dummy labels
+        X_test,
+        y_test,
+        scoring_metric='accuracy'
+    )
+
+    # Test predictions
+    y_pred_raw = best_ee.predict(X_test)
+    y_pred = (y_pred_raw == -1).astype(int)
+
+    print("\nElliptic Envelope Test Results:")
+    print(f"Recall:    {recall_score(y_test, y_pred):.4f}")
+    print(f"F1 Score:  {f1_score(y_test, y_pred):.4f}")
+    print(f"Accuracy:  {accuracy_score(y_test, y_pred):.4f}")
+
+
+
 if __name__ == "__main__":
-    testing_svm()
+    testing_elliptic_envelope()
