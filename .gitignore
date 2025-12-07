@@ -8,3 +8,5 @@ __pycache__/
 *.pyc
 .idea/
 .venv/
+Assignment3/Task3/*.csv
+Assignment3/Task3/Elliptic_data/*
