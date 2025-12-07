@@ -1,4 +1,5 @@
 from pyexpat import features
+from sys import prefix
 
 import joblib
 import numpy as np
@@ -7,7 +8,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, OneClassSVM
 from sklearn.metrics import  classification_report, roc_auc_score, precision_score, recall_score, \
     f1_score
-from labels_helper import  encode_labels
 import pandas as pd
 
 
@@ -162,63 +162,5 @@ def binary_svm_predict(X_test, t_test):
     return prediction_report
 
 
-###############################################################
-
-#indices not restored
-#splits ds based on indices!
-#timeestamps should be a list of all timestamps fot the dataset
-def split_training_and_test(ds, labels, timestamps, train_indices_fold, test_indices_fold):
-
-    # FEATURES AUFTEILEN
-    X_train = ds[train_indices_fold]
-    X_test = ds[test_indices_fold]
-
-    # LABELS AUFTEILEN
-    y_train = labels[train_indices_fold]
-    y_test = labels[test_indices_fold]
-
-    T_test = timestamps[test_indices_fold]  #t_test[index] will be same element as x_test[index] and x_label[index]!
-    T_train = timestamps[train_indices_fold]
-    return X_train, X_test, y_train, y_test, T_train, T_test
 
 
-#input: indices for one fold of one scenario!
-#ocsvm=1 - ocsvm, 0 - binary svm
-def execute_fold_svm(ds, numeric_labels, timestamps,train_indices, test_indices, ocsvm):
-    """train, measure result, print timestamp + prediction for test dataset for one fold"""
-    X_train, X_test, y_train, y_test, t_train, t_test=split_training_and_test(ds, numeric_labels, timestamps,train_indices, test_indices)
-
-
-    if ocsvm:
-        one_class_svm_train(X_train[:1000]) #todo debug - change (for faster model training)
-        one_class_svm_evaluate(X_test, y_test)  #test data and corresponding labels
-        prediction_report=one_class_svm_predict(X_test, t_test) #test data and corresponding timestamps
-        print("\n--- Individual Packet Attack Detection Report ---")
-        print(prediction_report)
-    else:   #binary svm (multiple classes in training)
-        binary_svm_train(X_train[:1000], y_train[:1000])
-        binary_svm_evaluate(X_test, y_test)
-        prediction_report=binary_svm_predict(X_test, t_test)
-        print("\n--- Individual Packet Attack Detection Report ---")
-        print(prediction_report)
-    return
-
-
-#train and test indices for each fold ([[][],...]
-def execute_scenario_svm(ds, labels, timestamps, train_indices,test_indices, global_label_encoder, ocsvm):
-
-    numeric_labels = encode_labels(global_label_encoder, labels)
-    binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
-    #for fold_idx in range(len(test_indices)):
-    #    execute_fold(ds, numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],ocsvm)
-
-    first_fold_train_indices = train_indices[0]
-    first_fold_test_indices = test_indices[0]
-    execute_fold_svm(ds, binary_numeric_labels, timestamps, train_indices[0], test_indices[0],ocsvm)
-    return
-
-
-def train_and_save_models_for_al_scenarios():
-    #todo preparation for task3
-
-    pass

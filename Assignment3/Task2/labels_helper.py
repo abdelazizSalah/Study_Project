@@ -38,11 +38,6 @@ def get_attack_idx_by_type(labels):
 
 
 
-#Label encoder
-
-
-
-# Initialisieren Sie den Encoder nur einmal
 
 #ecnodes text labels into numberical ones using LabelEncoder() class
 def encode_labels(global_label_encoder, labels):

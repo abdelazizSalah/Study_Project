@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from scapy.all import PcapReader, rdpcap, IP, IPv6, TCP, UDP, Ether
 from scapy.error import Scapy_Exception
 

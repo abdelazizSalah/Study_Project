@@ -6,29 +6,14 @@ import time
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
+from k_fold import create_and_save_all_folds, save_folds_pretty
+from use_classifiers import execute_scenario
+from file_helper_t3 import verify_amount_feature_files,load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
-from debugging_helpers import create_balanced_train_test_indices
-from feature_creation import train_and_save_models, create_features_for_ds
-from file_helper_t3 import save_k_fold_results, load_k_fold_results
-from random_forest import execute_scenario_rf
-from svm import execute_scenario_svm
-from elliptic_envelope import execute_scenario_ee
-from feature_creation import create_features_for_ds, create_model
-from prepare_data_and_labels import  find_M, \
+from feature_creation_autoencoder import train_and_save_models
+from feature_creation_autoencoder import create_features_for_ds
+from preprocessing_s3t2 import  find_M, \
     pcaps_byte_and_metadata_extraction
-from k_fold import scenario1
-
-
-def create_datasets_from_pcaps( input_path_pcap_attack, input_path_pcap_control):
-    #creates file with raw bytes (length 100)
-    #creates associated label files
-    pcaps_byte_and_metadata_extraction(input_path_pcap_attack, input_path_pcap_control, "datasets/raw_bytes.npy",
-                                              "datasets/re_bytes.npy", "datasets/raw_labels.npy", "datasets/re_labels.npy",
-                                              "datasets/raw_timestamps.npy","datasets/re_timestamps.npy")
-
-    #based on those files creates files with features with autoencoder
-    created_features_for_ds()
-    return
 
 
 def require_file(path: str):
@@ -38,225 +23,398 @@ def require_file(path: str):
         sys.exit(1)   # terminate program
 
 
-#todo: integrate
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run scenario with user-selected number of folds.")
-    parser.add_argument(
-        "--k",
-        type=int,
-        default=5,
-        help="Number of folds to use for cross-validation (default: 5)"
-    )
-    return parser.parse_args()
+def check_requirements_classifier_modes():
+    require_file(f"k_fold_results/k_fold_s1_raw.json")
+    training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
+    k = len(training_indices_raw)
 
+    #check that k fold files for all scenarios exist
+    for s_idx in range(1,4):
+        require_file(f"k_fold_results/k_fold_s{s_idx}_raw.json")
+        require_file(f"k_fold_results/k_fold_s{s_idx}_re.json")
 
-def release_main():
-    global_label_encoder = LabelEncoder()
-    global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        # check the amount of folds that was used when the training and test files were created
+        training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s{s_idx}_raw.json")
+        training_indices_re, test_indices_re = load_k_fold_results(f"k_fold_results/k_fold_s{s_idx}_re.json")
 
+        # feature files exist for all folds and number of folds should always be the same
+        if len(training_indices_raw) != k or len(training_indices_re) != k :
+            print("Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
+            sys.exit(1)
 
-    # preprocess with labels:
-    """mode == dataset_preprocessing"""
-    """
-    All operations are performed twice: once in RAW mode and once in RE mode.
-    RAW: all bytes of each packet are included.
-    RE: only the bytes after the keyword Candidate are included (i.e., the physical S7Comm readings).
-
-    For each mode, the following steps are executed:
-        0 Scan all pcaps to determine the maximum packet length (i.e., the length of the longest RAW or RE packet, depending on the mode).
-        1 Read all pcaps and construct a byte matrix, where each row represents one packet.
-            All rows are padded or truncated to the mode-specific maximum length determined in Step 0.
-        2 Create a label list, where each entry corresponds to the label of the packet in the same row of the byte matrix.
-        3 Create a timestamp list, where each entry corresponds to the timestamp of the packet in the same row of the byte matrix.
-
-        Within each mode (RAW and RE separately), the indices are aligned: bytes[i], labels[i], timestamps[i] all refer to the same packet. 
-    """
-
-
-    input_path_attack_pcap = "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks/20161216202830"
-    input_path_control_pcap = "/home/dW5kZWFk/uni/study_project/datasets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set"
-
-
-    M_raw,M_re=find_M(input_path_attack_pcap,input_path_control_pcap)
-    M_raw=466
-    M_re=386 #todo: remove
-
-    # exist_ok=True prevents an error if the directory already exists.
-    os.makedirs("datasets", exist_ok=True)
-    pcaps_byte_and_metadata_extraction(input_path_attack_pcap, input_path_control_pcap, "datasets/raw_bytes.npy",
-                                              "datasets/re_bytes.npy", "datasets/raw_labels.npy",
-                                              "datasets/re_labels.npy",
-                                              "datasets/raw_timestamps.npy", "datasets/re_timestamps.npy", M_raw, M_re)
-
-
-    """mode == k_fold"""
-    """
-    For each scenario (1 - 3) it creates k splits into training /test data. It stores the result to files.
-    
-    Prerequisites: Mode “Dataset_Preprocessing” was executed. 
-    
-    K-Fold requirements:
-    Each data point must appear EXACTLY ONCE as part of a test set across all k folds. 
-    All folds must be disjoint, meaning no index may appear in more than one fold. 
-    The union of all folds must contain every data point exactly once. 
-    Fold sizes should be as equal as possible, with leftover samples distributed across folds. 
-    Duplicate samples in the dataset are allowed, but duplicate indices across folds are not. 
-    """
-    args = parse_args()
-    k = args.k  #default k=5
-    if k > 8:
-        print("It is not possible to fullfill the requirements with k > 8 for the scenarios because one attack type has only 8 datapoints.")
+    if not verify_amount_feature_files(k):
+        print("Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
         sys.exit(1)
 
-    RAW_LABELS_PATH = "datasets/raw_labels.npy"
-    RE_LABELS_PATH = "datasets/re_labels.npy"
-    # Check required files
-    require_file(RAW_LABELS_PATH)
-    require_file(RE_LABELS_PATH)
-
-    #toDo: number of folds from commandline
-    raw_labels=np.load("datasets/raw_labels.npy")
-    training_indices, test_indices=scenario1(raw_labels,k)
-
-    re_labels = np.load("datasets/re_labels.npy")
-    training_indices, test_indices = scenario1(re_labels, k)
+    #check that label and timestamp files exist
+    require_file("datasets/raw_labels.npy")
+    require_file("datasets/re_labels.npy")
+    require_file("datasets/raw_timestamps.npy")
+    require_file("datasets/re_timestamps.npy")
+    return k
 
 
-    #toDo: print to file for k=5, raw and re
-    save_k_fold_results(training_indices, test_indices, "datasets/k_fold_s1_raw.json")
-
-    """mode extract_features"""
-    """
-    Uses training data from k-folds split for scenario 1 (which contains only control dps) to train autoencoder k times.
-    
-    Extracts Features for whole ds using the trained autoencoder for each split.
-    (It does not repeat this for s2 and s3 because only control data can be used for training and
-    the control data per fold inside the training set will be the same for each scenario.)
-    
-    Prerequisites: Mode “Dataset_Preprocessing” was executed and mode “K_Fold” was executed with the same number of folds (k). 
-    """
-    #extract features with autoencoder
-    k_folds_s1_raw_path="datasets/k_fold_s1_raw.json"
+def check_requirements_feature_extraction_mode():
+    k_folds_s1_raw_path = "datasets/k_fold_s1_raw.json"
     k_folds_s1_re_path = "datasets/k_fold_s1_raw.json"
 
     require_file(k_folds_s1_raw_path)
     require_file(k_folds_s1_re_path)
-    args = parse_args()
-    k = args.k
 
-    training_indices_raw, test_indices_raw = load_k_fold_results("datasets/k_fold_s1_raw.json")
-    training_indices_re, test_indices_re = load_k_fold_results("datasets/k_fold_s1_re.json")
+    require_file("k_fold_results/k_fold_s1_raw.json")
+    require_file("k_fold_results/k_fold_s1_re.json")
+    training_indices_raw, test_indices_raw = load_k_fold_results("k_fold_results/k_fold_s1_raw.json")
+    training_indices_re, test_indices_re = load_k_fold_results("k_fold_results/k_fold_s1_re.json")
 
-    if len(training_indices_raw) != k or len(training_indices_re) != k :
-        print("Run the k_fold mode with the same number for k first!")
+    k=len(training_indices_raw)
+
+    return k
+
+def check_requirements_k_fold_mode(k):
+    if k > 8:
+        print(
+            "It is not possible to fullfill the requirements with k > 8 for the scenarios because one attack type has only 8 datapoints.")
         sys.exit(1)
-
 
     RAW_LABELS_PATH = "datasets/raw_labels.npy"
     RE_LABELS_PATH = "datasets/re_labels.npy"
 
+    require_file(RAW_LABELS_PATH)
+    require_file(RE_LABELS_PATH)
+    return
+
+def parse_args():
+    description = """\
+Study Project pipeline for S7Comm intrusion detection.
+
+The tool supports several modes that correspond to the major pipeline steps:
+  1) dataset_preprocessing  – read pcaps, build byte matrices, labels, timestamps (RAW and RE)
+  2) k_fold                 – create k-fold splits for all scenarios
+  3) extract_features       – train autoencoders and extract latent features
+  4) classifiers            – run selected ML classifiers on chosen scenarios
+"""
+
+    epilog = """\
+MODE DETAILS
+
+  dataset_preprocessing
+    All operations are performed twice: once in RAW mode and once in RE mode.
+    RAW: all bytes of each packet are included.
+    RE: only the bytes after the keyword 'Candidate' are included
+         (i.e., the physical S7Comm readings).
+
+    For each mode (RAW and RE), the following steps are executed:
+      0. Scan all pcaps to determine the maximum packet length
+         (depending on RAW/RE).
+      1. Read all pcaps and construct a byte matrix, where each row is
+         one packet. Rows are padded or truncated to the mode-specific
+         maximum length from step 0.
+      2. Create a label list, where labels[i] is the label of bytes[i].
+      3. Create a timestamp list, where timestamps[i] corresponds to
+         bytes[i] and labels[i].
+
+    Within each mode (RAW and RE separately), indices are aligned:
+      bytes[i], labels[i], timestamps[i] all refer to the same packet.
+
+  k_fold
+    For each scenario (1–3) it creates k splits into training / test data
+    and stores the results to files.
+
+    Prerequisites: 'dataset_preprocessing' was executed.
+
+    K-Fold requirements:
+      * Each data point appears EXACTLY ONCE in a test set across all k folds.
+      * All folds are disjoint (no index appears in more than one fold).
+      * The union of all folds contains every data point exactly once.
+      * Fold sizes are as equal as possible; leftover samples are
+        distributed across folds.
+      * Duplicate samples in the dataset are allowed, but duplicate indices
+        across folds are not.
+
+  extract_features
+    Uses training data from k-fold splits for Scenario 1 (control-only)
+    to train autoencoders k times and then extract features for the
+    entire dataset.
+
+    It does not repeat this for Scenarios 2 and 3, because only control
+    data is used for training and the control data per fold in the
+    training set is the same for each scenario.
+
+    Prerequisites:
+      * 'dataset_preprocessing' was executed.
+      * 'k_fold' was executed with the same k.
+
+    Note:
+      k autoencoders and feature files are created for each dataset
+      (RAW and RE), with k taken from the k-fold setup.
+
+  classifiers
+    Trains and evaluates a selected Machine Learning algorithm using the
+    k-fold results for a chosen scenario.
+
+    Prerequisites:
+      * 'dataset_preprocessing' executed
+      * 'k_fold' executed
+      * 'extract_features' executed
+
+    Supported classifiers and scenarios:
+      * One-Class SVM        – Scenario 1
+      * Binary SVM           – Scenarios 2 and 3
+      * Elliptic Envelope    – Scenario 1
+      * Random Forest        – Scenarios 2 and 3
+      * k-NN                 – Scenarios 2 and 3
+"""
+
+    parser = argparse.ArgumentParser(
+        description=description,
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--mode",
+        required=True,
+        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers"],
+        help="Which pipeline step to run.",
+    )
+
+    # Used in dataset_preprocessing mode
+    parser.add_argument(
+        "--attack-dir",
+        type=str,
+        help="Directory containing attack pcaps (required for mode=dataset_preprocessing).",
+    )
+    parser.add_argument(
+        "--control-dir",
+        type=str,
+        help="Directory containing control pcaps (required for mode=dataset_preprocessing).",
+    )
+
+    # Used in k_fold and extract_features
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=5,
+        help="Number of folds to use for k-fold cross-validation (default: 5).",
+    )
+
+    # Used in classifiers mode
+    parser.add_argument(
+        "--classifier",
+        type=str,
+        choices=["ocsvm", "bsvm", "ee", "rf", "knn", "all"],
+        help="Classifier to run when mode=classifiers.",
+    )
+
+    parser.add_argument(
+        "--scenario",
+        type=int,
+        choices=[1, 2, 3],
+        help=(
+            "Scenario to run when mode=classifiers. "
+            "If omitted, all valid scenarios for the chosen classifier are run."
+        ),
+    )
+
+    return parser.parse_args()
+
+
+# -------------------------------------------------------------------
+# Mode implementations
+# -------------------------------------------------------------------
+
+def run_dataset_preprocessing(attack_dir: str, control_dir: str):
+    """
+    MODE: dataset_preprocessing
+
+    Reads pcaps from attack_dir and control_dir, computes RAW and RE
+    packet representations, and stores:
+      * raw_bytes.npy / re_bytes.npy
+      * raw_labels.npy / re_labels.npy
+      * raw_timestamps.npy / re_timestamps.npy
+    into the 'datasets' directory.
+    """
+    if not attack_dir or not control_dir:
+        print("ERROR: --attack-dir and --control-dir are required for mode=dataset_preprocessing.")
+        sys.exit(1)
+
+    # If you still want to be able to auto-compute M_raw/M_re:
+    # M_raw, M_re = find_M(attack_dir, control_dir)
+    # For now, you fixed them:
+    M_raw = 466
+    M_re = 386
+
+    os.makedirs("datasets", exist_ok=True)
+
+    pcaps_byte_and_metadata_extraction(
+        attack_dir,
+        control_dir,
+        "datasets/raw_bytes.npy",
+        "datasets/re_bytes.npy",
+        "datasets/raw_labels.npy",
+        "datasets/re_labels.npy",
+        "datasets/raw_timestamps.npy",
+        "datasets/re_timestamps.npy",
+        M_raw,
+        M_re,
+    )
+
+    print("[dataset_preprocessing] Finished.")
+
+
+def run_k_fold(k: int):
+    """
+    MODE: k_fold
+
+    Creates k-fold splits for all scenarios and stores them in
+    the 'k_fold_results' directory.
+    """
+    check_requirements_k_fold_mode(k)
+
+    os.makedirs("k_fold_results", exist_ok=True)
+
+    create_and_save_all_folds(k)
+    save_folds_pretty(k)
+
+    print(f"[k_fold] Created and saved {k}-fold splits for all scenarios.")
+
+
+def run_extract_features(k: int):
+    """
+    MODE: extract_features
+
+    Trains autoencoders (for Scenario 1 control data) and extracts latent
+    features for RAW and RE datasets using k folds.
+    """
+    check_requirements_feature_extraction_mode()
+    os.makedirs("models", exist_ok=True)
+
+    # Train k autoencoders (k can be deduced from training indices inside)
     train_and_save_models()
+
+    # Use k when generating per-fold feature files
     create_features_for_ds(k)
 
-    """mode == OCSVM"""
-    """svm s1 -> ocsvm"""
-    training_indices, test_indices = load_k_fold_results("datasets/k_fold_s1_raw.json")  # one class in
-    """raw"""
-    raw_labels = np.load("datasets/raw_labels.npy")
-    raw_features=np.load("datasets/raw_features.npy")
-    raw_timestamps=np.load("datasets/raw_timestamps.npy", allow_pickle=True)
+    print("[extract_features] Trained autoencoders and extracted features.")
 
-    execute_scenario_svm(raw_features, raw_labels, raw_timestamps, training_indices, test_indices, global_label_encoder, 1)
 
-    """re"""
-    re_labels = np.load("datasets/re_labels.npy")
-    re_features = np.load("datasets/re_features.npy")
-    re_timestamps = np.load("datasets/re_timestamps.npy", allow_pickle=True)
-    training_indices, test_indices = load_k_fold_results("datasets/k_fold_s1_re.json")  # one class in
+def run_classifiers(classifier: str | None,
+                    scenario: int | None,
+                    global_label_encoder: LabelEncoder):
+    """
+    MODE: classifiers
 
-    execute_scenario_svm(re_features, re_labels, re_timestamps, training_indices, test_indices, global_label_encoder, 1)
+    Runs the selected classifier(s) on selected scenario(s).
+    """
+    # This function should:
+    #   * verify that pre-steps are done
+    #   * determine k from existing k-fold results
+    k = check_requirements_classifier_modes()
 
-    """mode == BSVM"""
-    """svm s2 s3 -> svm"""
-    # todo: load s2 or s3 indices, the following indices can be used for testing until task 2a is completed
-    training_indices, test_indices = create_balanced_train_test_indices(raw_labels)
-    training_indices = [training_indices]
-    test_indices = [test_indices]
-    """raw"""
-    raw_labels = np.load("datasets/raw_labels.npy")
-    raw_features = np.load("datasets/raw_features.npy")
-    raw_timestamps = np.load("datasets/raw_timestamps.npy", allow_pickle=True)
-    execute_scenario_svm(raw_features, raw_labels, raw_timestamps, training_indices, test_indices, global_label_encoder, 0)
+    # If classifier is None, treat it as "all"
+    if classifier is None:
+        classifier = "all"
 
-    """re"""
-    re_labels = np.load("datasets/re_labels.npy")
-    re_features = np.load("datasets/re_features.npy")
-    re_timestamps = np.load("datasets/re_timestamps.npy", allow_pickle=True)
-    execute_scenario_svm(re_features, re_labels, re_timestamps, training_indices, test_indices, global_label_encoder, 0)
+    # Helper to decide which scenarios are valid per classifier
+    def valid_scenarios_for(clf_name: str):
+        if clf_name in ("ocsvm", "ee"):
+            return [1]
+        elif clf_name in ("bsvm", "rf", "knn"):
+            return [2, 3]
+        else:
+            # "all" -> all three scenarios
+            return [1, 2, 3]
 
-    """mode == Elliptic_Envelope"""
-    """s1"""
-    #load s1 indices
-    training_indices, test_indices = load_k_fold_results("datasets/k_fold_s1_raw.json")  # one class in
-    """raw"""
-    raw_labels = np.load("datasets/raw_labels.npy")
-    raw_features = np.load("datasets/raw_features.npy")
-    raw_timestamps = np.load("datasets/raw_timestamps.npy", allow_pickle=True)
-    execute_scenario_ee(raw_features, raw_labels, raw_timestamps, training_indices, test_indices, global_label_encoder)
+    # Helper to actually run one classifier on one scenario for both RAW/RE
+    def run_one(clf_name: str, scen: int):
+        print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RAW)\n")
+        execute_scenario(
+            global_label_encoder,
+            classifier=clf_name,
+            k=k,
+            prefix="raw",
+            scenario=scen,
+        )
 
-    """re"""
-    re_labels = np.load("datasets/re_labels.npy")
-    re_features = np.load("datasets/re_features.npy")
-    re_timestamps = np.load("datasets/re_timestamps.npy", allow_pickle=True)
-    execute_scenario_ee(re_features, re_labels, re_timestamps, training_indices, test_indices, global_label_encoder)
+        print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RE)\n")
+        execute_scenario(
+            global_label_encoder,
+            classifier=clf_name,
+            k=k,
+            prefix="re",
+            scenario=scen,
+        )
 
-    """mode=random forest"""
-    """svm s2 s3 -> svm"""
-    # todo: load s2 or s3 indices, the following indices can be used for testing until task 2a is completed
-    training_indices, test_indices = create_balanced_train_test_indices(raw_labels)
-    training_indices = [training_indices]
-    test_indices = [test_indices]
-    """raw"""
-    raw_labels = np.load("datasets/raw_labels.npy")
-    raw_features = np.load("datasets/raw_features.npy")
-    raw_timestamps = np.load("datasets/raw_timestamps.npy", allow_pickle=True)
-    execute_scenario_rf(raw_features, raw_labels, raw_timestamps, training_indices, test_indices, global_label_encoder)
+    # Determine which classifiers to run
+    if classifier == "all":
+        classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    else:
+        classifiers_to_run = [classifier]
 
-    # -> s1: training data only has one class (control)
-    return
+    for clf_name in classifiers_to_run:
+        scenarios_for_clf = valid_scenarios_for(clf_name)
+
+        if scenario is not None:
+            # User requested a specific scenario
+            if scenario not in scenarios_for_clf:
+                print(
+                    f"WARNING: classifier '{clf_name}' is not defined for Scenario {scenario}. "
+                    f"Valid scenarios for {clf_name}: {scenarios_for_clf}. Skipping."
+                )
+                continue
+            # run only the requested scenario
+            run_one(clf_name, scenario)
+        else:
+            # run all valid scenarios for this classifier
+            for scen in scenarios_for_clf:
+                run_one(clf_name, scen)
+
+
+# -------------------------------------------------------------------
+# Main entry point
+# -------------------------------------------------------------------
+
+def release_main():
+    args = parse_args()
+    start = time.time()
+
+    if args.mode == "dataset_preprocessing":
+        run_dataset_preprocessing(args.attack_dir, args.control_dir)
+
+    elif args.mode == "k_fold":
+        run_k_fold(args.k)
+
+    elif args.mode == "extract_features":
+        run_extract_features(args.k)
+
+    elif args.mode == "classifiers":
+        # Build global label encoder once
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        run_classifiers(args.classifier, args.scenario, global_label_encoder)
+
+    else:
+        raise ValueError(f"Unknown mode: {args.mode!r}")
+
+    end = time.time()
+    elapsed = end - start
+    print(f"⏱️ release_main() executed in {elapsed:.2f} seconds")
+
+
 
 
 def test_main():
+    start = time.time()
+
+    #sys.stdout = open('results/output_bsvm.txt', 'w')
+    #sys.stderr = sys.stdout
+    k=5
+
     global_label_encoder = LabelEncoder()
     global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-    training_indices, test_indices = load_k_fold_results("datasets/k_fold_s1_raw.json")  # one class in
-
-    raw_labels = np.load("datasets/raw_labels.npy")
-    raw_features = np.load("datasets/raw_features.npy")
-    raw_timestamps = np.load("datasets/raw_timestamps.npy", allow_pickle=True)
-    #execute_scenario_ee(raw_features, raw_labels, raw_timestamps, training_indices, test_indices, global_label_encoder)
-
-    # todo: load s2 or s3 indices, the following indices can be used for testing until task 2a is completed
-    training_indices, test_indices = create_balanced_train_test_indices(raw_labels)
-    training_indices = [training_indices]
-    test_indices = [test_indices]
-    execute_scenario_rf(raw_features, raw_labels, raw_timestamps, training_indices, test_indices, global_label_encoder)
-    return
-    #test binary classificators:
-    training_indices, test_indices = create_balanced_train_test_indices(raw_labels)
-    training_indices=[training_indices]
-    test_indices=[test_indices]
-    execute_scenario(raw_features,raw_labels,raw_timestamps, training_indices,test_indices, global_label_encoder, 0)
-
-    return
 
 
 
-def extratestmainforlazypeople():
-    start = time.time()
-    #train_and_save_models()
-    create_features_for_ds(5)
-    #features0=np.load("datasets/raw_features_fold0.npy")
     end = time.time()  # end timer
     elapsed = end - start
     print(f"⏱️ main() executed in {elapsed:.2f} seconds")
@@ -264,4 +422,4 @@ def extratestmainforlazypeople():
 
 if __name__ == "__main__":
     #test_main()
-    extratestmainforlazypeople()
+    release_main()
