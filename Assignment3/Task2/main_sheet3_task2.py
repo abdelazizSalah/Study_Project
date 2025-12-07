@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 from k_fold import create_and_save_all_folds, save_folds_pretty
-from use_classifiers import execute_scenario
+from use_classifiers import execute_scenario, execute_experiments_abc
 from file_helper_t3 import verify_amount_feature_files,load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
 from feature_creation_autoencoder import train_and_save_models
@@ -24,6 +24,7 @@ def require_file(path: str):
 
 
 def check_requirements_classifier_modes():
+
     require_file(f"k_fold_results/k_fold_s1_raw.json")
     training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
     k = len(training_indices_raw)
@@ -163,6 +164,12 @@ MODE DETAILS
       * Elliptic Envelope    – Scenario 1
       * Random Forest        – Scenarios 2 and 3
       * k-NN                 – Scenarios 2 and 3
+      
+    run_experiments_abc:
+    Run all classifiers on all appropriate scenarios, collect per-fold
+    precision/recall, and save them as CSV files in ./results.
+    Runs on dataset RAW, suitable for task a to c.
+    Will run with amount of folds created by previously executed k-folds mode. 
 """
 
     parser = argparse.ArgumentParser(
@@ -174,7 +181,7 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers"],
+        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers", "run_experiments_abc"],
         help="Which pipeline step to run.",
     )
 
@@ -391,8 +398,18 @@ def release_main():
         # Build global label encoder once
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        os.makedirs("models", exist_ok=True)
         run_classifiers(args.classifier, args.scenario, global_label_encoder)
+    elif args.mode == "run_experiments_abc":
+        #runs experiments a, b and c with grid search and saves results for precision and recall in files
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        os.makedirs("results", exist_ok=True)
+        os.makedirs("models", exist_ok=True)
+        k = check_requirements_classifier_modes()
+        execute_experiments_abc(global_label_encoder, k)
 
+        #todo: plot experiment results
     else:
         raise ValueError(f"Unknown mode: {args.mode!r}")
 
@@ -406,7 +423,7 @@ def release_main():
 def test_main():
     start = time.time()
 
-    #sys.stdout = open('results/output_bsvm.txt', 'w')
+    #sys.stdout = open('results/output_bsvm_s2.txt', 'w')
     #sys.stderr = sys.stdout
     k=5
 

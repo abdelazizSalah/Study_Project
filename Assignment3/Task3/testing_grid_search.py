@@ -1,16 +1,13 @@
-from fine_tuning import * 
+from Assignment3.Task2.fine_tuning import *
 import os
-import pandas as pd 
-import numpy as np
-from sklearn.model_selection import train_test_split
+import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.datasets import make_classification
 from sklearn.metrics import roc_auc_score
-from sklearn.metrics import make_scorer
 from sklearn.svm import OneClassSVM
-from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import recall_score, accuracy_score
 import numpy as np
 
@@ -30,6 +27,7 @@ def load_dataset_csv_rf(file_path):
     y_encoded = LabelEncoder().fit_transform(y)
 
     return X_encoded, y_encoded
+
 
 def load_dataset_knn(file_path):
     df = pd.read_csv(file_path)
