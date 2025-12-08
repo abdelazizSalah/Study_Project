@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC, OneClassSVM
 
-from fine_tuning import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
+from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
     grid_search_random_forest, grid_search_knn
 from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict
 from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluate, \
@@ -132,13 +132,13 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         roc_auc, precision, recall = elliptic_envelope_evaluate(X_test, y_test)
 
     elif classifier == "rf":
-        base = RandomForestClassifier(random_state=42)
+        base = RandomForestClassifier(random_state=42, n_jobs=1)
         best_model = grid_search_random_forest(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/brf.joblib")   # whatever binary_rf_train uses
         roc_auc, precision, recall, f1 = binary_rf_evaluate(X_test, y_test)
 
     elif classifier == "knn":
-        base = KNeighborsClassifier()
+        base = KNeighborsClassifier(n_jobs=1)
         best_model = grid_search_knn(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/bknn.joblib")  # adjust to your filename
         roc_auc, precision, recall, f1 = binary_knn_evaluate(X_test, y_test)

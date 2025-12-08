@@ -7,12 +7,11 @@ from sklearn.svm import OneClassSVM
 
 from sklearn.metrics import recall_score, accuracy_score, f1_score
 
+
 # # Define the model
 # rf = RandomForestClassifier(random_state=42)
-def grid_search_random_forest(rf:RandomForestClassifier, X_train, y_train, X_val, y_val, scoring_metric = 'f1'):
+def grid_search_random_forest(rf: RandomForestClassifier, X_train, y_train, X_val, y_val, scoring_metric='f1'):
     print("Starting Random Forest Grid Search...")
-
-
     # Define the parameter grid
     param_grid = {
         'n_estimators': [50, 100, 200],
@@ -24,11 +23,11 @@ def grid_search_random_forest(rf:RandomForestClassifier, X_train, y_train, X_val
     # Set up the grid search
     grid_search = GridSearchCV(
         estimator=rf,  # the machine learning model
-        param_grid=param_grid, # the hyperparameters to tune
-        scoring=scoring_metric, # evaluation metric -> give model that maximizes f1 score
-        n_jobs=-1, # number of CPU cores to use, -1 means use all available cores
-        
-        )
+        param_grid=param_grid,  # the hyperparameters to tune
+        scoring=scoring_metric,  # evaluation metric -> give model that maximizes f1 score
+        n_jobs=-1,  # number of CPU cores to use, -1 means use all available cores
+
+    )
 
     # Fit the grid search to the training data
     grid_search.fit(X_train, y_train)
@@ -44,8 +43,7 @@ def grid_search_random_forest(rf:RandomForestClassifier, X_train, y_train, X_val
     return best_rf
 
 
-def grid_search_svm(svm:SVC, X_train, y_train, X_val, y_val, scoring_metric = 'f1'):
-
+def grid_search_svm(svm: SVC, X_train, y_train, X_val, y_val, scoring_metric='f1'):
     print("Starting SVM Grid Search...")
 
     # Define the model
@@ -62,7 +60,7 @@ def grid_search_svm(svm:SVC, X_train, y_train, X_val, y_val, scoring_metric = 'f
     grid_search = GridSearchCV(estimator=svm,
                                param_grid=param_grid,
                                scoring=scoring_metric,
-                               
+
                                n_jobs=-1,
                                )
 
@@ -80,9 +78,7 @@ def grid_search_svm(svm:SVC, X_train, y_train, X_val, y_val, scoring_metric = 'f
     return best_svm
 
 
-
 def grid_search_one_class_svm(ocsvm, X_train, y_train, X_val, y_val, scoring_metric):
-
     print("Starting One-Class SVM Grid Search...")
 
     param_grid = {
@@ -102,6 +98,7 @@ def grid_search_one_class_svm(ocsvm, X_train, y_train, X_val, y_val, scoring_met
         estimator=ocsvm,
         param_grid=param_grid,
         scoring=scoring_metric,
+        cv=3,
         n_jobs=-1
     )
 
@@ -133,6 +130,7 @@ def grid_search_elliptic_envelope(ee, X_train, y_train, X_val, y_val, scoring_me
         estimator=ee,
         param_grid=param_grid,
         scoring=scoring_metric,
+        cv=3,
         n_jobs=-1
     )
 
@@ -156,7 +154,7 @@ def grid_search_elliptic_envelope(ee, X_train, y_train, X_val, y_val, scoring_me
     return best_ee
 
 
-def grid_search_knn(knn:KNeighborsClassifier, X_train, y_train, X_val, y_val, scoring_metric = 'f1'):
+def grid_search_knn(knn: KNeighborsClassifier, X_train, y_train, X_val, y_val, scoring_metric='f1'):
     print("Starting KNN Grid Search...")
     # Define the model
     # knn = KNeighborsClassifier()
@@ -172,6 +170,7 @@ def grid_search_knn(knn:KNeighborsClassifier, X_train, y_train, X_val, y_val, sc
     grid_search = GridSearchCV(estimator=knn,
                                param_grid=param_grid,
                                scoring=scoring_metric,
+
                                n_jobs=-1,
                                )
 

@@ -1,4 +1,4 @@
-from Assignment3.Task2.fine_tuning import *
+from Assignment3.Task3.fine_tuning import *
 import os
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
