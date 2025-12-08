@@ -80,9 +80,14 @@ def save_npy_file(data, file_path, p,  remainder):
     """
         - repeat each data item p times first, and last item remainder times if remainder != 0, else p times.
     """
+    stopIdx= 0
+    if remainder !=0:
+        stopIdx= len(data)-2
+    else :
+        stopIdx= len(data)
     print('Saving processed data to .npy file...')
     expanded_data = []
-    for i in range(len(data)-1 - remainder):
+    for i in range(stopIdx):
         for _ in range(p):
             expanded_data.append(data[i])
     # handle the last item
