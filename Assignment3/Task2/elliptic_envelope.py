@@ -1,5 +1,3 @@
-from labels_helper import encode_labels
-from svm import split_training_and_test
 from sklearn.covariance import EllipticEnvelope
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -105,36 +103,3 @@ def elliptic_envelope_predict(X_test, t_test):
     })
 
     return prediction_report
-
-#input: indices for one fold of one scenario!
-def execute_fold_ee(ds, numeric_labels, timestamps,train_indices, test_indices):
-    """train, measure result, print timestamp + prediction for test dataset for one fold"""
-    X_train, X_test, y_train, y_test, t_train, t_test=split_training_and_test(ds, numeric_labels, timestamps,train_indices, test_indices)
-
-
-    elliptic_envelope_train(X_train[:1000]) #todo debug - change (for faster model training)
-    elliptic_envelope_evaluate(X_test, y_test)  #test data and corresponding labels
-    prediction_report=elliptic_envelope_predict(X_test, t_test) #test data and corresponding timestamps
-    print("\n--- Individual Packet Attack Detection Report ---")
-    print(prediction_report)
-
-    return
-
-
-
-
-#train and test indices for each fold ([[][],...]
-def execute_scenario_ee(ds, labels, timestamps, train_indices,test_indices, global_label_encoder):
-
-    #toDo: takes ds from raw bytes and executes train_autoencoder_
-
-    numeric_labels = encode_labels(global_label_encoder, labels)
-    binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
-    #for fold_idx in range(len(test_indices)):
-    #    execute_fold(ds, numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],ocsvm)
-
-    first_fold_train_indices = train_indices[0]
-    first_fold_test_indices = test_indices[0]
-    print(len(train_indices[0]))
-    execute_fold_ee(ds, binary_numeric_labels, timestamps, train_indices[0], test_indices[0])
-    return

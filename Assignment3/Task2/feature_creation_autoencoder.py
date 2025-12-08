@@ -1,5 +1,6 @@
 from pathlib import Path
-
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
 from keras import regularizers
 from tensorflow import keras
@@ -230,8 +231,12 @@ def extract_features_for_all_folds(
 ):
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
+    if model_prefix == "raw":
+        model_prefix_ae="raw"
+    else:
+        model_prefix_ae="re"    #for re5, re10, re15 and re (size will be the same, same autoencoders per fold)
     for fold_idx in range(num_folds):
-        model_path = f"models/ae_fold{fold_idx}_{model_prefix}.keras"   #model trained for the specific fold (0 to k-1)
+        model_path = f"models/ae_fold{fold_idx}_{model_prefix_ae}.keras"   #model trained for the specific fold (0 to k-1)
         out_path = f"{out_dir}/{model_prefix}_features_fold{fold_idx}.npy"
 
         extract_and_save_features_for_model(
@@ -271,3 +276,26 @@ def create_features_for_ds(num_folds: int = 5):
         out_dir="datasets",
     )
     print("Feature extraction for RE done!")
+
+
+#creae features for RAW and RE
+def create_features_for_ds_task3def(num_folds: int = 5):
+
+    p=[5,10,15]
+    for i in p:
+        re_path = Path(f"datasets/re_bytes_{i}.npy")
+        os.makedirs(f"datasets/re_bytes_{i}/", exist_ok=True)
+
+        if not re_path.exists():
+            raise FileNotFoundError(
+                f"Dataset files not found ({re_path}). Make sure to extract them first."
+            )
+
+        print(f"Using Autoencoder to create features for RE{i} bytes dataset\n")
+        extract_features_for_all_folds(
+            model_prefix=f"re{i}",
+            bytes_path=str(re_path),
+            num_folds=num_folds,
+            out_dir=f"datasets/re_bytes_{i}/",
+        )
+        print(f"Feature extraction for RE{i} done!")

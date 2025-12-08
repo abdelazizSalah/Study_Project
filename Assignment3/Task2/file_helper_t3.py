@@ -55,5 +55,30 @@ def list_files_by_filetype(root_path, filetype):
     return pcap_files
 
 
+#verifies that autoencoder models have been trained on the same number of k before and the corresponding feature files exist
+def verify_amount_feature_files(k: int, dataset_dir: str = "datasets") -> int:
+    """
+    Checks whether all raw_features_fold{i}.npy and re_features_fold{i}.npy
+    exist for i in [0, k-1].
 
+    Returns:
+        0  -> all files exist
+        -1 -> at least one file missing
+    """
+    missing = []
 
+    for prefix in ("raw", "re"):
+        for fold_idx in range(k):
+            expected_file = os.path.join(dataset_dir, f"{prefix}_features_fold{fold_idx}.npy")
+            if not os.path.exists(expected_file):
+                missing.append(expected_file)
+
+    if missing:
+        print("\n[ERROR] Missing feature files:")
+        for f in missing:
+            print("  -", f)
+        print("\nRun feature extraction first!")
+        return False
+
+    print(f"\nAll {2 * k} feature files found ✓")
+    return True

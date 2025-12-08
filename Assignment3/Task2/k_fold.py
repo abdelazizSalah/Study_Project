@@ -246,3 +246,5 @@ def create_and_save_all_folds(k):
     return 42
 
 
+def save_folds_pretty(k):
+    pass

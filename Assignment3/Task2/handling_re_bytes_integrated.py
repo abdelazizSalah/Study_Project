@@ -12,6 +12,7 @@ Main logic:
     6. write the processed data to a new .npy file.
 
 '''
+from pathlib import Path
 
 # 1.read .npy file
 import numpy as np
@@ -86,11 +87,11 @@ def save_npy_file(data, file_path, p, remainder):
     """
         - repeat each data item p times first, and last item remainder times if remainder != 0, else p times.
     """
-    stopIdx= 0
-    if remainder !=0:
-        stopIdx= len(data)-2
-    else :
-        stopIdx= len(data)
+    stopIdx = 0
+    if remainder != 0:
+        stopIdx = len(data) - 2
+    else:
+        stopIdx = len(data)
     print('Saving processed data to .npy file...')
     expanded_data = []
     for i in range(stopIdx):
@@ -105,6 +106,18 @@ def save_npy_file(data, file_path, p, remainder):
     np.save(file_path, expanded_data)
     print(f"Processed data saved to {file_path}")
     print(f'len(expanded_data): {len(expanded_data)}')
+    return
+
+
+def pad_or_truncate_packets(packets, target_length):
+    processed = []
+    for pkt in packets:
+        if len(pkt) > target_length:
+            pkt = pkt[:target_length]  # truncate
+        elif len(pkt) < target_length:
+            pkt = np.pad(pkt, (0, target_length - len(pkt)), mode='constant')
+        processed.append(pkt)
+    return np.array(processed)
 
 
 def process_npy_file(input_file_path, output_file_path, p):
@@ -119,10 +132,10 @@ def process_npy_file(input_file_path, output_file_path, p):
     concatenated_data, remainder = concatenate_packets(data_no_zeros, p)
 
     # Step 4: Determine the maximum length of the concatenated packets
-    max_length = determine_max_length(concatenated_data)
+    max_length = 386  # sadsagsafvfzqfevfdsldhvodsvbdsi
 
-    # Step 5: Append zeros to the right of the concatenated packets to make them of equal length
-    padded_data = pad_packets(concatenated_data, max_length)
+    # Step 5: Pad or truncate to exactly 386
+    padded_data = pad_or_truncate_packets(concatenated_data, max_length)
 
     # Step 6: Write the processed data to a new .npy file
     save_npy_file(padded_data, output_file_path, p, remainder)
@@ -131,7 +144,47 @@ def process_npy_file(input_file_path, output_file_path, p):
 
 
 if __name__ == "__main__":
-    input_file_path = "re_bytes.npy"
-    output_file_path = "processed_packets.npy"
+    input_file_path = "../Task3/re_bytes.npy"
+    output_file_path = "../Task3/re_bytes_5.npy"
     p = 5  # Number of packets to concatenate
     process_npy_file(input_file_path, output_file_path, p)
+
+
+def create_preprocessed_re_files():
+    p = [5, 10, 15]
+    input_file_path = "datasets/re_bytes.npy"
+    for i in p:
+        output_file_path = f"datasets/re_bytes_{i}.npy"
+        process_npy_file(input_file_path, output_file_path, i)
+    return
+
+
+###################remove duplicates from preprocessed files-----------------------------------------------------
+import numpy as np
+from pathlib import Path
+
+
+def get_keep_indices_from_fold0(feature_dir: str, model_prefix: str) -> np.ndarray:
+    """
+    Load fold 0 features and compute indices to keep so that all duplicate
+    rows are removed (only the first occurrence of each row is kept).
+    """
+    feature_dir = Path(feature_dir)
+    fold0_path = feature_dir / f"{model_prefix}_features_fold0.npy"
+
+    if not fold0_path.exists():
+        raise FileNotFoundError(f"Feature file not found: {fold0_path}")
+
+    feats0 = np.load(fold0_path)
+
+    # unique over rows; index gives first position of each unique row
+    _, unique_indices = np.unique(feats0, axis=0, return_index=True)
+
+    # sort so we preserve original order
+    keep_indices = np.sort(unique_indices)
+
+    print(f"Fold 0: total samples = {len(feats0)}, "
+          f"after dedup = {len(keep_indices)} "
+          f"(removed {len(feats0) - len(keep_indices)} duplicates)")
+    return keep_indices
+
