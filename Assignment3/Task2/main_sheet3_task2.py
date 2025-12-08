@@ -420,7 +420,7 @@ def release_main():
         k = check_requirements_classifier_modes()
         execute_experiments_abc(global_label_encoder, k)
     elif args.mode == "run_experiments_def":
-
+        #only re_bytes required, re_bytes5 etc will be created on the way
         require_file("datasets/re_bytes.npy")
         k = check_requirements_classifier_modes()
 
