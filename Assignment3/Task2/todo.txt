@@ -1,0 +1,7 @@
+1. I need to extract the folders in Task2
+2. change the hyper_parameter_optimize to use the best hyper_parameters for all models. 
+3. get the best hyper paramters from task3abc_grid_search. 
+4. to run main_sheet3 with anna command, and this wil
+5. copy the folder of results before working, because it can be overwritten. 
+6. the output should be the results .csv
+7. it should be running on the whole dataset. 
