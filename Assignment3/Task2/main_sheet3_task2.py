@@ -6,10 +6,10 @@ import time
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-from handling_re_bytes_integrated import create_preprocessed_re_files, \
-    remove_duplicates_from_all_files
+from use_classifiers import execute_experiments_def, execute_experiments_abc
+from handling_re_bytes_integrated import create_preprocessed_re_files
 from k_fold import create_and_save_all_folds, save_folds_pretty
-from use_classifiers import execute_scenario, execute_experiments_abc
+from use_classifiers import execute_scenario
 from file_helper_t3 import verify_amount_feature_files,load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
 from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
@@ -420,11 +420,13 @@ def release_main():
         k = check_requirements_classifier_modes()
         execute_experiments_abc(global_label_encoder, k)
     elif args.mode == "run_experiments_def":
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        os.makedirs("results", exist_ok=True)
+        os.makedirs("models", exist_ok=True)
         #only re_bytes required, re_bytes5 etc will be created on the way
         require_file("datasets/re_bytes.npy")
         k = check_requirements_classifier_modes()
-
-        #todo: check if necessary files exist
         create_preprocessed_re_files()
 
         #features are created yb re_byte5, re_byte10, re_byte15 etc...
@@ -433,12 +435,11 @@ def release_main():
 
         #1. integrate into classifier
 
+        execute_experiments_def(global_label_encoder, k, "5")
+        execute_experiments_def(global_label_encoder, k, "10")
+        execute_experiments_def(global_label_encoder, k, "15")
+
         #2. remove duplicates directly before classification using "get_keep_indices_from_fold0"
-        remove_duplicates_from_all_files(feature_dir="datasets/re_bytes_5",model_prefix="re5",num_folds=5,labels_path="datasets/re_labels.npy")
-
-        remove_duplicates_from_all_files(feature_dir="datasets/re_bytes_10",model_prefix="re10",num_folds=k,labels_path="datasets/re_labels.npy")
-
-        remove_duplicates_from_all_files(feature_dir="datasets/re_bytes_15",model_prefix="re15",num_folds=k,labels_path="datasets/re_labels.npy")
 
 
     else:
@@ -454,6 +455,24 @@ def release_main():
 def test_main():
     start = time.time()
     k=5
+
+    re_bytes=np.load("datasets/re_bytes.npy")
+    print(len(re_bytes))
+    re_labels=np.load("datasets/re_labels.npy")
+
+    re_labels = np.load("datasets/re_labels.npy")
+    create_preprocessed_re_files()
+    #create_preprocessed_re_files_with_seperation()
+    re_bytes_15 = np.load("datasets/re_bytes_15.npy")
+    print(len(re_bytes_15))
+    re_bytes_10 = np.load("datasets/re_bytes_10.npy")
+    print(len(re_bytes_10))
+    re_bytes_5 = np.load("datasets/re_bytes_5.npy")
+    print(len(re_bytes_5))
+
+
+    return
+
     #create_features_for_ds_task3def(k)
     create_preprocessed_re_files()
     re_bytes_5=np.load("datasets/re_bytes_5/re5_features_fold0.npy")

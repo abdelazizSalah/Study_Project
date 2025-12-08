@@ -3,10 +3,10 @@
 @ Date: 05.12.25
 @ Description:
     handling the reverse engineering of bytes - by concatenating every p packets' physical reading together
-Main logic:
+Main logic: 
     1. read .npy file
-    2. exclute the appended zeros from right.
-    3. concatenate every p packets' physical reading together.
+    2. exclute the appended zeros from right. 
+    3. concatenate every p packets' physical reading together. 
     4. determine the maximum length of the concatenated packets.
     5. append zeros to the right of the concatenated packets to make them of equal length.
     6. write the processed data to a new .npy file.
@@ -16,14 +16,11 @@ from pathlib import Path
 
 # 1.read .npy file
 import numpy as np
-
-
 def load_npy_file(file_path):
     """Load a .npy file and return its contents."""
     print('Loading .npy file...')
     data = np.load(file_path, allow_pickle=True)
     return data
-
 
 #  2. exclute the appended zeros from right.
 def exclude_appended_zeros(data):
@@ -43,7 +40,6 @@ def exclude_appended_zeros(data):
     # print (f'first 5 packets after exclusion: {processed_data[:5]}')
     return processed_data
 
-
 # 3.concatenate every p packets' physical reading together.
 def concatenate_packets(data, p):
     """Concatenate every p packets' physical reading together."""
@@ -53,15 +49,14 @@ def concatenate_packets(data, p):
     print(f"Remainder of len(data) divided by p: {remainder}")
     concatenated_data = []
     for i in range(0, len(data), p):
-        concatenated_packet = np.concatenate(data[i:i + p])
+        concatenated_packet = np.concatenate(data[i:i+p])
         concatenated_data.append(concatenated_packet)
 
     # handle the case where len(data) is not a multiple of p
     if remainder != 0:
         concatenated_packet = np.concatenate(data[-remainder:])
-        concatenated_data.append(concatenated_packet)  # to be repeated with remainder number of packets later.
+        concatenated_data.append(concatenated_packet) # to be repeated with remainder number of packets later. 
     return concatenated_data, remainder
-
 
 # 4.determine the maximum length of the concatenated packets.
 def determine_max_length(concatenated_data):
@@ -69,8 +64,6 @@ def determine_max_length(concatenated_data):
     print('Determining maximum length of concatenated packets...')
     max_length = max(len(packet) for packet in concatenated_data)
     return max_length
-
-
 # 5.append zeros to the right of the concatenated packets to make them of equal length.
 def pad_packets(concatenated_data, max_length):
     """Append zeros to the right of the concatenated packets to make them of equal length."""
@@ -80,28 +73,26 @@ def pad_packets(concatenated_data, max_length):
         padded_packet = np.pad(packet, (0, max_length - len(packet)), 'constant')
         padded_data.append(padded_packet)
     return np.array(padded_data)
-
-
 # 6.write the processed data to a new .npy file.
-def save_npy_file(data, file_path, p, remainder):
+def save_npy_file(data, file_path, p,  remainder):
     """
         - repeat each data item p times first, and last item remainder times if remainder != 0, else p times.
     """
-    stopIdx = 0
-    if remainder != 0:
-        stopIdx = len(data) - 2
+    stopIdx=0
+    if remainder !=0:
+        stopIdx = len(data)-2
     else:
-        stopIdx = len(data)
+        stopIdx= len(data)
     print('Saving processed data to .npy file...')
     expanded_data = []
-    for i in range(stopIdx):
+    for i in range(len(data)-1 - remainder):
         for _ in range(p):
             expanded_data.append(data[i])
     # handle the last item
-    last_repeats = remainder if remainder != 0 else p
+    last_repeats = remainder if remainder !=0 else p
     for _ in range(last_repeats):
         expanded_data.append(data[-1])
-
+    
     expanded_data = np.array(expanded_data)
     np.save(file_path, expanded_data)
     print(f"Processed data saved to {file_path}")
@@ -120,11 +111,18 @@ def pad_or_truncate_packets(packets, target_length):
     return np.array(processed)
 
 
-def process_npy_file(input_file_path, output_file_path, p):
+
+def process_npy_file(input_source, output_file_path, p):
     """Process the .npy file as per the defined steps."""
-    # Step 1: Load the .npy file
-    data = load_npy_file(input_file_path)
+
+    # 🔹 NEU: entweder direkt ein Array verwenden ODER Datei laden
+    if isinstance(input_source, np.ndarray):
+        data = input_source
+    else:
+        data = load_npy_file(input_source)
+
     print(f'Original data length: {len(data)}')
+
     # Step 2: Exclude appended zeros from right
     data_no_zeros = exclude_appended_zeros(data)
 
@@ -132,14 +130,18 @@ def process_npy_file(input_file_path, output_file_path, p):
     concatenated_data, remainder = concatenate_packets(data_no_zeros, p)
 
     # Step 4: Determine the maximum length of the concatenated packets
-    max_length = 386  # sadsagsafvfzqfevfdsldhvodsvbdsi
+    max_length = 386    # sadsagsafvfzqfevfdsldhvodsvbdsi
 
     # Step 5: Pad or truncate to exactly 386
     padded_data = pad_or_truncate_packets(concatenated_data, max_length)
 
-    # Step 6: Write the processed data to a new .npy file
-    save_npy_file(padded_data, output_file_path, p, remainder)
-    print(f'Processing complete. Output saved to {output_file_path}')
+    # Step 6: Write the processed data to a new .npy file (optional)
+    if output_file_path is not None:
+        save_npy_file(padded_data, output_file_path, p, remainder)
+        print(f'Processing complete. Output saved to {output_file_path}')
+    else:
+        print('Processing complete. No file saved (output_file_path=None).')
+
     return padded_data
 
 
@@ -151,18 +153,57 @@ if __name__ == "__main__":
 
 
 def create_preprocessed_re_files():
-    p = [5, 10, 15]
+    p=[5,10,15]
     input_file_path = "datasets/re_bytes.npy"
+    input_labels = "datasets/labels.npy"
+
     for i in p:
         output_file_path = f"datasets/re_bytes_{i}.npy"
         process_npy_file(input_file_path, output_file_path, i)
     return
 
 
+#does one seperate run for control, one for attack and then puts them back together
+def create_preprocessed_re_files_with_seperation():
+    # Load
+    re_bytes = np.load("datasets/re_bytes.npy")
+    re_labels = np.load("datasets/re_labels.npy")
+
+    # Find continuous Control block
+    control_idx = np.where(re_labels == "CONTROL")[0]
+    start, end = control_idx.min(), control_idx.max() + 1
+
+    # Split dataset
+    part_control = re_bytes[start:end]
+    part_other = np.concatenate((re_bytes[:start], re_bytes[end:]))
+
+    print("Control length:", len(part_control))
+    print("Other length:  ", len(part_other))
+
+    # Parameters
+    p_list = [5, 10, 15]
+
+    for p in p_list:
+        # Process each part
+        processed_control = process_npy_file(part_control, None, p)
+        processed_other = process_npy_file(part_other, None, p)
+
+        # Reconstruct full dataset in original order
+        reconstructed = np.concatenate([
+            processed_other[:start],
+            processed_control,
+            processed_other[start:]
+        ])
+
+        # Save reconstructed combined file
+        np.save(f"datasets/re_bytes_{p}.npy", reconstructed)
+
+    return
+
+
 ###################remove duplicates from preprocessed files-----------------------------------------------------
 import numpy as np
 from pathlib import Path
-
 
 def get_keep_indices_from_fold0(feature_dir: str, model_prefix: str) -> np.ndarray:
     """
@@ -187,4 +228,6 @@ def get_keep_indices_from_fold0(feature_dir: str, model_prefix: str) -> np.ndarr
           f"after dedup = {len(keep_indices)} "
           f"(removed {len(feats0) - len(keep_indices)} duplicates)")
     return keep_indices
+
+
 
