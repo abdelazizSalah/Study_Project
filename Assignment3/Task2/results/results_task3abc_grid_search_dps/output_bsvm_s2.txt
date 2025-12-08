@@ -1,0 +1,325 @@
+[classifiers] Running bsvm on Scenario 2 (RAW)
+
+Excuting bsvm for fold 0 in Scenario 2.
+ROC-AUC: 0.8796
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.53      0.81      0.64    174137
+  Attack (1)       0.93      0.77      0.84    557421
+
+    accuracy                           0.78    731558
+   macro avg       0.73      0.79      0.74    731558
+weighted avg       0.83      0.78      0.79    731558
+
+Precision (Attack, 1): 0.9279
+Recall (Attack, 1): 0.7740
+F1 Score (Attack, 1): 0.8440
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482118094.069513          Normal
+1       1482118096.171107          Normal
+2       1482118096.172265          Normal
+3       1482118096.174240          Normal
+4       1482118097.150977          Normal
+...                   ...             ...
+731553  1481793472.017139          Attack
+731554  1481793472.020097          Attack
+731555  1481793472.020372          Attack
+731556  1481793472.024057          Attack
+731557  1481793472.024678          Attack
+
+[731558 rows x 2 columns]
+Excuting bsvm for fold 1 in Scenario 2.
+ROC-AUC: 0.9460
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.69      0.89      0.78    174137
+  Attack (1)       0.96      0.87      0.92    557417
+
+    accuracy                           0.88    731554
+   macro avg       0.83      0.88      0.85    731554
+weighted avg       0.90      0.88      0.88    731554
+
+Precision (Attack, 1): 0.9630
+Recall (Attack, 1): 0.8735
+F1 Score (Attack, 1): 0.9160
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482130478.552090          Normal
+1       1482130478.557423          Attack
+2       1482130478.557762          Normal
+3       1482130478.557764          Normal
+4       1482130478.558446          Attack
+...                   ...             ...
+731549  1481793504.752537          Attack
+731550  1481793504.753394          Attack
+731551  1481793504.756552          Attack
+731552  1481793504.757694          Attack
+731553  1481793504.761516          Attack
+
+[731554 rows x 2 columns]
+Excuting bsvm for fold 2 in Scenario 2.
+ROC-AUC: 0.9346
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.63      0.90      0.74    174136
+  Attack (1)       0.96      0.84      0.90    557413
+
+    accuracy                           0.85    731549
+   macro avg       0.80      0.87      0.82    731549
+weighted avg       0.88      0.85      0.86    731549
+
+Precision (Attack, 1): 0.9626
+Recall (Attack, 1): 0.8375
+F1 Score (Attack, 1): 0.8957
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482142858.848475          Normal
+1       1482142858.860043          Attack
+2       1482142859.798954          Normal
+3       1482142859.838150          Normal
+4       1482142859.838403          Normal
+...                   ...             ...
+731544  1481793456.399941          Attack
+731545  1481793456.403915          Attack
+731546  1481793456.404244          Attack
+731547  1481793456.407916          Attack
+731548  1481793456.408546          Attack
+
+[731549 rows x 2 columns]
+Excuting bsvm for fold 3 in Scenario 2.
+ROC-AUC: 0.9321
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.50      0.92      0.65    174136
+  Attack (1)       0.97      0.71      0.82    557409
+
+    accuracy                           0.76    731545
+   macro avg       0.73      0.82      0.73    731545
+weighted avg       0.86      0.76      0.78    731545
+
+Precision (Attack, 1): 0.9672
+Recall (Attack, 1): 0.7087
+F1 Score (Attack, 1): 0.8180
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482125301.361595          Attack
+1       1482125301.361805          Normal
+2       1482125301.454597          Attack
+3       1482125301.576032          Normal
+4       1482125302.313540          Normal
+...                   ...             ...
+731540  1481793489.937537          Attack
+731541  1481793489.941343          Normal
+731542  1481793489.941840          Attack
+731543  1481793489.945325          Normal
+731544  1481793489.946142          Attack
+
+[731545 rows x 2 columns]
+Excuting bsvm for fold 4 in Scenario 2.
+ROC-AUC: 0.9312
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.65      0.88      0.75    174136
+  Attack (1)       0.96      0.85      0.90    557404
+
+    accuracy                           0.86    731540
+   macro avg       0.80      0.87      0.82    731540
+weighted avg       0.89      0.86      0.87    731540
+
+Precision (Attack, 1): 0.9589
+Recall (Attack, 1): 0.8507
+F1 Score (Attack, 1): 0.9015
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482137674.231955          Normal
+1       1482137674.235432          Normal
+2       1482137674.235946          Normal
+3       1482137674.269448          Attack
+4       1482137675.226863          Normal
+...                   ...             ...
+731535  1481793520.669007          Normal
+731536  1481793520.669714          Normal
+731537  1481793520.676041          Normal
+731538  1481793520.676567          Normal
+731539  1481793520.679935          Normal
+
+[731540 rows x 2 columns]
+
+[classifiers] Running bsvm on Scenario 2 (RE)
+
+Excuting bsvm for fold 0 in Scenario 2.
+ROC-AUC: 0.9221
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.93      0.81      0.87     95269
+  Attack (1)       0.97      0.99      0.98    541910
+
+    accuracy                           0.96    637179
+   macro avg       0.95      0.90      0.92    637179
+weighted avg       0.96      0.96      0.96    637179
+
+Precision (Attack, 1): 0.9678
+Recall (Attack, 1): 0.9892
+F1 Score (Attack, 1): 0.9784
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482118100.105013          Attack
+1       1482118100.108236          Normal
+2       1482118100.109098          Attack
+3       1482118100.115226          Attack
+4       1482118100.166572          Normal
+...                   ...             ...
+637174  1481793472.002073          Attack
+637175  1481793472.003165          Attack
+637176  1481793472.007074          Attack
+637177  1481793472.007466          Attack
+637178  1481793472.011082          Attack
+
+[637179 rows x 2 columns]
+Excuting bsvm for fold 1 in Scenario 2.
+ROC-AUC: 0.9591
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.94      0.76      0.84     95269
+  Attack (1)       0.96      0.99      0.98    541904
+
+    accuracy                           0.96    637173
+   macro avg       0.95      0.87      0.91    637173
+weighted avg       0.96      0.96      0.95    637173
+
+Precision (Attack, 1): 0.9587
+Recall (Attack, 1): 0.9921
+F1 Score (Attack, 1): 0.9751
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482130068.583690          Attack
+1       1482130068.589228          Normal
+2       1482130068.589230          Attack
+3       1482130068.590427          Normal
+4       1482130068.592397          Normal
+...                   ...             ...
+637168  1481793504.738516          Attack
+637169  1481793504.739431          Attack
+637170  1481793504.743550          Attack
+637171  1481793504.743728          Attack
+637172  1481793504.747545          Attack
+
+[637173 rows x 2 columns]
+Excuting bsvm for fold 2 in Scenario 2.
+ROC-AUC: 0.9305
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.88      0.75      0.81     95269
+  Attack (1)       0.96      0.98      0.97    541897
+
+    accuracy                           0.95    637166
+   macro avg       0.92      0.87      0.89    637166
+weighted avg       0.95      0.95      0.95    637166
+
+Precision (Attack, 1): 0.9576
+Recall (Attack, 1): 0.9814
+F1 Score (Attack, 1): 0.9694
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482142045.136883          Normal
+1       1482142045.137613          Normal
+2       1482142045.142982          Normal
+3       1482142045.147802          Normal
+4       1482142046.137403          Normal
+...                   ...             ...
+637161  1481793456.133897          Attack
+637162  1481793456.134349          Attack
+637163  1481793456.137894          Attack
+637164  1481793456.138653          Attack
+637165  1481793456.141892          Attack
+
+[637166 rows x 2 columns]
+Excuting bsvm for fold 3 in Scenario 2.
+ROC-AUC: 0.9687
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.96      0.74      0.84     95269
+  Attack (1)       0.96      0.99      0.98    541891
+
+    accuracy                           0.96    637160
+   macro avg       0.96      0.87      0.91    637160
+weighted avg       0.96      0.96      0.95    637160
+
+Precision (Attack, 1): 0.9562
+Recall (Attack, 1): 0.9948
+F1 Score (Attack, 1): 0.9751
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482124082.003768          Normal
+1       1482124082.995949          Normal
+2       1482124082.996168          Attack
+3       1482124083.001757          Normal
+4       1482124083.002545          Normal
+...                   ...             ...
+637155  1481793489.324324          Attack
+637156  1481793489.324884          Attack
+637157  1481793489.328333          Attack
+637158  1481793489.329188          Attack
+637159  1481793489.332310          Attack
+
+[637160 rows x 2 columns]
+Excuting bsvm for fold 4 in Scenario 2.
+ROC-AUC: 0.9027
+
+--- Classification Report (0=Control, 1=Attack) ---
+              precision    recall  f1-score   support
+
+ Control (0)       0.85      0.84      0.84     95268
+  Attack (1)       0.97      0.97      0.97    541890
+
+    accuracy                           0.95    637158
+   macro avg       0.91      0.91      0.91    637158
+weighted avg       0.95      0.95      0.95    637158
+
+Precision (Attack, 1): 0.9713
+Recall (Attack, 1): 0.9734
+F1 Score (Attack, 1): 0.9724
+
+--- Individual Packet Attack Detection Report ---
+         Timestamp (Unix) Predicted_Label
+0       1482136052.419373          Normal
+1       1482136052.421288          Normal
+2       1482136053.413158          Normal
+3       1482136053.413243          Attack
+4       1482136053.418362          Normal
+...                   ...             ...
+637153  1481793520.658864          Normal
+637154  1481793520.659994          Attack
+637155  1481793520.660724          Normal
+637156  1481793520.669007          Normal
+637157  1481793520.676041          Normal
+
+[637158 rows x 2 columns]

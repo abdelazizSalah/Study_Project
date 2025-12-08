@@ -189,7 +189,7 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers", "run_experiments_abc"],
+        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers", "run_experiments_abc","run_experiments_def"],
         help="Which pipeline step to run.",
     )
 
