@@ -3,26 +3,26 @@
 @ Date: 05.12.25
 @ Description:
     handling the reverse engineering of bytes - by concatenating every p packets' physical reading together
-Main logic: 
+Main logic:
     1. read .npy file
-    2. exclute the appended zeros from right. 
-    3. concatenate every p packets' physical reading together. 
+    2. exclute the appended zeros from right.
+    3. concatenate every p packets' physical reading together.
     4. determine the maximum length of the concatenated packets.
     5. append zeros to the right of the concatenated packets to make them of equal length.
     6. write the processed data to a new .npy file.
 
 '''
 
-
-
-
-# 1.read .npy file 
+# 1.read .npy file
 import numpy as np
+
+
 def load_npy_file(file_path):
     """Load a .npy file and return its contents."""
     print('Loading .npy file...')
     data = np.load(file_path, allow_pickle=True)
     return data
+
 
 #  2. exclute the appended zeros from right.
 def exclude_appended_zeros(data):
@@ -42,6 +42,7 @@ def exclude_appended_zeros(data):
     # print (f'first 5 packets after exclusion: {processed_data[:5]}')
     return processed_data
 
+
 # 3.concatenate every p packets' physical reading together.
 def concatenate_packets(data, p):
     """Concatenate every p packets' physical reading together."""
@@ -51,14 +52,15 @@ def concatenate_packets(data, p):
     print(f"Remainder of len(data) divided by p: {remainder}")
     concatenated_data = []
     for i in range(0, len(data), p):
-        concatenated_packet = np.concatenate(data[i:i+p])
+        concatenated_packet = np.concatenate(data[i:i + p])
         concatenated_data.append(concatenated_packet)
 
     # handle the case where len(data) is not a multiple of p
     if remainder != 0:
         concatenated_packet = np.concatenate(data[-remainder:])
-        concatenated_data.append(concatenated_packet) # to be repeated with remainder number of packets later. 
+        concatenated_data.append(concatenated_packet)  # to be repeated with remainder number of packets later.
     return concatenated_data, remainder
+
 
 # 4.determine the maximum length of the concatenated packets.
 def determine_max_length(concatenated_data):
@@ -66,6 +68,8 @@ def determine_max_length(concatenated_data):
     print('Determining maximum length of concatenated packets...')
     max_length = max(len(packet) for packet in concatenated_data)
     return max_length
+
+
 # 5.append zeros to the right of the concatenated packets to make them of equal length.
 def pad_packets(concatenated_data, max_length):
     """Append zeros to the right of the concatenated packets to make them of equal length."""
@@ -75,31 +79,34 @@ def pad_packets(concatenated_data, max_length):
         padded_packet = np.pad(packet, (0, max_length - len(packet)), 'constant')
         padded_data.append(padded_packet)
     return np.array(padded_data)
+
+
 # 6.write the processed data to a new .npy file.
-def save_npy_file(data, file_path, p,  remainder):
+def save_npy_file(data, file_path, p, remainder):
     """
         - repeat each data item p times first, and last item remainder times if remainder != 0, else p times.
     """
     print('Saving processed data to .npy file...')
     expanded_data = []
-    for i in range(len(data)-1 - remainder):
+    for i in range(len(data) - 1 - remainder):
         for _ in range(p):
             expanded_data.append(data[i])
     # handle the last item
-    last_repeats = remainder if remainder !=0 else p
+    last_repeats = remainder if remainder != 0 else p
     for _ in range(last_repeats):
         expanded_data.append(data[-1])
-    
+
     expanded_data = np.array(expanded_data)
     np.save(file_path, expanded_data)
     print(f"Processed data saved to {file_path}")
     print(f'len(expanded_data): {len(expanded_data)}')
 
+
 def process_npy_file(input_file_path, output_file_path, p):
     """Process the .npy file as per the defined steps."""
     # Step 1: Load the .npy file
     data = load_npy_file(input_file_path)
-    print (f'Original data length: {len(data)}')
+    print(f'Original data length: {len(data)}')
     # Step 2: Exclude appended zeros from right
     data_no_zeros = exclude_appended_zeros(data)
 

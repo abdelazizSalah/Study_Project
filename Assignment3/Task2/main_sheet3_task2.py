@@ -6,11 +6,13 @@ import time
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
+from handling_re_bytes_integrated import create_preprocessed_re_files, \
+    remove_duplicates_from_all_files
 from k_fold import create_and_save_all_folds, save_folds_pretty
 from use_classifiers import execute_scenario, execute_experiments_abc
 from file_helper_t3 import verify_amount_feature_files,load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
-from feature_creation_autoencoder import train_and_save_models
+from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
 from feature_creation_autoencoder import create_features_for_ds
 from preprocessing_s3t2 import  find_M, \
     pcaps_byte_and_metadata_extraction
@@ -169,6 +171,12 @@ MODE DETAILS
     Run all classifiers on all appropriate scenarios, collect per-fold
     precision/recall, and save them as CSV files in ./results.
     Runs on dataset RAW, suitable for task a to c.
+    Will run with amount of folds created by previously executed k-folds mode. 
+    
+    run_experiments_def:
+    Run all classifiers on all appropriate scenarios, collect per-fold
+    precision/recall, and save them as CSV files in ./results.
+    Runs on 3 diferent versions of RE dataset, preprocessed according to task d to f.
     Will run with amount of folds created by previously executed k-folds mode. 
 """
 
@@ -381,6 +389,9 @@ def run_classifiers(classifier: str | None,
 # Main entry point
 # -------------------------------------------------------------------
 
+
+
+
 def release_main():
     args = parse_args()
     start = time.time()
@@ -408,8 +419,28 @@ def release_main():
         os.makedirs("models", exist_ok=True)
         k = check_requirements_classifier_modes()
         execute_experiments_abc(global_label_encoder, k)
+    elif args.mode == "run_experiments_def":
 
-        #todo: plot experiment results
+        require_file("datasets/re_bytes.npy")
+        k = check_requirements_classifier_modes()
+
+        #todo: check if necessary files exist
+        create_preprocessed_re_files()
+
+        #features are created yb re_byte5, re_byte10, re_byte15 etc...
+        #with existing autoencoder (per fold)
+        create_features_for_ds_task3def(k)  #needs server for RAM
+
+        #1. integrate into classifier
+
+        #2. remove duplicates directly before classification using "get_keep_indices_from_fold0"
+        remove_duplicates_from_all_files(feature_dir="datasets/re_bytes_5",model_prefix="re5",num_folds=5,labels_path="datasets/re_labels.npy")
+
+        remove_duplicates_from_all_files(feature_dir="datasets/re_bytes_10",model_prefix="re10",num_folds=k,labels_path="datasets/re_labels.npy")
+
+        remove_duplicates_from_all_files(feature_dir="datasets/re_bytes_15",model_prefix="re15",num_folds=k,labels_path="datasets/re_labels.npy")
+
+
     else:
         raise ValueError(f"Unknown mode: {args.mode!r}")
 
@@ -422,15 +453,25 @@ def release_main():
 
 def test_main():
     start = time.time()
-
-    #sys.stdout = open('results/output_bsvm_s2.txt', 'w')
-    #sys.stderr = sys.stdout
     k=5
+    #create_features_for_ds_task3def(k)
+    create_preprocessed_re_files()
+    re_bytes_5=np.load("datasets/re_bytes_5/re5_features_fold0.npy")
+    re_bytes_5 = np.load("datasets/re_bytes_5/re5_features_fold0.npy")
+    re_bytes_5 = np.load("datasets/re_bytes_5/re5_features_fold0.npy")
+    print(len(re_bytes_5))
+    print(len(re_bytes_5[0]))
 
-    global_label_encoder = LabelEncoder()
-    global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+    re_bytes_10 = np.load("datasets/re_bytes_10/re10_features_fold0.npy")
+    print(len(re_bytes_10))
+    print(len(re_bytes_10[0]))
 
+    re_bytes_15 = np.load("datasets/re_bytes_15.npy")
+    print(len(re_bytes_15))
+    print(len(re_bytes_10[0]))
+    #create_preprocessed_re_files()
 
+    #create_features_for_ds_task3def(k)
 
     end = time.time()  # end timer
     elapsed = end - start
@@ -438,5 +479,5 @@ def test_main():
 
 
 if __name__ == "__main__":
-    #test_main()
-    release_main()
+    test_main()
+    #release_main()
