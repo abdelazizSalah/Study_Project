@@ -18,9 +18,17 @@
 #     # print the downloaded path 
 #     print(f"Dataset for {key} downloaded to: {path}")
 
+# import kagglehub
+
+# # Download latest version
+# path = kagglehub.dataset_download("brjapon/gearbox-fault-diagnosis")
+
+# print("Path to dataset files:", path)
+
+
 import kagglehub
 
 # Download latest version
-path = kagglehub.dataset_download("brjapon/gearbox-fault-diagnosis")
+path = kagglehub.dataset_download("architsharma01/loan-approval-prediction-dataset")
 
 print("Path to dataset files:", path)

@@ -1,4 +1,7 @@
-from Assignment3.Task3.fine_tuning import *
+
+# import LOF
+from sklearn.neighbors import LocalOutlierFactor
+
 import os
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -9,8 +12,40 @@ from sklearn.metrics import roc_auc_score
 from sklearn.svm import OneClassSVM
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import recall_score, accuracy_score
+from fine_tuning import *
 import numpy as np
+def load_lof_dataset(file_path):
+    # -------- STEP 1: Load CSV ----------
+    df = pd.read_csv("lof_dataset.csv")
 
+    print(df.head())   # verify it loaded correctly
+
+
+    # -------- STEP 2: Encode categorical columns ----------
+    categorical_cols = [" education", " self_employed", " loan_status"]
+
+    # Create label encoders
+    encoders = {}
+
+    for col in categorical_cols:
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
+        encoders[col] = le   # store encoder if you need inverse mapping later
+
+
+    # -------- STEP 3: Drop ID column ----------
+    df = df.drop(columns=["loan_id"])   # not a useful feature
+
+
+    # -------- STEP 4: Separate inputs (X) and labels (y) ----------
+    # For LOF, you only train on normal data. 
+    # Here I assume: Approved = 0 (normal), Rejected = 1 (anomaly) after LabelEncoder.
+    X = df.drop(columns=[" loan_status"])
+    y = df[" loan_status"]
+
+    print("Shape:", X.shape)
+    print(X.head())
+    return X, y  # return as numpy arrays
 
 
 def load_dataset_csv_rf(file_path):
@@ -286,5 +321,27 @@ def testing_elliptic_envelope():
 
 
 
+def testing_lof():
+    # load lof_dataset.csv
+    print('Loading LOF dataset...')
+    X, y = load_lof_dataset('lof_dataset.csv')
+
+    # split into 60% train and 20% validation, and 20% test sets
+    print('Splitting dataset...')
+    X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42) # 0.25 x 0.8 = 0.2
+    # LOF Grid Search
+    lof = LocalOutlierFactor(novelty=True)
+    best_lof = grid_search_lof(lof, X_train,  X_val, y_val, scoring_metric='accuracy')
+
+    print("Best LOF Model:", best_lof)
+    # test set evaluation for LOF
+    y_test_pred_raw = best_lof.predict(X_test)
+    y_test_pred = (y_test_pred_raw == -1).astype(int)
+    test_accuracy_lof = accuracy_score(y_test, y_test_pred)
+    print(f'LOF Test Accuracy: {test_accuracy_lof}')
+
+
+
 if __name__ == "__main__":
-    testing_elliptic_envelope()
+    testing_lof()

@@ -333,3 +333,79 @@ def grid_search_elliptic_envelope(
     print(f"Validation {scoring_metric}: {best_score:.4f}")
 
     return best_model
+
+
+# -------------------------------------------------------------------
+# Local outlier factor (anomaly detection)
+# -------------------------------------------------------------------
+from joblib import Parallel, delayed
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.metrics import accuracy_score, f1_score
+
+def _eval_params_lof(lof_base:LocalOutlierFactor, params, X_train, X_val, y_val, scoring_metric='accuracy'):
+    """
+    Helper function executed in parallel for each parameter combination.
+    """
+    # Create model with given params
+    model = clone(lof_base)
+    model.set_params(**params)
+
+    # Fit only on normal data (y_val not needed)
+    model.fit(X_train)
+
+    # Predict on validation set
+    y_pred = model.predict(X_val)              # 1 = normal, -1 = outlier
+    y_pred_bin = (y_pred == -1).astype(int)    # convert to 0/1 anomaly labels
+
+    # Compute chosen metric
+    if scoring_metric == "accuracy":
+        score = accuracy_score(y_val, y_pred_bin)
+    elif scoring_metric == "f1":
+        score = f1_score(y_val, y_pred_bin, zero_division=0)
+    else:
+        raise ValueError(f"Unsupported scoring metric: {scoring_metric}")
+
+    return score, params, model
+
+
+def grid_search_lof_parallel(
+    lof: LocalOutlierFactor,
+    X_train,
+    y_train,    # for API compatibility
+    X_val,
+    y_val,
+    scoring_metric="accuracy",
+    n_jobs=None,
+):
+    """
+    FAST & PARALLEL LOF Grid Search (EllipticEnvelope style).
+    """
+    print("Starting FAST & PARALLEL LOF Grid Search...")
+
+    if n_jobs is None:
+        n_jobs = -1  # use all CPUs
+
+    # Define LOF hyperparameters
+    param_grid = {
+        "n_neighbors": [5, 10, 20, 35, 50],
+        "leaf_size": [30, 50],   # optional extra param
+    }
+
+    # Generate all combinations of parameters
+    all_params = list(_iter_param_grid(param_grid))
+
+    # Run evaluation for each parameter setting in parallel
+    results = Parallel(n_jobs=n_jobs)(
+        delayed(_eval_params_lof)(
+            lof, params, X_train, X_val, y_val, scoring_metric
+        )
+        for params in all_params
+    )
+
+    # Choose best by score
+    best_score, best_params, best_model = max(results, key=lambda tpl: tpl[0])
+
+    print(f"Best parameters: {best_params}")
+    print(f"Validation {scoring_metric}: {best_score:.4f}")
+
+    return best_model
