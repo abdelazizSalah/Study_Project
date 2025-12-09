@@ -13,3 +13,7 @@ Assignment3/Task3/*.npy
 Assignment3/Task3/Elliptic_data/*
 Assignment3/Task2/all_data.zip
 Assignment3/Task2/results
+Assignment3/Task2/results2
+Assignment3/Task2/datasets
+Assignment3/Task2/k_fold_results
+Assignment3/Task2/models
