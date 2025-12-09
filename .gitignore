@@ -19,3 +19,6 @@ Assignment3/Task2/results2
 Assignment3/Task2/datasets
 Assignment3/Task2/k_fold_results
 Assignment3/Task2/models
+Assignment3/Task2/re_bytes_15/*.npy
+Assignment3/Task2/re_bytes_10/*.npy
+Assignment3/Task2/re_bytes_5/*.npy
