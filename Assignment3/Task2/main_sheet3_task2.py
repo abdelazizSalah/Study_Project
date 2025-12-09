@@ -401,7 +401,7 @@ def release_main():
 
     elif args.mode == "k_fold":
         run_k_fold(args.k)
-        print_k_fold_pretty()
+        #print_k_fold_pretty() #todo
     elif args.mode == "extract_features":
         run_extract_features(args.k)
 
@@ -451,8 +451,6 @@ def release_main():
 
 
 
-
-
 if __name__ == "__main__":
-#    test_main()
+    #test_main()
     release_main()

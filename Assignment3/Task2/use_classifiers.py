@@ -9,8 +9,8 @@ from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
 
 from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, local_outlier_factor_predict
-from handling_re_bytes_integrated_modifed import get_keep_indices_from_fold0
-from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds, deduplicate_features
+from handling_re_bytes_integrated import get_keep_indices_from_fold0
+from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds
 from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
     grid_search_random_forest, grid_search_knn, grid_search_lof_parallel
 from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict
@@ -133,12 +133,9 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
-    #run on small portion of dataset, for testing:
-    #first_indices = np.arange(0, 1000)
-    #last_indices = np.arange(len(X_train) - 1000, len(X_train))
-    #selected_indices = np.concatenate((first_indices, last_indices))
-    #X_train = X_train[selected_indices]
-    #y_train = y_train[selected_indices]
+    if len(X_train)==0:
+        return 0.0, 0.0, 0.0, 0.0
+    print(len(X_train))
 
     f1=0.0
     if classifier == "ocsvm":
@@ -291,7 +288,7 @@ def execute_experiments_def(global_label_encoder, k, param=5):
 
     #calculate keep_indices for file!
 
-    keep_indices=get_keep_indices_from_fold0(f"re_bytes_{param}", f"re{param}")
+    keep_indices=get_keep_indices_from_fold0(f"datasets/re_bytes_{param}/re_features_fold{param}", f"re{param}")
     print(f"For RE{param} - {len(keep_indices)} datapoints are used.")
 
     #only run the valid scenarios
@@ -341,7 +338,7 @@ def execute_experiments_def(global_label_encoder, k, param=5):
     for clf_name in classifiers_to_run:
         scenarios_for_clf = valid_scenarios_for(clf_name)
         for scen in scenarios_for_clf:
-            run_one(clf_name, scen)
+            run_one(clf_name, scen, param)
 
 
     return
