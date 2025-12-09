@@ -4,6 +4,8 @@
 /Abdelaziz_Codes/Sheet1_codes/chebyshev_blocks/*.npy
 Assignment3/Task1/*.npy
 Assignment3/Task1/*.pkl
+Assignment3/Task1/test_results.txt
+Assignment3/Task1/validation_scores.txt
 __pycache__/
 *.pyc
 .idea/
@@ -13,3 +15,7 @@ Assignment3/Task3/*.npy
 Assignment3/Task3/Elliptic_data/*
 Assignment3/Task2/all_data.zip
 Assignment3/Task2/results
+Assignment3/Task2/results2
+Assignment3/Task2/datasets
+Assignment3/Task2/k_fold_results
+Assignment3/Task2/models
