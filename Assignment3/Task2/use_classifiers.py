@@ -128,8 +128,13 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
     # running on small sample for getting results faster
     # Todo: here I can decrease the number of the training data.
     print('working on small portion of the data only')
-    X_train = X_train[:1000] + X_train[-1000:] # begining are normal, and end are attacks. 
-    y_train = y_train[:1000] + y_train[-1000:] # labels. 
+    # get 1000 normal and 1,000 attack samples
+    normal_indices = np.where(y_train == 0)[0][:1000]
+    attack_indices = np.where(y_train == 1)[0][:1000]
+    selected_indices = np.concatenate([normal_indices, attack_indices])
+    X_train = X_train[selected_indices]
+    y_train = y_train[selected_indices]
+    
 
     # print unique labels
     print("Unique labels in y_train:", np.unique(y_train))
