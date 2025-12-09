@@ -1,3 +1,5 @@
+
+from sklearn.neighbors import LocalOutlierFactor
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
@@ -186,3 +188,33 @@ def grid_search_knn(knn: KNeighborsClassifier, X_train, y_train, X_val, y_val, s
     print(f'Validation Accuracy: {val_accuracy}')
 
     return best_knn
+
+def grid_search_lof(lof:LocalOutlierFactor, X_train, X_val, y_val, scoring_metric = 'accuracy'):
+    
+
+    print("Starting LOF Grid Search...")
+
+    param_grid = {
+        'n_neighbors': [20, 35, 50],
+        'novelty': [True],
+    }
+
+    grid_search = GridSearchCV(
+        estimator=lof,
+        param_grid=param_grid,
+        scoring=scoring_metric,
+        n_jobs=-1
+    )
+
+    grid_search.fit(X_train, None)  # LOF does not use y for fitting
+    best_lof = grid_search.best_estimator_
+    
+    # Validation
+    y_pred = best_lof.predict(X_val)
+
+    val_acc =  accuracy_score(y_val, (y_pred == -1).astype(int))
+    print("Best parameters:", grid_search.best_params_)
+    print("Validation Accuracy:", val_acc)
+    return best_lof
+
+
