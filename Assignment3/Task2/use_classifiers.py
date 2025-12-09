@@ -127,12 +127,14 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
 
     # running on small sample for getting results faster
     # Todo: here I can decrease the number of the training data.
+    print('working on small portion of the data only')
     X_train = X_train[:1000] + X_train[-1000:] # begining are normal, and end are attacks. 
     y_train = y_train[:1000] + y_train[-1000:] # labels. 
 
+    # print unique labels
+    print("Unique labels in y_train:", np.unique(y_train))
+    print("Unique labels in y_test:", np.unique(y_test))
 
-    print(y_train[:5])
-    print(y_test[:5])
     f1=0.0
     if classifier == "ocsvm":
         base = OneClassSVM()
