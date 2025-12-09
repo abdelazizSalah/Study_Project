@@ -4,6 +4,8 @@
 /Abdelaziz_Codes/Sheet1_codes/chebyshev_blocks/*.npy
 Assignment3/Task1/*.npy
 Assignment3/Task1/*.pkl
+Assignment3/Task1/test_results.txt
+Assignment3/Task1/validation_scores.txt
 __pycache__/
 *.pyc
 .idea/
