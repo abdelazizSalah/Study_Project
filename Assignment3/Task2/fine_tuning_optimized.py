@@ -1,7 +1,7 @@
 N_JOBLIB = 64
 
 from itertools import product
-
+import numpy as np
 from joblib import Parallel, delayed
 from sklearn.base import clone
 from sklearn.metrics import f1_score, accuracy_score, recall_score
@@ -112,7 +112,7 @@ def grid_search_random_forest(
 # SVM
 # -------------------------------------------------------------------
 
-def grid_search_svm( # 0.932, 0.937 = 1, 
+def grid_search_svm( # 0.932, 0.937 = 1,
     svm: SVC,
     X_train,
     y_train,
@@ -157,7 +157,7 @@ def grid_search_svm( # 0.932, 0.937 = 1,
 # KNN
 # -------------------------------------------------------------------
 
-def grid_search_knn( #1.  9820,  
+def grid_search_knn( #1.  9820,
     knn: KNeighborsClassifier,
     X_train,
     y_train,
@@ -202,7 +202,7 @@ def grid_search_knn( #1.  9820,
 # One-Class SVM (anomaly detection)
 # -------------------------------------------------------------------
 
-def _eval_params_ocsvm(base_model, params, X_train, X_val, y_val): # 
+def _eval_params_ocsvm(base_model, params, X_train, X_val, y_val): #
     """
     Fit + score ONE parameter combination for One-Class SVM.
     Uses accuracy on the anomaly/normal mapping.
@@ -235,7 +235,7 @@ def grid_search_one_class_svm(
     if n_jobs is None:
         n_jobs = N_JOBLIB
 
-    param_grid = { # .8,.45 -- 
+    param_grid = { # .8,.45 --
         "kernel": ['rbf'],
         "gamma": ['scale'],
         "nu": [0.01],
@@ -282,6 +282,16 @@ def _eval_params_ee(base_model, params, X_train, X_val, y_val, scoring_metric):
 
     y_val_pred_raw = model.predict(X_val)          # -1 anomaly, 1 normal
     y_val_pred = (y_val_pred_raw == -1).astype(int)
+    print(f'predicted labels {y_val_pred[:5]}')
+    print(f'raw predicted labels {y_val_pred_raw[:5]}')
+    # print unique values in y_val
+    print(f'Unique values in y_val_true: {np.unique(y_val)}')
+    print(f'Unique values in y_val_pred: {np.unique(y_val_pred)}')
+    print(f'Unique values in y_val_raw: {np.unique(y_val_pred_raw)}')
+    # print
+    # convert y_val from {0,1} to {-1,1} for comparison
+    # y_val_converted = np.where(y_val == 0, 1, -1)
+
     score = _ee_scorer(y_val, y_val_pred, scoring_metric)
     return score, params, model
 

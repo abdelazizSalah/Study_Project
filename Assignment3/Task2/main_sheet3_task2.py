@@ -67,7 +67,6 @@ def check_requirements_feature_extraction_mode():
     require_file("k_fold_results/k_fold_s1_raw.json")
     require_file("k_fold_results/k_fold_s1_re.json")
     training_indices_raw, test_indices_raw = load_k_fold_results("k_fold_results/k_fold_s1_raw.json")
-    training_indices_re, test_indices_re = load_k_fold_results("k_fold_results/k_fold_s1_re.json")
 
     k=len(training_indices_raw)
 
@@ -166,6 +165,7 @@ MODE DETAILS
       * Elliptic Envelope    – Scenario 1
       * Random Forest        – Scenarios 2 and 3
       * k-NN                 – Scenarios 2 and 3
+      * Local Outlier Factor - Scenario 1
       
     run_experiments_abc:
     Run all classifiers on all appropriate scenarios, collect per-fold
@@ -217,7 +217,7 @@ MODE DETAILS
     parser.add_argument(
         "--classifier",
         type=str,
-        choices=["ocsvm", "bsvm", "ee", "rf", "knn", "all"],
+        choices=["ocsvm", "bsvm", "ee", "rf", "knn","lof", "all"],
         help="Classifier to run when mode=classifiers.",
     )
 
@@ -332,7 +332,7 @@ def run_classifiers(classifier: str | None,
 
     # Helper to decide which scenarios are valid per classifier
     def valid_scenarios_for(clf_name: str):
-        if clf_name in ("ocsvm", "ee"):
+        if clf_name in ("ocsvm", "ee", "lof"):
             return [1]
         elif clf_name in ("bsvm", "rf", "knn"):
             return [2, 3]
@@ -362,7 +362,7 @@ def run_classifiers(classifier: str | None,
 
     # Determine which classifiers to run
     if classifier == "all":
-        classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+        classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn", "lof"]
     else:
         classifiers_to_run = [classifier]
 
@@ -401,7 +401,7 @@ def release_main():
 
     elif args.mode == "k_fold":
         run_k_fold(args.k)
-
+        print_k_fold_pretty()
     elif args.mode == "extract_features":
         run_extract_features(args.k)
 
@@ -451,50 +451,6 @@ def release_main():
 
 
 
-
-def test_main():
-    start = time.time()
-    k=5
-
-    re_bytes=np.load("datasets/re_bytes.npy")
-    print(len(re_bytes))
-    re_labels=np.load("datasets/re_labels.npy")
-
-    re_labels = np.load("datasets/re_labels.npy")
-    create_preprocessed_re_files()
-    #create_preprocessed_re_files_with_seperation()
-    re_bytes_15 = np.load("datasets/re_bytes_15.npy")
-    print(len(re_bytes_15))
-    re_bytes_10 = np.load("datasets/re_bytes_10.npy")
-    print(len(re_bytes_10))
-    re_bytes_5 = np.load("datasets/re_bytes_5.npy")
-    print(len(re_bytes_5))
-
-
-    return
-
-    #create_features_for_ds_task3def(k)
-    create_preprocessed_re_files()
-    re_bytes_5=np.load("datasets/re_bytes_5/re5_features_fold0.npy")
-    re_bytes_5 = np.load("datasets/re_bytes_5/re5_features_fold0.npy")
-    re_bytes_5 = np.load("datasets/re_bytes_5/re5_features_fold0.npy")
-    print(len(re_bytes_5))
-    print(len(re_bytes_5[0]))
-
-    re_bytes_10 = np.load("datasets/re_bytes_10/re10_features_fold0.npy")
-    print(len(re_bytes_10))
-    print(len(re_bytes_10[0]))
-
-    re_bytes_15 = np.load("datasets/re_bytes_15.npy")
-    print(len(re_bytes_15))
-    print(len(re_bytes_10[0]))
-    #create_preprocessed_re_files()
-
-    #create_features_for_ds_task3def(k)
-
-    end = time.time()  # end timer
-    elapsed = end - start
-    print(f"⏱️ main() executed in {elapsed:.2f} seconds")
 
 
 if __name__ == "__main__":

@@ -5,13 +5,14 @@ import os
 import joblib
 from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
 
+from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, local_outlier_factor_predict
 from handling_re_bytes_integrated_modifed import get_keep_indices_from_fold0
 from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds, deduplicate_features
 from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
-    grid_search_random_forest, grid_search_knn
+    grid_search_random_forest, grid_search_knn, grid_search_lof_parallel
 from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict
 from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluate, \
     elliptic_envelope_predict
@@ -46,15 +47,20 @@ def execute_fold(fold_idx, binary_numeric_labels, timestamps,train_indices, test
     """train, measure result, print timestamp + prediction for test dataset for one fold"""
 
 
-
     ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")    #fold_idx: 1 to k, files are named 0 to k-1
     print(f"Excuting {classifier} for fold {fold_idx} in Scenario {scenario}.")
 
     X_train, X_test, y_train, y_test, t_train, t_test=split_training_and_test(ds, binary_numeric_labels, timestamps,train_indices, test_indices)
 
+    #run on small portion of dataset, for testing:
+    #first_indices = np.arange(0, 1000)
+    #last_indices = np.arange(len(X_train) - 1000, len(X_train))
+    #selected_indices = np.concatenate((first_indices, last_indices))
+    #X_train = X_train[selected_indices]
+    #y_train = y_train[selected_indices]
 
     if classifier=="ocsvm":
-        one_class_svm_train(X_train) #todo debug - change (for faster model training)
+        one_class_svm_train(X_train)
         one_class_svm_evaluate(X_test, y_test)  #test data and corresponding labels
         prediction_report=one_class_svm_predict(X_test, t_test) #test data and corresponding timestamps
     elif classifier=="bsvm":   #binary svm (multiple classes in training)
@@ -62,18 +68,22 @@ def execute_fold(fold_idx, binary_numeric_labels, timestamps,train_indices, test
         binary_svm_evaluate(X_test, y_test)
         prediction_report=binary_svm_predict(X_test, t_test)
     elif classifier == "ee":
-        elliptic_envelope_train(X_train)  # todo debug - change (for faster model training)
+        elliptic_envelope_train(X_train)
         elliptic_envelope_evaluate(X_test, y_test)  # test data and corresponding labels
         prediction_report = elliptic_envelope_predict(X_test, t_test)  # test data and corresponding timestamps
 
     elif classifier == "rf":
-        binary_rf_train(X_train, y_train) # todo debug - change (for faster model training)
+        binary_rf_train(X_train, y_train)
         binary_rf_evaluate(X_test, y_test)
         prediction_report = binary_rf_predict(X_test, t_test)
     elif classifier == "knn":
-        binary_knn_train(X_train, y_train) # todo debug - change (for faster model training)
+        binary_knn_train(X_train, y_train)
         binary_knn_evaluate(X_test, y_test)
         prediction_report = binary_knn_predict(X_test, t_test)
+    elif classifier == "lof":
+        local_outlier_factor_train(X_train)
+        local_outlier_factor_evaluate(X_test, y_test)
+        prediction_report=local_outlier_factor_predict(X_test, t_test)
     else:
         print("wrong classifier choice")
 
@@ -122,6 +132,14 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
     X_train, X_test, y_train, y_test, t_train, t_test = split_training_and_test(
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
+
+    #run on small portion of dataset, for testing:
+    #first_indices = np.arange(0, 1000)
+    #last_indices = np.arange(len(X_train) - 1000, len(X_train))
+    #selected_indices = np.concatenate((first_indices, last_indices))
+    #X_train = X_train[selected_indices]
+    #y_train = y_train[selected_indices]
+
     f1=0.0
     if classifier == "ocsvm":
         base = OneClassSVM()
@@ -153,7 +171,11 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         best_model = grid_search_knn(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/bknn.joblib")  # adjust to your filename
         roc_auc, precision, recall, f1 = binary_knn_evaluate(X_test, y_test)
-
+    elif classifier == "lof":
+        base = LocalOutlierFactor(novelty=True, n_jobs=1)  #without novelty=True, LOF cannot score unseen samples
+        best_model = grid_search_lof_parallel(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
+        joblib.dump(best_model, "models/lof.joblib")  # adjust to your filename
+        roc_auc, precision, recall = local_outlier_factor_evaluate(X_test, y_test)
     else:
         print("wrong classifier choice")
         return 0.0, 0.0, 0.0, 0.0
@@ -206,7 +228,7 @@ def execute_experiments_abc(global_label_encoder, k):
     #onky run the valid scenarios
     def valid_scenarios_for(clf_name: str):
         # OCSVM & EE are only defined for Scenario 1
-        if clf_name in ("ocsvm", "ee"):
+        if clf_name in ("ocsvm", "ee", "lof"):
             return [1]
         # BSVM, RF, kNN are defined for Scenarios 2 & 3
         elif clf_name in ("bsvm", "rf", "knn"):
@@ -243,7 +265,7 @@ def execute_experiments_abc(global_label_encoder, k):
         print(f"[classifiers] Saved results to {out_path}")
 
     # Always run all classifiers with all their valid scenarios
-    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn", "lof"]
 
     for clf_name in classifiers_to_run:
         scenarios_for_clf = valid_scenarios_for(clf_name)
@@ -275,7 +297,7 @@ def execute_experiments_def(global_label_encoder, k, param=5):
     #only run the valid scenarios
     def valid_scenarios_for(clf_name: str):
         # OCSVM & EE are only defined for Scenario 1
-        if clf_name in ("ocsvm", "ee"):
+        if clf_name in ("ocsvm", "ee", "lof"):
             return [1]
         # BSVM, RF, kNN are defined for Scenarios 2 & 3
         elif clf_name in ("bsvm", "rf", "knn"):
@@ -314,7 +336,7 @@ def execute_experiments_def(global_label_encoder, k, param=5):
         print(f"[classifiers] Saved results to {out_path}")
 
     # Always run all classifiers with all their valid scenarios
-    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn", "lof"]
 
     for clf_name in classifiers_to_run:
         scenarios_for_clf = valid_scenarios_for(clf_name)
