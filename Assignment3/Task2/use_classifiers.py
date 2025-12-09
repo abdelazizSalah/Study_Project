@@ -181,7 +181,7 @@ def execute_scenario_for_experiments(global_label_encoder, classifier, k, prefix
 
 
 
-        numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
+    numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
     binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
 
     precision_all_folds=[]

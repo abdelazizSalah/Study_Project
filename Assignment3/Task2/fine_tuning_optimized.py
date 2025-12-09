@@ -84,10 +84,10 @@ def grid_search_random_forest(
     #     "min_samples_leaf": [1, 2],
     # }
     param_grid = {
-        "n_estimators": 50,
-        "max_depth": None,
-        "min_samples_split": 5,
-        "min_samples_leaf": 1,
+        "n_estimators": [50],
+        "max_depth": [None],
+        "min_samples_split": [5],
+        "min_samples_leaf": [1],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -130,9 +130,9 @@ def grid_search_svm( # 0.932, 0.937 = 1,
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "C": 10,
-        "kernel": 'linear',
-        "gamma": 'scale',
+        "C": [10],
+        "kernel": ['linear'],
+        "gamma": ['scale'],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -175,9 +175,9 @@ def grid_search_knn( #1.  9820,
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "n_neighbors": 3,
-        "weights": "uniform",
-        "metric": "manhattan",
+        "n_neighbors": [3],
+        "weights": ["uniform"],
+        "metric": ["manhattan"],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -236,9 +236,9 @@ def grid_search_one_class_svm(
         n_jobs = N_JOBLIB
 
     param_grid = { # .8,.45 -- 
-        "kernel": 'rbf',
-        "gamma": 'scale',
-        "nu": 0.01,
+        "kernel": ['rbf'],
+        "gamma": ['scale'],
+        "nu": [0.01],
     }
 
     all_params = list(_iter_param_grid(param_grid))
@@ -304,8 +304,8 @@ def grid_search_elliptic_envelope(
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "contamination": 0.05,
-        "support_fraction": None,
+        "contamination": [0.05],
+        "support_fraction": [None],
     }
 
     all_params = list(_iter_param_grid(param_grid))
