@@ -1,7 +1,7 @@
 N_JOBLIB = 64
 
 from itertools import product
-
+import numpy as np
 from joblib import Parallel, delayed
 from sklearn.base import clone
 from sklearn.metrics import f1_score, accuracy_score, recall_score
@@ -84,10 +84,10 @@ def grid_search_random_forest(
     #     "min_samples_leaf": [1, 2],
     # }
     param_grid = {
-        "n_estimators": 50,
-        "max_depth": None,
-        "min_samples_split": 5,
-        "min_samples_leaf": 1,
+        "n_estimators": [50],
+        "max_depth": [None],
+        "min_samples_split": [5],
+        "min_samples_leaf": [1],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -130,9 +130,9 @@ def grid_search_svm( # 0.932, 0.937 = 1,
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "C": 10,
-        "kernel": 'linear',
-        "gamma": 'scale',
+        "C": [10],
+        "kernel": ['linear'],
+        "gamma": ['scale'],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -175,9 +175,9 @@ def grid_search_knn( #1.  9820,
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "n_neighbors": 3,
-        "weights": "uniform",
-        "metric": "manhattan",
+        "n_neighbors": [3],
+        "weights": ["uniform"],
+        "metric": ["manhattan"],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -236,9 +236,9 @@ def grid_search_one_class_svm(
         n_jobs = N_JOBLIB
 
     param_grid = { # .8,.45 -- 
-        "kernel": 'rbf',
-        "gamma": 'scale',
-        "nu": 0.01,
+        "kernel": ['rbf'],
+        "gamma": ['scale'],
+        "nu": [0.01],
     }
 
     all_params = list(_iter_param_grid(param_grid))
@@ -282,6 +282,16 @@ def _eval_params_ee(base_model, params, X_train, X_val, y_val, scoring_metric):
 
     y_val_pred_raw = model.predict(X_val)          # -1 anomaly, 1 normal
     y_val_pred = (y_val_pred_raw == -1).astype(int)
+    print(f'predicted labels {y_val_pred[:5]}')
+    print(f'raw predicted labels {y_val_pred_raw[:5]}')
+    # print unique values in y_val
+    print(f'Unique values in y_val_true: {np.unique(y_val)}')
+    print(f'Unique values in y_val_pred: {np.unique(y_val_pred)}')
+    print(f'Unique values in y_val_raw: {np.unique(y_val_pred_raw)}')
+    # print 
+    # convert y_val from {0,1} to {-1,1} for comparison
+    # y_val_converted = np.where(y_val == 0, 1, -1)
+
     score = _ee_scorer(y_val, y_val_pred, scoring_metric)
     return score, params, model
 
@@ -304,8 +314,8 @@ def grid_search_elliptic_envelope(
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "contamination": 0.05,
-        "support_fraction": None,
+        "contamination": [0.05],
+        "support_fraction": [None],
     }
 
     all_params = list(_iter_param_grid(param_grid))

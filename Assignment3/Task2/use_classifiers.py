@@ -51,35 +51,37 @@ def execute_fold(fold_idx, binary_numeric_labels, timestamps,train_indices, test
     print(f"Excuting {classifier} for fold {fold_idx} in Scenario {scenario}.")
 
     X_train, X_test, y_train, y_test, t_train, t_test=split_training_and_test(ds, binary_numeric_labels, timestamps,train_indices, test_indices)
+    print(y_train[:5])
+    print(y_test[:5])
 
 
-    if classifier=="ocsvm":
-        one_class_svm_train(X_train) #todo debug - change (for faster model training)
-        one_class_svm_evaluate(X_test, y_test)  #test data and corresponding labels
-        prediction_report=one_class_svm_predict(X_test, t_test) #test data and corresponding timestamps
-    elif classifier=="bsvm":   #binary svm (multiple classes in training)
-        binary_svm_train(X_train, y_train)
-        binary_svm_evaluate(X_test, y_test)
-        prediction_report=binary_svm_predict(X_test, t_test)
-    elif classifier == "ee":
-        elliptic_envelope_train(X_train)  # todo debug - change (for faster model training)
-        elliptic_envelope_evaluate(X_test, y_test)  # test data and corresponding labels
-        prediction_report = elliptic_envelope_predict(X_test, t_test)  # test data and corresponding timestamps
+    # if classifier=="ocsvm":
+    #     one_class_svm_train(X_train) #todo debug - change (for faster model training)
+    #     one_class_svm_evaluate(X_test, y_test)  #test data and corresponding labels
+    #     prediction_report=one_class_svm_predict(X_test, t_test) #test data and corresponding timestamps
+    # elif classifier=="bsvm":   #binary svm (multiple classes in training)
+    #     binary_svm_train(X_train, y_train)
+    #     binary_svm_evaluate(X_test, y_test)
+    #     prediction_report=binary_svm_predict(X_test, t_test)
+    # elif classifier == "ee":
+    #     elliptic_envelope_train(X_train)  # todo debug - change (for faster model training)
+    #     elliptic_envelope_evaluate(X_test, y_test)  # test data and corresponding labels
+    #     prediction_report = elliptic_envelope_predict(X_test, t_test)  # test data and corresponding timestamps
 
-    elif classifier == "rf":
-        binary_rf_train(X_train, y_train) # todo debug - change (for faster model training)
-        binary_rf_evaluate(X_test, y_test)
-        prediction_report = binary_rf_predict(X_test, t_test)
-    elif classifier == "knn":
-        binary_knn_train(X_train, y_train) # todo debug - change (for faster model training)
-        binary_knn_evaluate(X_test, y_test)
-        prediction_report = binary_knn_predict(X_test, t_test)
-    else:
-        print("wrong classifier choice")
+    # elif classifier == "rf":
+    #     binary_rf_train(X_train, y_train) # todo debug - change (for faster model training)
+    #     binary_rf_evaluate(X_test, y_test)
+    #     prediction_report = binary_rf_predict(X_test, t_test)
+    # elif classifier == "knn":
+    #     binary_knn_train(X_train, y_train) # todo debug - change (for faster model training)
+    #     binary_knn_evaluate(X_test, y_test)
+    #     prediction_report = binary_knn_predict(X_test, t_test)
+    # else:
+    #     print("wrong classifier choice")
 
-    print("\n--- Individual Packet Attack Detection Report ---")
-    print(prediction_report)
-    return
+    # print("\n--- Individual Packet Attack Detection Report ---")
+    # print(prediction_report)
+    # return
 
 
 #train and test indices for each fold ([[][],...]
@@ -122,6 +124,9 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
     X_train, X_test, y_train, y_test, t_train, t_test = split_training_and_test(
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
+
+    print(y_train[:5])
+    print(y_test[:5])
     f1=0.0
     if classifier == "ocsvm":
         base = OneClassSVM()
@@ -138,7 +143,12 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
 
     elif classifier == "ee":
         base = EllipticEnvelope()
-        best_model = grid_search_elliptic_envelope(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
+        # select first 100 samples, and last 100 samples from X_trains for testing only
+        X_train_subset = np.concatenate([X_train[:100], X_train[-100:]])
+        y_train_subset = np.concatenate([y_train[:100], y_train[-100:]])
+        X_test_subset = np.concatenate([X_test[:100], X_test[-100:]])
+        y_test_subset = np.concatenate([y_test[:100], y_test[-100:]])
+        best_model = grid_search_elliptic_envelope(base, X_train_subset, y_train_subset, X_test_subset, y_test_subset, scoring_metric="accuracy")
         joblib.dump(best_model, "models/ee.joblib")    # adjust filename to match your evaluate()
         roc_auc, precision, recall = elliptic_envelope_evaluate(X_test, y_test)
 
@@ -181,7 +191,7 @@ def execute_scenario_for_experiments(global_label_encoder, classifier, k, prefix
 
 
 
-        numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
+    numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
     binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
 
     precision_all_folds=[]
@@ -243,7 +253,8 @@ def execute_experiments_abc(global_label_encoder, k):
         print(f"[classifiers] Saved results to {out_path}")
 
     # Always run all classifiers with all their valid scenarios
-    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    # classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    classifiers_to_run = ["ee"]
 
     for clf_name in classifiers_to_run:
         scenarios_for_clf = valid_scenarios_for(clf_name)

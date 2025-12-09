@@ -60,6 +60,10 @@ def elliptic_envelope_evaluate(X_test, y_test):
     # --- 2) Normale Klassifikation ---
     y_pred_numeric = ee_clf.predict(X_test)
 
+    print(np.unique(y_test, return_counts=True))
+    print(np.unique(y_test_binary, return_counts=True))
+    print(np.unique(y_pred_numeric, return_counts=True))
+
     print("\n[EllipticEnvelope] --- Classification Report ---")
     print(classification_report(y_test_binary, y_pred_numeric))
 
