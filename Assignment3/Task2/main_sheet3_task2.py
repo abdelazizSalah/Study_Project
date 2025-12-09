@@ -418,7 +418,7 @@ def release_main():
         os.makedirs("results", exist_ok=True)
         os.makedirs("models", exist_ok=True)
         k = check_requirements_classifier_modes()
-        execute_experiments_abc(global_label_encoder, k)
+        execute_experiments_abc(global_label_encoder, k) # if param is 0, so we use only the raw dataset. 
     elif args.mode == "run_experiments_def":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)

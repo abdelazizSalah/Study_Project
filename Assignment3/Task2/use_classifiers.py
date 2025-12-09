@@ -125,6 +125,12 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
+    # running on small sample for getting results faster
+    # Todo: here I can decrease the number of the training data.
+    X_train = X_train[:1000] + X_train[-1000:] # begining are normal, and end are attacks. 
+    y_train = y_train[:1000] + y_train[-1000:] # labels. 
+
+
     print(y_train[:5])
     print(y_test[:5])
     f1=0.0
@@ -132,8 +138,8 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         base = OneClassSVM()
         best_model = grid_search_one_class_svm(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
         # overwrite the model file used by one_class_svm_evaluate
-        joblib.dump(best_model, "models/ocsvm.joblib")
-        roc_auc, precision, recall = one_class_svm_evaluate(X_test, y_test)
+        joblib.dump(best_model, "models/ocsvm.joblib") # save the best model
+        roc_auc, precision, recall = one_class_svm_evaluate(X_test, y_test) # the model will be loaded inside this function.
 
     elif classifier == "bsvm":
         base = SVC(probability=True, random_state=42)
@@ -163,6 +169,11 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         best_model = grid_search_knn(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/bknn.joblib")  # adjust to your filename
         roc_auc, precision, recall, f1 = binary_knn_evaluate(X_test, y_test)
+    elif classifier == 'lof':
+        pass # TODO: implement the same logic here. 
+        # base = KNeighborsClassifier(n_jobs=1)
+        # best_model = grid_search_knn(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
+        # joblib.dump(best_model, "models/bknn.joblib")  # adjust to your filename
 
     else:
         print("wrong classifier choice")
@@ -254,7 +265,8 @@ def execute_experiments_abc(global_label_encoder, k):
 
     # Always run all classifiers with all their valid scenarios
     # classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
-    classifiers_to_run = ["ee"]
+    classifiers_to_run = ["knn", "rf", "ocsvm", "bsvm", "ee"]
+    # classifiers_to_run = ["ee"]
 
     for clf_name in classifiers_to_run:
         scenarios_for_clf = valid_scenarios_for(clf_name)
@@ -325,7 +337,9 @@ def execute_experiments_def(global_label_encoder, k, param=5):
         print(f"[classifiers] Saved results to {out_path}")
 
     # Always run all classifiers with all their valid scenarios
-    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    # classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn"]
+    
+    classifiers_to_run = ["knn", "rf", "ocsvm", "bsvm", "ee"]
 
     for clf_name in classifiers_to_run:
         scenarios_for_clf = valid_scenarios_for(clf_name)
