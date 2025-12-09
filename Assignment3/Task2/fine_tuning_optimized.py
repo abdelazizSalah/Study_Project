@@ -77,11 +77,17 @@ def grid_search_random_forest(
         n_jobs = N_JOBLIB
 
     # You can shrink/enlarge this grid if needed
+    # param_grid = {
+    #     "n_estimators": [100, 200],
+    #     "max_depth": [None, 10, 20],
+    #     "min_samples_split": [2, 5],
+    #     "min_samples_leaf": [1, 2],
+    # }
     param_grid = {
-        "n_estimators": [100, 200],
-        "max_depth": [None, 10, 20],
-        "min_samples_split": [2, 5],
-        "min_samples_leaf": [1, 2],
+        "n_estimators": [50],
+        "max_depth": [None],
+        "min_samples_split": [5],
+        "min_samples_leaf": [1],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -106,7 +112,7 @@ def grid_search_random_forest(
 # SVM
 # -------------------------------------------------------------------
 
-def grid_search_svm(
+def grid_search_svm( # 0.932, 0.937 = 1, 
     svm: SVC,
     X_train,
     y_train,
@@ -124,9 +130,9 @@ def grid_search_svm(
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "C": [0.1, 1, 10],
-        "kernel": ["linear", "rbf"],
-        "gamma": ["scale", "auto"],
+        "C": [10],
+        "kernel": ['linear'],
+        "gamma": ['scale'],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -151,7 +157,7 @@ def grid_search_svm(
 # KNN
 # -------------------------------------------------------------------
 
-def grid_search_knn(
+def grid_search_knn( #1.  9820,  
     knn: KNeighborsClassifier,
     X_train,
     y_train,
@@ -169,9 +175,9 @@ def grid_search_knn(
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "n_neighbors": [3, 5, 7],
-        "weights": ["uniform", "distance"],
-        "metric": ["euclidean", "manhattan"],
+        "n_neighbors": [3],
+        "weights": ["uniform"],
+        "metric": ["manhattan"],
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -196,7 +202,7 @@ def grid_search_knn(
 # One-Class SVM (anomaly detection)
 # -------------------------------------------------------------------
 
-def _eval_params_ocsvm(base_model, params, X_train, X_val, y_val):
+def _eval_params_ocsvm(base_model, params, X_train, X_val, y_val): # 
     """
     Fit + score ONE parameter combination for One-Class SVM.
     Uses accuracy on the anomaly/normal mapping.
@@ -229,10 +235,10 @@ def grid_search_one_class_svm(
     if n_jobs is None:
         n_jobs = N_JOBLIB
 
-    param_grid = {
-        "kernel": ["rbf", "linear"],
-        "gamma": ["scale", "auto"],
-        "nu": [0.01, 0.05, 0.1],
+    param_grid = { # .8,.45 -- 
+        "kernel": ['rbf'],
+        "gamma": ['scale'],
+        "nu": [0.01],
     }
 
     all_params = list(_iter_param_grid(param_grid))
@@ -298,8 +304,8 @@ def grid_search_elliptic_envelope(
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "contamination": [0.05, 0.1, 0.2],
-        "support_fraction": [None, 0.5, 0.75],
+        "contamination": [0.05],
+        "support_fraction": [None],
     }
 
     all_params = list(_iter_param_grid(param_grid))
