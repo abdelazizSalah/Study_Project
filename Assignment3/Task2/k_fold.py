@@ -1,10 +1,11 @@
+import csv
 import os
 
 import numpy as np
 import random
 
 from constants import ATTACK_LABELS
-from file_helper_t3 import save_k_fold_results
+from file_helper_t3 import save_k_fold_results, load_k_fold_results
 from labels_helper import  split_attack_control, get_indices_for_attack_type
 
 
@@ -227,24 +228,48 @@ def create_and_save_all_folds(k):
         3: scenario3,
     }
 
+    prefixes = ["raw", "re"]
     # exist_ok=True prevents an error if the directory already exists.
     os.makedirs("k_fold_results", exist_ok=True)
     for s_num in scenario_numbers:
-        scenario_func = scenario_functions[s_num]
-        train_indices, test_indices = scenario_func(labels_raw,k)
-        filename = f"k_fold_results/k_fold_s{s_num}_raw.json"
-        save_k_fold_results(train_indices, test_indices, filename)
-        print(f"Scenario {s_num} processed and results saved to {filename}")
+        for prefix in prefixes:
+            scenario_func = scenario_functions[s_num]
+            if prefix=="raw":
+                train_indices, test_indices = scenario_func(labels_raw,k)
+            else:
+                train_indices, test_indices = scenario_func(labels_re, k)
+            filename = f"k_fold_results/k_fold_s{s_num}_{prefix}.json"
+            save_k_fold_results(train_indices, test_indices, filename)
+            print(f"Scenario {s_num} processed and results saved to {filename}")
 
-    for s_num in scenario_numbers:
-        scenario_func = scenario_functions[s_num]
-        train_indices, test_indices = scenario_func(labels_re,k)
-        filename = f"k_fold_results/k_fold_s{s_num}_re.json"
-        save_k_fold_results(train_indices, test_indices, filename)
-        print(f"Scenario {s_num} processed and results saved to {filename}")
 
     return 42
 
 
-def save_folds_pretty(k):
-    pass
+def print_k_fold_pretty():
+    print("Printing results to csv files in a readable format...")
+    os.makedirs("k_fold_results/pretty", exist_ok=True)
+
+    scenario_numbers = [1, 2, 3]
+    prefixes = ["raw", "re"]
+    # exist_ok=True prevents an error if the directory already exists.
+    for s_num in scenario_numbers:
+        for prefix in prefixes:
+            train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{s_num}_{prefix}.json")
+            for fold_idx in range(len(train_indices)):
+                train_fold = train_indices[fold_idx]
+                test_fold = test_indices[fold_idx]
+                filename=f"k_fold_results/pretty/k_fold_s{s_num}_{prefix}_f{fold_idx}.csv"
+                with open(filename, "w", newline="") as f:
+                    writer = csv.writer(f)
+                    writer.writerow(["train_index", "test_index"])  # header
+
+                    max_len=len(train_fold)
+                    # Write row-by-row, aligning columns
+                    for i in range(max_len):
+                        train_val = train_fold[i] if i < len(train_fold) else ""
+                        test_val = test_fold[i] if i < len(test_fold) else ""
+                        writer.writerow([train_val, test_val])
+
+    return
+

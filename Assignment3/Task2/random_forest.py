@@ -16,15 +16,12 @@ def binary_rf_train(X_train, y_train,
                     n_estimators=100,
                     max_depth=None,
                     random_state=42):
-    """
-    Train a binary Random Forest classifier on (X_train, y_train).
-    Labels: 0 = Control, 1 = Attack
-    """
+
 
     rf_clf = RandomForestClassifier(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        random_state=random_state,
+        n_estimators=n_estimators, #number of trees in the forest
+        max_depth=max_depth,    #max depth of each tree (model complexity)
+        random_state=random_state, ## ensures reproducible results by fixing randomness
         n_jobs=-1
     )
 
@@ -37,29 +34,15 @@ def binary_rf_train(X_train, y_train,
 
 
 def binary_rf_evaluate(X_test, y_test):
-    """
-    Evaluate the Random Forest binary classifier.
-    Uses ROC-AUC, precision, recall, F1 for the Attack class (1).
-    """
 
     try:
         rf_clf = joblib.load("models/brf.joblib")
     except FileNotFoundError:
-        print("FEHLER: 'models/brf.joblib' nicht gefunden. Bitte zuerst trainieren.")
+        print("ERROR: ‘models/bsvm.joblib’ not found. Please train first.")
         return 0.0, 0.0, 0.0, 0.0
 
-    # --- 1) ROC-AUC using predicted probabilities for class 1 (Attack) ---
-    if hasattr(rf_clf, "predict_proba"):
-        scores = rf_clf.predict_proba(X_test)[:, 1]  # P(y=1|x)
-    else:
-        # Fallback: use decision_function or plain predictions
-        # (RandomForestClassifier normally has predict_proba)
-        scores = rf_clf.predict(X_test)
 
-    roc_auc = roc_auc_score(y_test, scores)
-    print(f"[RandomForest] ROC-AUC: {roc_auc:.4f}")
-
-    # --- 2) Klassifikation ---
+    # --- classification ---
     y_pred_binary = rf_clf.predict(X_test)
 
     print("\n[RandomForest] --- Classification Report (0=Control, 1=Attack) ---")
@@ -74,7 +57,7 @@ def binary_rf_evaluate(X_test, y_test):
     print(f"[RandomForest] Recall    (Attack, 1): {recall:.4f}")
     print(f"[RandomForest] F1 Score  (Attack, 1): {f1:.4f}")
 
-    return roc_auc, precision, recall, f1
+    return precision, recall, f1
 
 
 def binary_rf_predict(X_test, t_test):
@@ -86,7 +69,7 @@ def binary_rf_predict(X_test, t_test):
     try:
         rf_clf = joblib.load("models/brf.joblib")
     except FileNotFoundError:
-        print("FEHLER: 'models/brf.joblib' nicht gefunden. Bitte zuerst trainieren.")
+        print("ERROR: ‘models/bsvm.joblib’ not found. Please train first.")
         return pd.DataFrame({
             'Timestamp (Unix)': [],
             'Predicted_Label': []

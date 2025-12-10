@@ -7,7 +7,7 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
-
+import pandas as pd
 from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, local_outlier_factor_predict
 from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds
@@ -28,14 +28,15 @@ import numpy as np
 #timeestamps should be a list of all timestamps fot the dataset
 def split_training_and_test(ds, labels, timestamps, train_indices_fold, test_indices_fold):
 
-    # FEATURES AUFTEILEN
+    # separate features
     X_train = ds[train_indices_fold]
     X_test = ds[test_indices_fold]
 
-    # LABELS AUFTEILEN
+    # separate labels
     y_train = labels[train_indices_fold]
     y_test = labels[test_indices_fold]
 
+    #separate timestamps
     T_test = timestamps[test_indices_fold]  #t_test[index] will be same element as x_test[index] and x_label[index]!
     T_train = timestamps[train_indices_fold]
     return X_train, X_test, y_train, y_test, T_train, T_test
@@ -52,7 +53,7 @@ def execute_fold(fold_idx, binary_numeric_labels, timestamps,train_indices, test
 
     X_train, X_test, y_train, y_test, t_train, t_test=split_training_and_test(ds, binary_numeric_labels, timestamps,train_indices, test_indices)
 
-    #run on small portion of dataset, for testing:
+    #run on small portion of dataset, for demonstration:
     #first_indices = np.arange(0, 1000)
     #last_indices = np.arange(len(X_train) - 1000, len(X_train))
     #selected_indices = np.concatenate((first_indices, last_indices))
@@ -87,6 +88,7 @@ def execute_fold(fold_idx, binary_numeric_labels, timestamps,train_indices, test
     else:
         print("wrong classifier choice")
 
+    pd.set_option("display.max_rows", None)
     print("\n--- Individual Packet Attack Detection Report ---")
     print(prediction_report)
     return
@@ -133,11 +135,7 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
-    if len(X_train)==0:
-        return 0.0, 0.0, 0.0, 0.0
-    print(len(X_train))
 
-    f1=0.0
     if classifier == "ocsvm":
         base = OneClassSVM()
         best_model = grid_search_one_class_svm(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
@@ -149,7 +147,7 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         base = SVC(probability=True, random_state=42)
         best_model = grid_search_svm(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/bsvm.joblib")  # adjust name if different in your code
-        roc_auc, precision, recall, f1 = binary_svm_evaluate(X_test, y_test)
+        precision, recall, f1 = binary_svm_evaluate(X_test, y_test)
 
     elif classifier == "ee":
         base = EllipticEnvelope()
@@ -161,13 +159,13 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         base = RandomForestClassifier(random_state=42, n_jobs=1)
         best_model = grid_search_random_forest(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/brf.joblib")   # whatever binary_rf_train uses
-        roc_auc, precision, recall, f1 = binary_rf_evaluate(X_test, y_test)
+        precision, recall, f1 = binary_rf_evaluate(X_test, y_test)
 
     elif classifier == "knn":
         base = KNeighborsClassifier(n_jobs=1)
         best_model = grid_search_knn(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
         joblib.dump(best_model, "models/bknn.joblib")  # adjust to your filename
-        roc_auc, precision, recall, f1 = binary_knn_evaluate(X_test, y_test)
+        precision, recall, f1 = binary_knn_evaluate(X_test, y_test)
     elif classifier == "lof":
         base = LocalOutlierFactor(novelty=True, n_jobs=1)  #without novelty=True, LOF cannot score unseen samples
         best_model = grid_search_lof_parallel(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
@@ -177,7 +175,7 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         print("wrong classifier choice")
         return 0.0, 0.0, 0.0, 0.0
 
-    return roc_auc, precision, recall, f1
+    return precision, recall
 
 
 
@@ -206,7 +204,7 @@ def execute_scenario_for_experiments(global_label_encoder, classifier, k, prefix
     precision_all_folds=[]
     recall_all_folds=[]
     for fold_idx in range(k):
-        roc_auc, precision, recall, f1 = execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_inidces, param=param)
+        precision, recall  = execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_inidces, param=param)
         precision_all_folds.append(precision)
         recall_all_folds.append(recall)
 
@@ -222,7 +220,7 @@ def execute_experiments_abc(global_label_encoder, k):
     """
 
 
-    #onky run the valid scenarios
+    #small helper returns the valid scenarios per model
     def valid_scenarios_for(clf_name: str):
         # OCSVM & EE are only defined for Scenario 1
         if clf_name in ("ocsvm", "ee", "lof"):
@@ -233,6 +231,7 @@ def execute_experiments_abc(global_label_encoder, k):
         else:
             return []
 
+    #run one scenario for a specific model
     def run_one(clf_name, scen):
         print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RAW)\n")
 
@@ -244,7 +243,7 @@ def execute_experiments_abc(global_label_encoder, k):
             scenario=scen,
         )
 
-        # Convert to plain lists in case they a
+
         precisions = list(precisions)
         recalls = list(recalls)
 
@@ -253,8 +252,8 @@ def execute_experiments_abc(global_label_encoder, k):
 
         with open(out_path, "w", newline="") as f:
             writer = csv.writer(f)
-            # Header is optional; comment this out if you don't want it
-            writer.writerow(["fold", "precision", "recall"])
+
+            writer.writerow(["fold", "precision", "recall"])    #header
 
             for fold_idx, (p, r) in enumerate(zip(precisions, recalls)):
                 writer.writerow([fold_idx, p, r])
@@ -278,12 +277,12 @@ def execute_experiments_abc(global_label_encoder, k):
 #1. compute keep_indices for re_bytes_{param}
 #2. when using labels, timestamps or k folds -> deduplicate based on keep_indices
 #3. use remaining logic as it is
-#execute this for param: 5,10,15
+# execute this for param: 5,10,15
 def execute_experiments_def(global_label_encoder, k, param=5):
     """
     Run all classifiers on all appropriate scenarios, collect per-fold
     precision/recall, and save them as CSV files in ./results.
-    Runs on dataset RAW, suitable for task d to f.
+    Runs on dataset /re_bytes_{param}/re_features_fold{param}, suitable for task d to f.
     """
 
     #calculate keep_indices for file!
@@ -324,7 +323,6 @@ def execute_experiments_def(global_label_encoder, k, param=5):
 
         with open(out_path, "w", newline="") as f:
             writer = csv.writer(f)
-            # Header is optional; comment this out if you don't want it
             writer.writerow(["fold", "precision", "recall"])
 
             for fold_idx, (p, r) in enumerate(zip(precisions, recalls)):

@@ -764,31 +764,6 @@ weighted avg       0.82      0.65      0.67    731545
 [kNN] F1 Score  (Attack=1): 0.7072
 Executing knn for fold 4 in Scenario 3 for RAW.
 Starting FAST & PARALLEL KNN Grid Search...
-predicted labels [0 1 0 0 1]
-raw predicted labels [ 1 -1  1  1 -1]
-Unique values in y_val_true: [0 1]
-Unique values in y_val_pred: [0 1]
-Unique values in y_val_raw: [-1  1]
-predicted labels [0 0 0 0 0]
-raw predicted labels [1 1 1 1 1]
-Unique values in y_val_true: [0 1]
-Unique values in y_val_pred: [0 1]
-Unique values in y_val_raw: [-1  1]
-predicted labels [0 0 0 0 0]
-raw predicted labels [1 1 1 1 1]
-Unique values in y_val_true: [0 1]
-Unique values in y_val_pred: [0 1]
-Unique values in y_val_raw: [-1  1]
-predicted labels [0 1 0 0 0]
-raw predicted labels [ 1 -1  1  1  1]
-Unique values in y_val_true: [0 1]
-Unique values in y_val_pred: [0 1]
-Unique values in y_val_raw: [-1  1]
-predicted labels [0 0 0 0 0]
-raw predicted labels [1 1 1 1 1]
-Unique values in y_val_true: [0 1]
-Unique values in y_val_pred: [0 1]
-Unique values in y_val_raw: [-1  1]
 Best parameters: {'n_neighbors': 3, 'weights': 'uniform', 'metric': 'manhattan'}
 Validation f1_macro: 0.8944
 [kNN] ROC-AUC: 0.9515

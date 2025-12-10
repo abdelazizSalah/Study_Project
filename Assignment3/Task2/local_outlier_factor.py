@@ -40,12 +40,6 @@ def local_outlier_factor_train(X_train, contamination=0.05, n_neighbors=20):
 
 
 def local_outlier_factor_evaluate(X_test, y_test):
-    """
-    Evaluate the Local Outlier Factor one-class model on a test set.
-
-    y_test is expected to be multiclass/integers where
-    0 = normal, everything else = attack.
-    """
 
     try:
         lof_clf = joblib.load("models/local_outlier_factor.joblib")
@@ -56,7 +50,6 @@ def local_outlier_factor_evaluate(X_test, y_test):
     # binary labels: +1 normal, -1 attack
     y_test_binary = np.where(y_test == 0, 1, -1)
 
-    # --- 1) Scores für ROC-AUC ---
     # decision_function: larger values -> more "normal", smaller -> more "anomalous"
     scores = lof_clf.decision_function(X_test)
 
@@ -70,7 +63,7 @@ def local_outlier_factor_evaluate(X_test, y_test):
     print("\n[LocalOutlierFactor] --- Classification Report ---")
     print(classification_report(y_test_binary, y_pred_numeric))
 
-    # Wir betrachten -1 als "Anomalie/Attacke"
+    #-1 = attack
     precision = precision_score(y_test_binary, y_pred_numeric, pos_label=-1)
     recall = recall_score(y_test_binary, y_pred_numeric, pos_label=-1)
 

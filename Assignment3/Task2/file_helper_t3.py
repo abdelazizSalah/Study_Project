@@ -6,8 +6,8 @@ import json
 def save_k_fold_results(training_indices, test_indices, filename):
     with open(filename, "w") as f:
         json.dump({
-            "train_indices": training_indices,
-            "test_indices": test_indices
+            "train_indices": training_indices,  #train indices for all folds
+            "test_indices": test_indices    #test indices for all folds
         }, f)
 
     return

@@ -1,28 +1,6 @@
 from sklearn.covariance import EllipticEnvelope
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
-
-def elliptic_envelope_train(X_train, contamination=0.05):
-    """
-    Train an Elliptic Envelope one-class model.
-    contamination = expected fraction of anomalies in data
-    """
-
-    ee_clf = make_pipeline(
-        StandardScaler(),
-        EllipticEnvelope(
-            contamination=contamination,
-            support_fraction=None  # default robust covariance
-        )
-    )
-
-    ee_clf.fit(X_train)
-    print("Elliptic Envelope training done")
-
-    joblib.dump(ee_clf, "models/elliptic_envelope.joblib")
-
-    return ee_clf
-
 from sklearn.metrics import (
     roc_auc_score,
     classification_report,
@@ -34,13 +12,28 @@ import pandas as pd
 import joblib
 
 
-def elliptic_envelope_evaluate(X_test, y_test):
-    """
-    Evaluate the Elliptic Envelope one-class model on a test set.
+def elliptic_envelope_train(X_train, contamination=0.05):
 
-    y_test is expected to be multiclass/integers where
-    0 = normal, everything else = attack.
-    """
+
+    ee_clf = make_pipeline(
+        StandardScaler(), #StandardScaler transforms each feature so that it has mean = 0 standard deviation = 1 -> required for ee!
+        EllipticEnvelope(
+            contamination=contamination, #expected fraction of anomalies in data
+            support_fraction=None  # use full dataset for robust covariance estimation
+        )
+    )
+
+    ee_clf.fit(X_train)
+    print("Elliptic Envelope training done")
+
+    joblib.dump(ee_clf, "models/elliptic_envelope.joblib")
+
+    return ee_clf
+
+
+
+
+def elliptic_envelope_evaluate(X_test, y_test):
 
     try:
         ee_clf = joblib.load("models/elliptic_envelope.joblib")
@@ -57,13 +50,13 @@ def elliptic_envelope_evaluate(X_test, y_test):
     roc_auc = roc_auc_score(y_test_binary, scores)
     print(f"[EllipticEnvelope] ROC-AUC: {roc_auc:.4f}")
 
-    # --- 2) Normale Klassifikation ---
+    # normal classification
     y_pred_numeric = ee_clf.predict(X_test)
 
     print("\n[EllipticEnvelope] --- Classification Report ---")
     print(classification_report(y_test_binary, y_pred_numeric))
 
-    # Wir betrachten -1 als "Anomalie/Attacke"
+    # -1 = attack
     precision = precision_score(y_test_binary, y_pred_numeric, pos_label=-1)
     recall = recall_score(y_test_binary, y_pred_numeric, pos_label=-1)
 
@@ -78,9 +71,6 @@ def elliptic_envelope_predict(X_test, t_test):
     For each set of measurements at a given time step in the testing set,
     print/return whether this set of measurements contains any attack or not.
 
-    Returns a DataFrame with:
-      - 'Timestamp (Unix)'
-      - 'Predicted_Label'  in {'Normal', 'Attack'}
     """
 
     try:

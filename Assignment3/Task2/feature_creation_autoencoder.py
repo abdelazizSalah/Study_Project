@@ -11,120 +11,36 @@ import numpy as np
 from file_helper_t3 import load_k_fold_results
 
 
-def build_ics_ae_dense(
-    input_dim: int,
-    bottleneck: int = 32,
-    hidden_dims=(256, 128),
-    activation: str = "relu",
-    noise_std: float = 0.02,
-    bottleneck_l1: float = 0.0,
-) -> keras.Model:
-    """
-    Autoencoder für ICS-Pakete (bytes als Vektor, vorher auf [0,1] skalieren).
-
-    - Encoder: GaussianNoise -> Dense(hidden_dims...) -> Bottleneck
-    - Decoder: symmetrisch zurück auf input_dim
-    - Output: sigmoid (passt zu [0,1] Skala), Loss: MSE
-    """
-
-    inp = keras.Input(shape=(input_dim,), name="bytes")
-
-    # Rauschen für Denoising-Effekt (nur im Training aktiv)
-    x = layers.GaussianNoise(noise_std, name="noise")(inp)
-
-    # ENCODER
-    for i, h in enumerate(hidden_dims):
-        x = layers.Dense(h, activation=None, name=f"enc{i+1}_dense")(x)
-        x = layers.BatchNormalization(name=f"enc{i+1}_bn")(x)
-        x = layers.Activation(activation, name=f"enc{i+1}_act")(x)
-        x = layers.Dropout(0.1, name=f"enc{i+1}_drop")(x)
-
-    # Bottleneck / Latent-Space
-    z = layers.Dense(
-        bottleneck,
-        activation=None,
-        name="latent",
-        kernel_regularizer=regularizers.l1(bottleneck_l1) if bottleneck_l1 > 0 else None,
-    )(x)
-
-    # DECODER (symmetrisch)
-    x = z
-    for i, h in enumerate(reversed(hidden_dims)):
-        x = layers.Dense(h, activation=None, name=f"dec{i+1}_dense")(x)
-        x = layers.BatchNormalization(name=f"dec{i+1}_bn")(x)
-        x = layers.Activation(activation, name=f"dec{i+1}_act")(x)
-
-    out = layers.Dense(input_dim, activation="sigmoid", name="recon")(x)
-
-    model = keras.Model(inp, out, name="ICS_AE_Dense")
-    return model
 
 
-
-
-def create_model():
-    # learning rate = size of single weight update step
-    # higher lr -> faster training, lr too high -> training unstable
-
-
-
-    M = 386  # dein max. Packet-Size
-    model = build_ics_ae_dense(
-        input_dim=M,
-        bottleneck=32,  # ggf. 16 / 64 ausprobieren
-        hidden_dims=(256, 128),  # minimal größer als vorher
-        activation="relu",
-        noise_std=0.02,
-        bottleneck_l1=1e-5  # oder 0.0, wenn du kein L1 willst
-    )
-
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
-        loss="mse"
-    )
-    model.save("models/ae_untrained_386.keras")
-    return
-
-
-
-############################creation and training of models (one for each fold)!
-
-
+#returns the
 def ds_training_and_test_from_fold(ds, labels, train_indices_fold, test_indices_fold):
 
-    # FEATURES AUFTEILEN
+    #extract datapoints for the training portion
     X_train = ds[train_indices_fold]
-
 
     X_test = ds[test_indices_fold]
 
-    # attack data aus test entfernen (Kontraproduktiv für autoencoder training)
+    # remove attack data from test portion (can not be used for autoencoder validation)
     y_test = labels[test_indices_fold]
-    test_mask = (y_test == "CONTROL")
+    test_mask = (y_test == "CONTROL")   #bit mask
     X_test = X_test[test_mask]
 
-    # --- Normalisierung: Bytes -> [0, 1] ---
+    # --- normalization: Bytes -> [0, 1] for testing, since the ae can work better with smaller range ---
     X_train = X_train.astype("float32") / 255.0
     X_test = X_test.astype("float32") / 255.0
     return X_train, X_test
 
 
+# Train one AE per fold for a given representation (raw or re).
 def train_ae_for_representation(
-    base_model_path: str,
-    kfold_json_path: str,
-    labels_path: str,
-    bytes_path: str,
-    model_prefix: str,
+    base_model_path: str,   #path to untrained .keras model with correct input_dim
+    kfold_json_path: str,   #path to k-fold indices json for scenario1
+    labels_path: str,   #path to labels file
+    bytes_path: str,    # path to preprocessed re_bytes or raw_bytes
+    model_prefix: str,  #re or raw
 ):
-    """
-    Train one AE per fold for a given representation (raw or re).
 
-    base_model_path:   path to untrained .keras model (correct input_dim)
-    kfold_json_path:   path to k-fold indices json
-    labels_path:       npy file with labels (shape: (N,))
-    bytes_path:        npy file with byte matrix (shape: (N, M))
-    model_prefix:      prefix for saving trained models, e.g. 'raw' or 're'
-    """
     # load base (untrained) model
     base_model = keras.models.load_model(base_model_path)
 
@@ -145,20 +61,15 @@ def train_ae_for_representation(
         # fresh model for this fold
         model = keras.models.clone_model(base_model)
         model.set_weights(base_model.get_weights())
-        model.compile(optimizer=keras.optimizers.Adam(1e-3), loss="mse")
+        model.compile(optimizer="adam", loss="mse")
 
-        cb = [
-            keras.callbacks.EarlyStopping(
-                monitor="val_loss",
-                patience=5,
-                restore_best_weights=True,
-            )
-        ]
+        #stops the training if mse didnt improve for 5 epochs
+        cb = [keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True,)]
 
         model.fit(
-            X_train,
-            X_train,
-            validation_data=(X_val, X_val),
+            X_train,     # inputs
+            X_train,      # targets to reconstruct
+            validation_data=(X_val, X_val), # val inputs, val targets
             epochs=100,
             callbacks=cb,
             verbose=1,
@@ -196,9 +107,13 @@ def train_and_save_models():
 
 ############################feature extraction!
 
-def extract_and_save_features_for_model(model_path: str, bytes_path: str, out_path: str, batch_size: int = 128):
+def extract_and_save_features_for_model(
+        model_path: str, #eg models/ae_fold0_raw.keras
+        bytes_path: str, #eg datasets/raw_bytes.npy
+        out_path: str, #eg datasets/raw_features_fold0.npy
+        batch_size: int = 128):
     """
-    Load a trained AE, build encoder(latent), run it on the *whole* dataset,
+    Load a trained AE, build encoder(latent), run it on the dataset (re_bytes/raw_bytes),
     and save the latent features to out_path (.npy).
     """
     print(f"\nLoading model: {model_path}")
@@ -206,6 +121,8 @@ def extract_and_save_features_for_model(model_path: str, bytes_path: str, out_pa
 
     # Build encoder model: input -> latent layer
     latent_layer = model.get_layer("latent")
+
+    # separates and extracts the Encoder portion of the ae
     encoder = keras.Model(inputs=model.input, outputs=latent_layer.output)
 
     # Load and normalize bytes
@@ -216,7 +133,7 @@ def extract_and_save_features_for_model(model_path: str, bytes_path: str, out_pa
     ds_all_batched = tf.data.Dataset.from_tensor_slices(ds_all).batch(batch_size)
 
     print(f"Extracting features for {ds_all.shape[0]} datapoints ...")
-    features = encoder.predict(ds_all_batched, verbose=1)   # shape (N, bottleneck)
+    features = encoder.predict(ds_all_batched, verbose=1)   # shape (N, bottleneck) - N = len(ds_all)
 
     print(f"Saving features to {out_path}")
     np.save(out_path, features)
@@ -224,12 +141,12 @@ def extract_and_save_features_for_model(model_path: str, bytes_path: str, out_pa
 
 
 def extract_features_for_all_folds(
-    model_prefix: str,
-    bytes_path: str,
+    model_prefix: str, #re/raw
+    bytes_path: str, # eg raw_bytes
     num_folds: int,
     out_dir: str = "datasets",
 ):
-    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    Path(out_dir).mkdir(exist_ok=True)
 
     if model_prefix == "raw":
         model_prefix_ae="raw"
