@@ -1,4 +1,4 @@
-N_JOBLIB = 64
+N_JOBLIB = 32
 
 from itertools import product
 import numpy as np
