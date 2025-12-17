@@ -1,0 +1,6 @@
+- Ensure that you installed the requirements libraries first:
+  - > pip install -r requirements.txt
+- You just need to run the task and provide the value of n in the terminal like this: 
+  - > python task1_sheet3.py 3 (for n = 3)
+- Inside the folder you can find the best results on running it on the whole dataset. 
+  - along with the best threshold value. 

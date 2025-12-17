@@ -53,6 +53,50 @@ Finding optimal threshold:
     - calculate detection rate (true positive rate) and false positive rate for the current threshold.
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
+
+'''
+Example on how Bloom filter work: 
+- First we need to determine its parameters: 
+    - number of bits. => 10 bits
+    - number of hash functions => 3 hash functions
+- Then we should have some elements to insert, lets assume {cat, dog}
+- then for each of the hash functions we have, we compute the hash for each element,
+    - h1(cat) = 3
+    - h2(cat) = 5
+    - h3(cat) = 7
+    - then now we go and set bits with these indicies in the bloom filter as 1. 
+- then we repeat for the other element:
+    - h1(dog) = 1
+    - h2(dog) = 5
+    - h3(dog) = 9
+    - then now we go and set bits with these indicies in the bloom filter as 1.
+    - now our bloom filter looks like this:
+        - Index: 0 1 2 3 4 5 6 7 8 9
+        - Bits:  0 1 0 1 0 1 0 1 0 1
+- Now for testing
+- if we have this test set {cat, cow, car, carpet}
+    - for cat:
+        - h1(cat) = 3
+        - h2(cat) = 5
+        - h3(cat) = 7
+        - we check bits at these indices, all are 1, so cat is probably in the set.
+    - for cow:
+        - h1(cow) = 0
+        - h2(cow) = 4
+        - h3(cow) = 6
+        - we check bits at these indices, all bits are not set, so cow is definitely not in the set.
+    - for car:
+        - h1(car) = 2
+        - h2(car) = 5
+        - h3(car) = 8
+        - we check bits at these indices, bit at index 2 and 8 are not set, so car is definitely not in the set.
+    - for carpet:
+        - h1(carpet) = 1
+        - h2(carpet) = 3
+        - h3(carpet) = 7
+        - we check bits at these indices, by incident all are set, so we will consider carpet as in the set => (false-positive)
+'''
+
 TESTING = True
 import sys
 import numpy as np
@@ -75,7 +119,7 @@ class BloomFilter:
         - uses double hashing (h1 + i * h2) to generate multiple hash values
         - supporting adding elements and checking membership
     '''
-    def __init__(self, false_positive_rate=0.01, number_of_ngrams=10000):
+    def __init__(self, false_positive_rate=0.01, number_of_ngrams=1000):
         '''
             Constructor to initialize the Bloom filter
             false_positive_rate: desired false positive rate (between 0 and 1)
@@ -92,6 +136,7 @@ class BloomFilter:
         self.byte_array = bytearray(self.required_number_of_bits // 8 + 1)  # +1 to handle any remainder bits
         # bytes array is an efficient way to store bits in python, each byte has 8 bits, so number of bytes = ceil(number of bits / 8)
         # I could have used also boolean array, but 1 boolean = 1 byte, so it is less efficient in terms of space.
+        # number of hash functions affect the probability of false positives, less hashes = more false positives, more hashes = less false positives but slower performance.
 
 
     def _set_certain_bit(self, bit_index):
