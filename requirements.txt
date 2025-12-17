@@ -9,3 +9,4 @@ scipy~=1.16.3
 scikit-learn~=1.7.2
 scikit-learn-extra~=0.3.0
 joblib~=1.5.2
+biopython~=1.86
