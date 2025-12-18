@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 import os
 
-from Assignment4.Task1.measure_runtime import stop_ram_monitor, start_ram_monitor
+from measure_runtime import stop_ram_monitor, start_ram_monitor
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf

@@ -6,7 +6,7 @@ import time
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
-from Assignment4.Task1.measure_runtime import measure_all
+from measure_runtime import measure_all
 from use_classifiers import execute_experiments_def, execute_experiments_abc
 from handling_re_bytes_integrated import create_preprocessed_re_files, create_preprocessed_re15
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
@@ -371,7 +371,7 @@ def release_main_new():
     args = parse_args()
 
     if args.mode == "dataset_preprocessing":
-        run_dataset_preprocessing(args.attack_dir, args.control_dir)
+        #run_dataset_preprocessing(args.attack_dir, args.control_dir)
         create_preprocessed_re15() #re_bytes_15
     elif args.mode == "k_fold":
         run_k_fold(args.k)
@@ -381,7 +381,7 @@ def release_main_new():
         os.makedirs("results", exist_ok=True)
 
         # todo: create RE15
-
+        print(f"k:{k}")
         measure_all(k)
         # RAW, RE15
         # measure RAM, runtime

@@ -4,7 +4,7 @@ import time
 
 import psutil
 
-from Assignment4.Task1.feature_creation_autoencoder import train_and_save_models_rt
+from feature_creation_autoencoder import train_and_save_models_rt
 
 
 def start_ram_monitor(interval=0.1):
