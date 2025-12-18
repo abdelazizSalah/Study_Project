@@ -6,6 +6,9 @@ import psutil
 
 from feature_creation_autoencoder import train_and_save_models_rt
 
+def bytes_to_mb(num_bytes):
+    return num_bytes / (1024 ** 2)
+
 
 def start_ram_monitor(interval=0.1):
     """

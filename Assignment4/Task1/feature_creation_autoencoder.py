@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 import os
 
-from measure_runtime import stop_ram_monitor, start_ram_monitor
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
@@ -44,6 +43,8 @@ def train_ae_for_representation(
     bytes_path: str,    # path to preprocessed re_bytes or raw_bytes
     model_prefix: str,  #re or raw
 ):
+
+    from measure_runtime import stop_ram_monitor, start_ram_monitor, bytes_to_mb
 
     # load base (untrained) model
     base_model = keras.models.load_model(base_model_path)
