@@ -3,10 +3,10 @@
 @ Date: 05.12.25
 @ Description:
     handling the reverse engineering of bytes - by concatenating every p packets' physical reading together
-Main logic: 
+Main logic:
     1. read .npy file
-    2. exclute the appended zeros from right. 
-    3. concatenate every p packets' physical reading together. 
+    2. exclute the appended zeros from right.
+    3. concatenate every p packets' physical reading together.
     4. determine the maximum length of the concatenated packets.
     5. append zeros to the right of the concatenated packets to make them of equal length.
     6. write the processed data to a new .npy file.
@@ -144,7 +144,6 @@ def process_npy_file(input_source, output_file_path, p):
 
     return padded_data
 
-
 def create_preprocessed_re_files():
     p=[5,10,15]
     input_file_path = "datasets/re_bytes.npy"
@@ -153,6 +152,16 @@ def create_preprocessed_re_files():
     for i in p:
         output_file_path = f"datasets/re_bytes_{i}.npy"
         process_npy_file(input_file_path, output_file_path, i)
+    return
+
+
+def create_preprocessed_re15():
+    input_file_path = "datasets/re_bytes.npy"
+    input_labels = "datasets/labels.npy"
+
+
+    output_file_path = f"datasets/re_bytes_15.npy"
+    process_npy_file(input_file_path, output_file_path, 15)
     return
 
 

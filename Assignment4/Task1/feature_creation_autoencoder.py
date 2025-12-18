@@ -1,5 +1,10 @@
+import threading
+import time
 from pathlib import Path
 import os
+
+from Assignment4.Task1.measure_runtime import stop_ram_monitor, start_ram_monitor
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
 from keras import regularizers
@@ -9,8 +14,6 @@ from tensorflow.keras import layers
 import numpy as np
 
 from file_helper_t3 import load_k_fold_results
-
-
 
 
 #returns the
@@ -32,6 +35,7 @@ def ds_training_and_test_from_fold(ds, labels, train_indices_fold, test_indices_
     return X_train, X_test
 
 
+
 # Train one AE per fold for a given representation (raw or re).
 def train_ae_for_representation(
     base_model_path: str,   #path to untrained .keras model with correct input_dim
@@ -49,7 +53,16 @@ def train_ae_for_representation(
     labels = np.load(labels_path)
     ds = np.load(bytes_path)  # shape (N, M)
 
+    fold_runtimes = []
+    fold_peak_ram = []
+
     for fold_idx in range(len(training_indices)):
+        # start RAM tracker
+        ram_handle = start_ram_monitor(interval=0.1)
+
+        # measure runtime
+        start_time = time.perf_counter()  # ⏱ start timing
+
         print(f"\n=== {model_prefix.upper()}: Fold {fold_idx} ===")
 
         train_idx = training_indices[fold_idx]
@@ -63,8 +76,10 @@ def train_ae_for_representation(
         model.set_weights(base_model.get_weights())
         model.compile(optimizer="adam", loss="mse")
 
-        #stops the training if mse didnt improve for 5 epochs
+        #stops the training if mse didn't improve for 5 epochs
         cb = [keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True,)]
+
+
 
         model.fit(
             X_train,     # inputs
@@ -75,7 +90,51 @@ def train_ae_for_representation(
             verbose=1,
         )
 
+
+
         model.save(f"models/ae_fold{fold_idx}_{model_prefix}.keras")    #10 different models
+
+        # measure runtime end
+        end_time = time.perf_counter()
+        runtime = end_time - start_time
+        fold_runtimes.append(runtime)
+
+        # measure ram end
+        peak_rss = stop_ram_monitor(ram_handle)
+        fold_peak_ram.append(peak_rss)
+
+    avg_runtime = np.mean(fold_runtimes)
+    avg_peak_ram=bytes_to_mb(np.max(fold_peak_ram))
+    return avg_runtime, avg_peak_ram
+
+
+#gets k by checking length of training indices by fold!
+def train_and_save_models_rt(prefix):
+
+    print("Training Models on RAW:\n")
+    # RAW
+
+    if prefix=="raw":
+        avg_runtime, avg_peak_ram= train_ae_for_representation(
+            base_model_path="models/ae_untrained_466.keras",
+            kfold_json_path="k_fold_results/k_fold_s1_raw.json",
+            labels_path="datasets/raw_labels.npy",
+            bytes_path="datasets/raw_bytes.npy",
+            model_prefix="raw",
+        )
+    else:
+        #re15
+        print("\nTraining Models on RE:\n")
+
+        avg_runtime, avg_peak_ram= train_ae_for_representation(
+            base_model_path="models/ae_untrained_386.keras",
+            kfold_json_path="k_fold_results/k_fold_s1_re.json",
+            labels_path="datasets/re_labels.npy",
+            bytes_path="datasets/re_bytes_15.npy",
+            model_prefix="re",
+        )
+
+    return avg_runtime, avg_peak_ram
 
 
 #gets k by checking length of training indices by fold!

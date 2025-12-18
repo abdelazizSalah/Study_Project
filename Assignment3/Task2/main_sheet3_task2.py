@@ -10,11 +10,11 @@ from use_classifiers import execute_experiments_def, execute_experiments_abc
 from handling_re_bytes_integrated import create_preprocessed_re_files
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
 from use_classifiers import execute_scenario
-from file_helper_t3 import verify_amount_feature_files,load_k_fold_results
+from file_helper_t3 import verify_amount_feature_files, load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
 from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
 from feature_creation_autoencoder import create_features_for_ds
-from preprocessing_s3t2 import  find_M, \
+from preprocessing_s3t2 import find_M, \
     pcaps_byte_and_metadata_extraction
 
 
@@ -22,17 +22,16 @@ def require_file(path: str):
     if not os.path.isfile(path):
         print(f"ERROR: Required file not found: {path}")
         print("Please run the the respective mode that creates this file first.")
-        sys.exit(1)   # terminate program
+        sys.exit(1)  # terminate program
 
 
 def check_requirements_classifier_modes():
-
     require_file(f"k_fold_results/k_fold_s1_raw.json")
     training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
     k = len(training_indices_raw)
 
-    #check that k fold files for all scenarios exist
-    for s_idx in range(1,4):
+    # check that k fold files for all scenarios exist
+    for s_idx in range(1, 4):
         require_file(f"k_fold_results/k_fold_s{s_idx}_raw.json")
         require_file(f"k_fold_results/k_fold_s{s_idx}_re.json")
 
@@ -41,15 +40,17 @@ def check_requirements_classifier_modes():
         training_indices_re, test_indices_re = load_k_fold_results(f"k_fold_results/k_fold_s{s_idx}_re.json")
 
         # feature files exist for all folds and number of folds should always be the same
-        if len(training_indices_raw) != k or len(training_indices_re) != k :
-            print("Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
+        if len(training_indices_raw) != k or len(training_indices_re) != k:
+            print(
+                "Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
             sys.exit(1)
 
     if not verify_amount_feature_files(k):
-        print("Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
+        print(
+            "Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
         sys.exit(1)
 
-    #check that label and timestamp files exist
+    # check that label and timestamp files exist
     require_file("datasets/raw_labels.npy")
     require_file("datasets/re_labels.npy")
     require_file("datasets/raw_timestamps.npy")
@@ -58,7 +59,6 @@ def check_requirements_classifier_modes():
 
 
 def check_requirements_feature_extraction_mode():
-
     require_file("k_fold_results/k_fold_s1_raw.json")
     require_file("k_fold_results/k_fold_s1_re.json")
     require_file("k_fold_results/k_fold_s2_raw.json")
@@ -67,9 +67,10 @@ def check_requirements_feature_extraction_mode():
     require_file("k_fold_results/k_fold_s3_re.json")
     training_indices_raw, test_indices_raw = load_k_fold_results("k_fold_results/k_fold_s1_raw.json")
 
-    k=len(training_indices_raw)
+    k = len(training_indices_raw)
 
     return k
+
 
 def check_requirements_k_fold_mode(k):
     if k > 8:
@@ -83,6 +84,7 @@ def check_requirements_k_fold_mode(k):
     require_file(RAW_LABELS_PATH)
     require_file(RE_LABELS_PATH)
     return
+
 
 def parse_args():
     description = """\
@@ -165,13 +167,13 @@ MODE DETAILS
       * Random Forest        – Scenarios 2 and 3
       * k-NN                 – Scenarios 2 and 3
       * Local Outlier Factor - Scenario 1
-      
+
     run_experiments_abc:
     Run all classifiers on all appropriate scenarios, collect per-fold
     precision/recall, and save them as CSV files in ./results.
     Runs on dataset RAW, suitable for task a to c.
     Will run with amount of folds created by previously executed k-folds mode. 
-    
+
     run_experiments_def:
     Run all classifiers on all appropriate scenarios, collect per-fold
     precision/recall, and save them as CSV files in ./results.
@@ -188,7 +190,8 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers", "run_experiments_abc","run_experiments_def"],
+        choices=["dataset_preprocessing", "k_fold", "extract_features", "classifiers", "run_experiments_abc",
+                 "run_experiments_def"],
         help="Which pipeline step to run.",
     )
 
@@ -216,7 +219,7 @@ MODE DETAILS
     parser.add_argument(
         "--classifier",
         type=str,
-        choices=["ocsvm", "bsvm", "ee", "rf", "knn","lof"],
+        choices=["ocsvm", "bsvm", "ee", "rf", "knn", "lof"],
         help="Classifier to run when mode=classifiers.",
     )
 
@@ -238,13 +241,12 @@ MODE DETAILS
 # -------------------------------------------------------------------
 
 def run_dataset_preprocessing(attack_dir: str, control_dir: str):
-
     if not attack_dir or not control_dir:
         print("ERROR: --attack-dir and --control-dir are required for mode=dataset_preprocessing.")
         sys.exit(1)
 
     # M as length of longest packet per dataset
-    #M_raw, M_re= find_M(attack_dir, control_dir)
+    # M_raw, M_re= find_M(attack_dir, control_dir)
 
     # to reduce runtime use fixed M, which was previously computed using the find_M function
     M_raw = 466
@@ -291,7 +293,7 @@ def run_extract_features():
     Trains autoencoders (for Scenario 1 control data) and extracts latent
     features for RAW and RE datasets using k folds training data .
     """
-    k=check_requirements_feature_extraction_mode()
+    k = check_requirements_feature_extraction_mode()
     os.makedirs("models", exist_ok=True)
 
     # Train k autoencoders
@@ -303,13 +305,11 @@ def run_extract_features():
     print("[extract_features] Trained autoencoders and extracted features.")
 
 
-#Runs the selected classifier(s) on selected scenario(s).
+# Runs the selected classifier(s) on selected scenario(s).
 def run_classifiers(classifier: str | None,
                     scenario: int | None,
                     global_label_encoder: LabelEncoder):
-
     k = check_requirements_classifier_modes()
-
 
     # Helper to decide which scenarios are valid per classifier
     def valid_scenarios_for(clf_name: str):
@@ -371,8 +371,6 @@ def run_classifiers(classifier: str | None,
 # -------------------------------------------------------------------
 
 
-
-
 def release_main():
     args = parse_args()
     start = time.time()
@@ -384,7 +382,7 @@ def release_main():
         run_k_fold(args.k)
         print_k_fold_pretty()
     elif args.mode == "extract_features":
-        run_extract_features()  #needs server for RAM
+        run_extract_features()  # needs server for RAM
 
     elif args.mode == "classifiers":
         # Build global label encoder once
@@ -394,7 +392,7 @@ def release_main():
         os.makedirs("models", exist_ok=True)
         run_classifiers(args.classifier, args.scenario, global_label_encoder)
     elif args.mode == "run_experiments_abc":
-        #runs experiments a, b and c with grid search and saves results for precision and recall in files
+        # runs experiments a, b and c with grid search and saves results for precision and recall in files
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         os.makedirs("results", exist_ok=True)
@@ -406,14 +404,14 @@ def release_main():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         os.makedirs("results", exist_ok=True)
         os.makedirs("models", exist_ok=True)
-        #only re_bytes required, re_bytes5 etc will be created on the way
-        require_file("datasets/re_bytes.npy") #additional requirement
+        # only re_bytes required, re_bytes5 etc will be created on the way
+        require_file("datasets/re_bytes.npy")  # additional requirement
         k = check_requirements_classifier_modes()
-        create_preprocessed_re_files()  #creates re_bytes_5, re_bytes_10, re_bytes_15
+        create_preprocessed_re_files()  # creates re_bytes_5, re_bytes_10, re_bytes_15
 
-        #features are created yb re_byte5, re_byte10, re_byte15 etc...
-        #with existing autoencoder (per fold)
-        create_features_for_ds_task3def(k)  #needs server for RAM
+        # features are created yb re_byte5, re_byte10, re_byte15 etc...
+        # with existing autoencoder (per fold)
+        create_features_for_ds_task3def(k)  # needs server for RAM
 
         execute_experiments_def(global_label_encoder, k, "5")
         execute_experiments_def(global_label_encoder, k, "10")
@@ -427,7 +425,6 @@ def release_main():
     end = time.time()
     elapsed = end - start
     print(f"⏱️ release_main() executed in {elapsed:.2f} seconds")
-
 
 
 if __name__ == "__main__":
