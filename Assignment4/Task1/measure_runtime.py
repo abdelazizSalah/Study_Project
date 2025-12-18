@@ -50,7 +50,7 @@ def stop_ram_monitor(handle):
 
 
 
-def measure_all():
+def measure_all(k):
     #RAW, RE15
 
 
