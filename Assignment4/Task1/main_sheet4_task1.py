@@ -147,7 +147,7 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold"],
+        choices=["dataset_preprocessing", "k_fold", "measure_runtime"],
         help="Which pipeline step to run.",
     )
 
@@ -371,7 +371,7 @@ def release_main_new():
     args = parse_args()
 
     if args.mode == "dataset_preprocessing":
-        #run_dataset_preprocessing(args.attack_dir, args.control_dir)
+        run_dataset_preprocessing(args.attack_dir, args.control_dir)
         create_preprocessed_re15() #re_bytes_15
     elif args.mode == "k_fold":
         run_k_fold(args.k)
@@ -380,7 +380,6 @@ def release_main_new():
         k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
 
-        # todo: create RE15
         print(f"k:{k}")
         measure_all(k)
         # RAW, RE15
