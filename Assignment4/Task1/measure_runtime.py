@@ -3,8 +3,11 @@ import threading
 import time
 
 import psutil
+from keras.src.models import model
 
 from feature_creation_autoencoder import train_and_save_models_rt
+from tensorflow import keras
+
 
 def bytes_to_mb(num_bytes):
     return num_bytes / (1024 ** 2)
@@ -53,7 +56,7 @@ def stop_ram_monitor(handle):
 def measure_all(k):
     #RAW, RE15
 
-
+    model.load("models/ae_untrained_466.keras")
     #measure RAM, runtime
     #feature extraction (autoencoder training)
     # training RAW (avg all folds):
