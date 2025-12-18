@@ -56,7 +56,7 @@ def stop_ram_monitor(handle):
 def measure_all(k):
     #RAW, RE15
 
-    model.load("models/ae_untrained_466.keras")
+    keras.models.load_model("models/ae_untrained_466.keras")
     #measure RAM, runtime
     #feature extraction (autoencoder training)
     # training RAW (avg all folds):
