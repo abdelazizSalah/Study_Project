@@ -1,6 +1,6 @@
 
 # import pytorch libraries
-TESTING = True
+TESTING = False
 import numpy as np
 import torch
 import torch.nn as nn
