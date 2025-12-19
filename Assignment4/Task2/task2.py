@@ -45,6 +45,12 @@ def task2_sheet4_main():
         normalLabels = normalLabels,
         attackLabels = attackLabels,
     )
+    # print unique labels for training, validation, and testing
+    print(f"[*] Training labels unique values: {np.unique(training_labels)}")
+    print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
+    print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
+    
+
     print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
 
     # Data preparation
