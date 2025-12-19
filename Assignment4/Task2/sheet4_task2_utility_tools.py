@@ -16,6 +16,20 @@ from tqdm import tqdm
 from sklearn.metrics import precision_recall_fscore_support
 
 # Phase 1: Data Prepration
+
+def load_phase1_saved_data():
+    # load training, validation, testing data from .npy
+    training_data = torch.from_numpy(np.load('./data/training_data.npy'))
+    validation_data = torch.from_numpy(np.load('./data/validation_data.npy'))
+    testing_data = torch.from_numpy(np.load('./data/testing_data.npy'))
+
+    # load training, validation, testing labels from .npy
+    training_labels = np.load('./data/training_labels.npy', allow_pickle=True)
+    validation_labels = np.load('./data/validation_labels.npy', allow_pickle=True)
+    test_labels = np.load('./data/testing_labels.npy', allow_pickle=True)
+    return training_data, validation_data, testing_data, training_labels, validation_labels, test_labels
+
+
 def phase1_read_arguments():
     '''
         This function reads the arguments from command line
@@ -28,44 +42,118 @@ def phase1_read_arguments():
     args = parser.parse_args()
     return args.n, args.mode
 
+# def phase1_dataset_splitting(normal_data, attack_data, normalLabels, attackLabels):
+#     '''
+#     Input:
+#         - normal_data: tensor of normal data samples
+#         - attack_data: tensor of attack data samples
+#     Output:
+#         - train_data: tensor of training data samples
+#         - val_data: tensor of validation data samples
+#         - test_data: tensor of test data samples
+#     Logic:
+#         This function splits the dataset into training, validation, and test sets.
+#         - Training set: 70% of normal.
+#         - Validation set: 15%  of normal and 85% of attack.
+#         - Test set: 15% of normal and 15% of attack.        
+#     '''
+#     # 70% of normal data for training
+#     num_normal = len(normal_data)
+#     train_size = int(0.7 * num_normal)
+#     train_data = normal_data[:train_size]
+#     trainingLabels = normalLabels[:train_size]
+
+#     # 15% of normal data for validation
+#     val_size = int(0.15 * num_normal)
+#     val_normal_data = normal_data[train_size:train_size + val_size]
+#     val_attack_size = int(0.85 * len(attack_data))
+#     val_attack_data = attack_data[:val_attack_size]
+#     val_data = torch.cat((val_normal_data, val_attack_data), dim=0)
+#     validationLabels = normalLabels[train_size:train_size + val_size] + attackLabels[:val_attack_size]
+#     # 15% of normal data for testing
+#     test_normal_data = normal_data[train_size + val_size:]
+#     test_attack_size = int(0.15 * len(attack_data))
+#     test_attack_data = attack_data[val_attack_size:val_attack_size + test_attack_size]
+#     testLabels = attackLabels[val_attack_size:val_attack_size + test_attack_size]
+#     test_data = torch.cat((test_normal_data, test_attack_data), dim=0)
+
+
+#     return train_data, val_data, test_data, trainingLabels, validationLabels, testLabels
+    
+
 def phase1_dataset_splitting(normal_data, attack_data, normalLabels, attackLabels):
-    '''
-    Input:
-        - normal_data: tensor of normal data samples
-        - attack_data: tensor of attack data samples
-    Output:
-        - train_data: tensor of training data samples
-        - val_data: tensor of validation data samples
-        - test_data: tensor of test data samples
-    Logic:
-        This function splits the dataset into training, validation, and test sets.
-        - Training set: 70% of normal.
-        - Validation set: 15%  of normal and 85% of attack.
-        - Test set: 15% of normal and 15% of attack.        
-    '''
-    # 70% of normal data for training
+    """
+    Splits data into train / validation / test with proper shuffling.
+
+    Training:
+        - 70% normal only
+    Validation:
+        - 15% normal + 85% attack
+    Test:
+        - 15% normal + 15% attack
+    """
+
+    # --------------------------------------------------
+    # Shuffle NORMAL data
+    # --------------------------------------------------
+    normal_perm = torch.randperm(len(normal_data))
+    normal_data = normal_data[normal_perm]
+    normalLabels = normalLabels[normal_perm]
+
+    # --------------------------------------------------
+    # Shuffle ATTACK data
+    # --------------------------------------------------
+    attack_perm = torch.randperm(len(attack_data))
+    attack_data = attack_data[attack_perm]
+    attackLabels = attackLabels[attack_perm]
+
+    # --------------------------------------------------
+    # NORMAL splits
+    # --------------------------------------------------
     num_normal = len(normal_data)
     train_size = int(0.7 * num_normal)
+    val_size = int(0.15 * num_normal)
+
     train_data = normal_data[:train_size]
     trainingLabels = normalLabels[:train_size]
 
-    # 15% of normal data for validation
-    val_size = int(0.15 * num_normal)
     val_normal_data = normal_data[train_size:train_size + val_size]
-    val_attack_size = int(0.85 * len(attack_data))
-    val_attack_data = attack_data[:val_attack_size]
-    val_data = torch.cat((val_normal_data, val_attack_data), dim=0)
-    validationLabels = normalLabels[train_size:train_size + val_size] + attackLabels[:val_attack_size]
-    # 15% of normal data for testing
+    val_normal_labels = normalLabels[train_size:train_size + val_size]
+
     test_normal_data = normal_data[train_size + val_size:]
-    test_attack_size = int(0.15 * len(attack_data))
+    test_normal_labels = normalLabels[train_size + val_size:]
+
+    # --------------------------------------------------
+    # ATTACK splits
+    # --------------------------------------------------
+    num_attack = len(attack_data)
+    val_attack_size = int(0.85 * num_attack)
+    test_attack_size = int(0.15 * num_attack)
+
+    val_attack_data = attack_data[:val_attack_size]
+    val_attack_labels = attackLabels[:val_attack_size]
+
     test_attack_data = attack_data[val_attack_size:val_attack_size + test_attack_size]
-    testLabels = attackLabels[val_attack_size:val_attack_size + test_attack_size]
+    test_attack_labels = attackLabels[val_attack_size:val_attack_size + test_attack_size]
+
+    # --------------------------------------------------
+    # Combine validation and test
+    # --------------------------------------------------
+    val_data = torch.cat((val_normal_data, val_attack_data), dim=0)
+    validationLabels = torch.cat((val_normal_labels, val_attack_labels), dim=0)
+
     test_data = torch.cat((test_normal_data, test_attack_data), dim=0)
+    testLabels = torch.cat((test_normal_labels, test_attack_labels), dim=0)
 
+    return (
+        train_data,
+        val_data,
+        test_data,
+        trainingLabels,
+        validationLabels,
+        testLabels,
+    )
 
-    return train_data, val_data, test_data, trainingLabels, validationLabels, testLabels
-    
 
 
 def phase1_data_prepration(n):

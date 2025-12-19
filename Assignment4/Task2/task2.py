@@ -27,29 +27,48 @@ def task2_sheet4_main():
     
     
     print('[*] Phase 1: Starting data prepration...')
-    # Load and preprocess data
-    normal_data, attack_data = phase1_data_prepration(n)
-    print(f"[*] Total normal samples: {len(normal_data)}")
-    print(f"[*] Total attack samples: {len(attack_data)}")
+    # check if ./data/training_data.npy, ./data/validation_data.npy, ./data/testing_data.npy, ./data/training_labels.npy, ./data/validation_labels.npy, ./data/testing_labels.npy exist
+    Data_Files_Exist = os.path.exists('./data/training_data.npy') and os.path.exists('./data/validation_data.npy') and os.path.exists('./data/testing_data.npy') and os.path.exists('./data/training_labels.npy') and os.path.exists('./data/validation_labels.npy') and os.path.exists('./data/testing_labels.npy')
+    if Data_Files_Exist:
+        # load them
+        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
+        print('[*] Phase 1: Data files found. Loaded successfully.')
+    else: 
+        # Load and preprocess data
+        normal_data, attack_data = phase1_data_prepration(n)
+        print(f"[*] Total normal samples: {len(normal_data)}")
+        print(f"[*] Total attack samples: {len(attack_data)}")
 
 
-    # Convert data to tensors
-    normalData, normalLabels = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
-    attackData, attackLabels = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
-    training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
-        # converting normal data to tensor
-        normal_data = normalData,
+        # Convert data to tensors
+        normalData, normalLabels = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
+        attackData, attackLabels = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
+        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
+            # converting normal data to tensor
+            normal_data = normalData,
 
-        # converting attack data to tensor
-        attack_data = attackData, 
+            # converting attack data to tensor
+            attack_data = attackData, 
 
-        normalLabels = normalLabels,
-        attackLabels = attackLabels,
-    )
-    # print unique labels for training, validation, and testing
-    print(f"[*] Training labels unique values: {np.unique(training_labels)}")
-    print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
-    print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
+            normalLabels = normalLabels,
+            attackLabels = attackLabels,
+        )
+        # Save training, validation, testing data into .npy
+        np.save('./data/training_data.npy', training_data.numpy())
+        np.save('./data/validation_data.npy', validation_data.numpy())
+        np.save('./data/testing_data.npy', testing_data.numpy())
+
+        # Save training, validation, testing labels into .npy
+        np.save('./data/training_labels.npy', training_labels)
+        np.save('./data/validation_labels.npy', validation_labels)
+        np.save('./data/testing_labels.npy', test_labels)
+
+
+
+        # print unique labels for training, validation, and testing
+        print(f"[*] Training labels unique values: {np.unique(training_labels)}")
+        print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
+        print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
 
 
     print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
