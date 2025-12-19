@@ -249,7 +249,10 @@ def prepare_tensors(data, n, m):
     for i in range(num_samples):
         for j in range(m):
             packet, _ = data[i * m + j]
-            data_tensor[i, 0, j, :] = torch.tensor(np.frombuffer(packet, dtype=np.uint8), dtype=torch.float32)
+            data_tensor[i, 0, j, :] = torch.tensor(
+                np.frombuffer(packet, dtype=np.uint8),
+                dtype=torch.float32
+            ) / 255.0
     return data_tensor
 
 
@@ -460,7 +463,17 @@ def train_generator_step(D, G, x_real, optimizer_G, m, n):
     # Feature-matching loss (L2)
     mean_real = f_real.mean(dim=0)
     mean_fake = f_fake.mean(dim=0)
-    loss_G = torch.mean((mean_real - mean_fake) ** 2)
+    # loss_G = torch.mean((mean_real - mean_fake) ** 2)
+    loss_feat = torch.mean((mean_real - mean_fake) ** 2)
+
+    pred_fake = D(x_fake)
+    loss_adv = F.binary_cross_entropy(
+        pred_fake,
+        torch.ones_like(pred_fake)
+    )
+
+    loss_G = loss_feat + 0.1 * loss_adv
+
 
     loss_G.backward()
     optimizer_G.step()
