@@ -814,6 +814,8 @@ def evaluate(scores, threshold, true_labels, anomaly_if_lower):
 # We do not use labels for training, we use them for vaidation and testing only. 
 # ==================================================
 def filter_normal_samples(data, labels):
+    # print unique values of labels
+    print(f"Unique labels: {np.unique(labels)}")
     return data[labels == 'normal']
 
 
