@@ -379,12 +379,13 @@ def release_main_new():
         run_k_fold(args.k)
         print_k_fold_pretty()
     elif args.mode == "measure_runtime":
-
-        k = check_requirements_feature_extraction_mode()
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_feature_extraction_mode(global_label_encoder)
         os.makedirs("results", exist_ok=True)
 
         print(f"k:{k}")
-        measure_all(k)
+        measure_all(k, global_label_encoder)
         # RAW, RE15
         # measure RAM, runtime
         # feature extraction (autoencoder training)

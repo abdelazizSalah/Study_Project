@@ -1,6 +1,7 @@
 ###############################################################
 import csv
 import os
+import time
 
 import joblib
 from sklearn.covariance import EllipticEnvelope
@@ -115,12 +116,53 @@ def execute_scenario(global_label_encoder, classifier, k, prefix, scenario):
     return
 
 
+#train and test indices for each fold ([[][],...]
+def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, keep_indices=0, param=0):
+    from measure_runtime import bytes_to_mb
+    labels=np.load(f"datasets/{prefix}_labels.npy")
+    timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
+
+
+    #load train_indices and test_indices for specific scenario
+    #contain indices for all of the k folds
+    train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
+
+
+    #for re15:
+    if param==15:
+        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
+        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
 
 
 
-def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
+    numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
+    binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
+
+    fold_runtimes_training=[]
+    fold_runtimes_testing=[]
+    fold_peak_rss_training=[]
+    fold_peak_rss_testing=[]
+    for fold_idx in range(k):
+        runtime_training, peak_rss_training, runtime_testing, peak_rss_testing = execute_fold_rt(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
+
+        fold_runtimes_training.append(runtime_training)
+        fold_runtimes_testing.append(runtime_testing)
+        fold_peak_rss_training.append(peak_rss_training)
+        fold_peak_rss_testing.append(peak_rss_testing)
+
+    avg_runtime_training = np.mean(fold_runtimes_training)
+    avg_peak_ram_training = bytes_to_mb(np.max(fold_peak_rss_training))
+
+    avg_runtime_testing = np.mean(fold_runtimes_testing)
+    avg_peak_ram_testing = bytes_to_mb(np.max(fold_peak_rss_testing))
+
+    return avg_runtime_training,avg_peak_ram_training, avg_runtime_testing, avg_peak_ram_testing
+
+
+def execute_fold_rt(fold_idx, binary_numeric_labels, timestamps,
                                  train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
     """Train with grid search, save best model, then use *_evaluate for metrics."""
+    from measure_runtime import start_ram_monitor, stop_ram_monitor, bytes_to_mb
 
     if param!=0:
         ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
@@ -135,6 +177,133 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
+    if classifier == "ocsvm":
+        # ---- TRAIN ----
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        one_class_svm_train(X_train)
+
+        runtime_training = time.perf_counter() - start_time
+        peak_rss_training = stop_ram_monitor(ram_handle)
+
+        # ---- TEST ----
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        one_class_svm_evaluate(X_test, y_test)
+
+        runtime_testing = time.perf_counter() - start_time
+        peak_rss_testing = stop_ram_monitor(ram_handle)
+
+    elif classifier == "bsvm":
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        binary_svm_train(X_train, y_train)
+
+        runtime_training = time.perf_counter() - start_time
+        peak_rss_training = stop_ram_monitor(ram_handle)
+
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        binary_svm_evaluate(X_test, y_test)
+
+        runtime_testing = time.perf_counter() - start_time
+        peak_rss_testing = stop_ram_monitor(ram_handle)
+
+    elif classifier == "ee":
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        elliptic_envelope_train(X_train)
+
+        runtime_training = time.perf_counter() - start_time
+        peak_rss_training = stop_ram_monitor(ram_handle)
+
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        elliptic_envelope_evaluate(X_test, y_test)
+
+        runtime_testing = time.perf_counter() - start_time
+        peak_rss_testing = stop_ram_monitor(ram_handle)
+
+    elif classifier == "rf":
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        binary_rf_train(X_train, y_train)
+
+        runtime_training = time.perf_counter() - start_time
+        peak_rss_training = stop_ram_monitor(ram_handle)
+
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        binary_rf_evaluate(X_test, y_test)
+
+        runtime_testing = time.perf_counter() - start_time
+        peak_rss_testing = stop_ram_monitor(ram_handle)
+
+    elif classifier == "knn":
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        binary_knn_train(X_train, y_train)
+
+        runtime_training = time.perf_counter() - start_time
+        peak_rss_training = stop_ram_monitor(ram_handle)
+
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        binary_knn_evaluate(X_test, y_test)
+
+        runtime_testing = time.perf_counter() - start_time
+        peak_rss_testing = stop_ram_monitor(ram_handle)
+
+    elif classifier == "lof":
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        local_outlier_factor_train(X_train)
+
+        runtime_training = time.perf_counter() - start_time
+        peak_rss_training = stop_ram_monitor(ram_handle)
+
+        ram_handle = start_ram_monitor(interval=0.1)
+        start_time = time.perf_counter()
+
+        local_outlier_factor_evaluate(X_test, y_test)
+
+        runtime_testing = time.perf_counter() - start_time
+        peak_rss_testing = stop_ram_monitor(ram_handle)
+
+    else:
+        print("wrong classifier choice")
+        return 0.0, 0.0, 0.0, 0.0
+
+    return (
+        runtime_training, peak_rss_training, runtime_testing, peak_rss_testing,
+    )
+
+def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
+                                 train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
+    """Train with grid search, save best model, then use *_evaluate for metrics."""
+
+    if param!=0:
+        ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
+        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RE{param}.")
+    else:
+        ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")
+        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RAW.")
+
+    #for task d - f
+    X_train, X_test, y_train, y_test, t_train, t_test = split_training_and_test(
+        ds, binary_numeric_labels, timestamps, train_indices, test_indices
+    )
 
     if classifier == "ocsvm":
         base = OneClassSVM()
