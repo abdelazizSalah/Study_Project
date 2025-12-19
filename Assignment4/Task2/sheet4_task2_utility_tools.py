@@ -1,6 +1,6 @@
 
 # import pytorch libraries
-TESTING = True
+TESTING = False
 import numpy as np
 import torch
 import torch.nn as nn
@@ -133,7 +133,7 @@ def phase1_data_prepration(n):
         else:
             for array in data_attacked:
                 for pkt in array:
-                    labeled_data_attack.append( (pkt, 'attack') )
+                    labeled_data_attack.append( (pad_or_truncate_packet(pkt,n), 'attack') )
         return labeled_data_normal, labeled_data_attack
 
     load_all_modules()
