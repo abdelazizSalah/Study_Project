@@ -43,6 +43,8 @@ def task2_sheet4_main():
         # Convert data to tensors
         normalData = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
         attackData = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
+
+        print('[*] Data converted to tensors successfully.\n --------------------------------------- \n splitting data into training, validation, testing sets...')
         training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
             # converting normal data to tensor
             normal_data = normalData,
@@ -51,6 +53,9 @@ def task2_sheet4_main():
             attack_data = attackData, 
         )
         # Save training, validation, testing data into .npy
+        # make data folders if not exist
+        if not os.path.exists('./data'):
+            os.makedirs('./data')
         np.save('./data/training_data.npy', training_data.numpy())
         np.save('./data/validation_data.npy', validation_data.numpy())
         np.save('./data/testing_data.npy', testing_data.numpy())
