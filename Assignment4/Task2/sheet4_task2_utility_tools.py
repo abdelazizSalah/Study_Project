@@ -907,7 +907,7 @@ def evaluate(scores, threshold, true_labels, anomaly_if_lower):
 def filter_normal_samples(data, labels):
     # print unique values of labels
     print(f"Unique labels: {np.unique(labels)}")
-    return data[labels == 'normal']
+    return data[labels == 0]
 
 
 def phase6_discriminator_mode(
@@ -930,11 +930,20 @@ def phase6_discriminator_mode(
             x = x.unsqueeze(0).to(device)
             val_scores.append(D(x).item())
     print(f"[*] Collected {len(val_scores)} validation scores")
+
     # threshold: low scores = anomaly
     threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
     print(f"[✓] D threshold: {threshold:.6f}")
+    print(
+    f"Val scores stats | "
+    f"min={np.min(val_scores):.6f}, "
+    f"mean={np.mean(val_scores):.6f}, "
+    f"max={np.max(val_scores):.6f}"
+    )
+
 
     # ---- test evaluation ----
+    print('Testing on test data...')
     test_scores = []
     with torch.no_grad():
         for x in test_data:

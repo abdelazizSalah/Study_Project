@@ -32,6 +32,11 @@ def task2_sheet4_main():
     if Data_Files_Exist:
         # load them
         training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
+        # print unique labels for training, validation, and testing
+        print(f"[*] Training labels unique values: {np.unique(training_labels)}")
+        print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
+        print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
+        
         print('[*] Phase 1: Data files found. Loaded successfully.')
     else: 
         # Load and preprocess data
