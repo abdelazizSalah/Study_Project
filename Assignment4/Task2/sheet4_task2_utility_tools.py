@@ -12,6 +12,8 @@ import sys
 import os
 from discriminator_wrapper import Discriminator
 from generator import Generator
+from tqdm import tqdm
+from sklearn.metrics import precision_recall_fscore_support
 
 # Phase 1: Data Prepration
 def phase1_read_arguments():
@@ -26,7 +28,7 @@ def phase1_read_arguments():
     args = parser.parse_args()
     return args.n, args.mode
 
-def phase1_dataset_splitting(normal_data, attack_data):
+def phase1_dataset_splitting(normal_data, attack_data, normalLabels, attackLabels):
     '''
     Input:
         - normal_data: tensor of normal data samples
@@ -45,6 +47,7 @@ def phase1_dataset_splitting(normal_data, attack_data):
     num_normal = len(normal_data)
     train_size = int(0.7 * num_normal)
     train_data = normal_data[:train_size]
+    trainingLabels = normalLabels[:train_size]
 
     # 15% of normal data for validation
     val_size = int(0.15 * num_normal)
@@ -52,12 +55,16 @@ def phase1_dataset_splitting(normal_data, attack_data):
     val_attack_size = int(0.85 * len(attack_data))
     val_attack_data = attack_data[:val_attack_size]
     val_data = torch.cat((val_normal_data, val_attack_data), dim=0)
+    validationLabels = normalLabels[train_size:train_size + val_size] + attackLabels[:val_attack_size]
     # 15% of normal data for testing
     test_normal_data = normal_data[train_size + val_size:]
     test_attack_size = int(0.15 * len(attack_data))
     test_attack_data = attack_data[val_attack_size:val_attack_size + test_attack_size]
+    testLabels = attackLabels[val_attack_size:val_attack_size + test_attack_size]
     test_data = torch.cat((test_normal_data, test_attack_data), dim=0)
-    return train_data, val_data, test_data
+
+
+    return train_data, val_data, test_data, trainingLabels, validationLabels, testLabels
     
 
 
@@ -145,13 +152,14 @@ def prepare_tensors(data, n, m):
     print(f'[*] Converting data to tensors...\n data shape is : {len(data)}')
     print(type(data))
     print(f'shape of first packet: {len(data[0][0])} , label: {data[0][1]}')
+    data_labels = [label for (packet, label) in data]
     num_samples = len(data) // m
     data_tensor = torch.zeros((num_samples, 1, m, n), dtype=torch.float32)
     for i in range(num_samples):
         for j in range(m):
             packet, label = data[i * m + j]
             data_tensor[i, 0, j, :] = torch.tensor(np.frombuffer(packet, dtype=np.uint8), dtype=torch.float32)
-    return data_tensor
+    return data_tensor, data_labels
 
 
 # ---------------- Phase 2: Discriminator implementation ---------------- #
@@ -537,10 +545,6 @@ def phase5_sanity_checks(m,n,batch_size=8, lr=1e-4, epochs=1):
     print("\n[✓] Phase 5 CHECK 1 passed successfully\n")
 
 
-
-from tqdm import tqdm
-
-
 def train_gan_on_training_data(
     training_data,
     D,
@@ -696,3 +700,218 @@ def train_gan_on_training_data(
 
     print("\n[✓] Training finished successfully")
     print(f"[✓] Models saved to '{save_dir}/'")
+    print('[*] Phase 5: GAN Training Done Successfully. \n --------------------------------------- \n ')
+
+
+# ---------------- Phase 6: Anomaly Detection modes ---------------- #
+'''
+Phase 6: Anomaly Detection Modes
+    Mode 1 (Discriminator-based):
+        For each test sample:
+            Compute D(X)
+            If D(X) < threshold -> Anomalous
+    Mode 2 (Generator-based):
+        For each test sample:
+            Find closest G(z) to X
+            Compute reconstruction error or feature mismatch
+            If error > threshold -> Anomalous
+'''
+
+# ==================================================
+# 1. LOAD TRAINED MODELS
+# ==================================================
+def load_trained_models(
+    m,
+    n,
+    device,
+    model_dir="models"
+):
+    D = Discriminator(input_shape=(1, m, n)).to(device)
+    G = Generator(m=m, n=n).to(device)
+
+    D.load_state_dict(
+        torch.load(os.path.join(model_dir, "discriminator.pth"), map_location=device)
+    )
+    G.load_state_dict(
+        torch.load(os.path.join(model_dir, "generator.pth"), map_location=device)
+    )
+
+    D.eval()
+    G.eval()
+
+    print("[✓] Trained Discriminator & Generator loaded successfully")
+    return D, G
+
+
+# ==================================================
+# 2. MODE 1 — DISCRIMINATOR-BASED SCORES
+# ==================================================
+def discriminator_scores(D, data, device):
+    scores = []
+
+    with torch.no_grad():
+        for x in data:
+            x = x.unsqueeze(0).to(device)  # (1,1,m,n)
+            score = D(x)
+            scores.append(score.item())
+
+    return np.array(scores)
+
+
+# ==================================================
+# 3. MODE 2 — GENERATOR FEATURE-MATCHING SCORES
+# ==================================================
+def generator_feature_scores(D, G, data, m, n, device):
+    scores = []
+
+    with torch.no_grad():
+        for x in data:
+            x = x.unsqueeze(0).to(device)
+
+            z = torch.randn(1, m * n, device=device)
+            x_fake = G(z)
+
+            f_real = D.extract_features(x)
+            f_fake = D.extract_features(x_fake)
+
+            score = torch.mean((f_real - f_fake) ** 2).item()
+            scores.append(score)
+
+    return np.array(scores)
+
+
+# ==================================================
+# 4. THRESHOLD COMPUTATION
+# ==================================================
+def compute_threshold(scores, percentile):
+    threshold = np.percentile(scores, percentile)
+    print(f"[✓] Threshold ({percentile}th percentile): {threshold:.6f}")
+    return threshold
+
+
+# ==================================================
+# 5. EVALUATION
+# ==================================================
+def evaluate(scores, threshold, true_labels, anomaly_if_lower):
+    """
+    anomaly_if_lower = True  -> anomaly if score < threshold  (Discriminator)
+    anomaly_if_lower = False -> anomaly if score > threshold  (Generator)
+    """
+    if anomaly_if_lower:
+        preds = (scores < threshold).astype(int)
+    else:
+        preds = (scores > threshold).astype(int)
+
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        true_labels, preds, average="binary"
+    )
+
+    return precision, recall, f1
+
+
+# ==================================================
+# 6. PHASE 6 PIPELINE ONLY
+# We do not use labels for training, we use them for vaidation and testing only. 
+# ==================================================
+def filter_normal_samples(data, labels):
+    return data[labels == 0]
+
+
+def phase6_discriminator_mode(
+    D,
+    validation_data,
+    validation_labels,
+    test_data,
+    test_labels,
+    device
+):
+    print("\n[*] Phase 6 - Mode 1: Discriminator-based")
+
+    # ---- use ONLY normal validation samples for threshold ----
+    val_normal = filter_normal_samples(validation_data, validation_labels)
+
+    val_scores = []
+    with torch.no_grad():
+        for x in val_normal:
+            x = x.unsqueeze(0).to(device)
+            val_scores.append(D(x).item())
+
+    # threshold: low scores = anomaly
+    threshold = np.percentile(val_scores, 5)
+    print(f"[✓] D threshold: {threshold:.6f}")
+
+    # ---- test evaluation ----
+    test_scores = []
+    with torch.no_grad():
+        for x in test_data:
+            x = x.unsqueeze(0).to(device)
+            test_scores.append(D(x).item())
+
+    test_scores = np.array(test_scores)
+
+    preds = (test_scores < threshold).astype(int)  # 1 = anomaly
+    y_true = test_labels
+
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        y_true, preds, average="binary"
+    )
+
+    print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
+
+def phase6_generator_mode(
+    D,
+    G,
+    validation_data,
+    validation_labels,
+    test_data,
+    test_labels,
+    m,
+    n,
+    device
+):
+    print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
+
+    # ---- normal validation only ----
+    val_normal = filter_normal_samples(validation_data, validation_labels)
+
+    val_scores = []
+    with torch.no_grad():
+        for x in val_normal:
+            x = x.unsqueeze(0).to(device)
+
+            z = torch.randn(1, m * n, device=device)
+            x_fake = G(z)
+
+            f_real = D.extract_features(x)
+            f_fake = D.extract_features(x_fake)
+
+            val_scores.append(torch.mean((f_real - f_fake) ** 2).item())
+
+    # threshold: high scores = anomaly
+    threshold = np.percentile(val_scores, 95)
+    print(f"[✓] G threshold: {threshold:.6f}")
+
+    # ---- test evaluation ----
+    test_scores = []
+    with torch.no_grad():
+        for x in test_data:
+            x = x.unsqueeze(0).to(device)
+
+            z = torch.randn(1, m * n, device=device)
+            x_fake = G(z)
+
+            f_real = D.extract_features(x)
+            f_fake = D.extract_features(x_fake)
+
+            test_scores.append(torch.mean((f_real - f_fake) ** 2).item())
+
+    test_scores = np.array(test_scores)
+
+    preds = (test_scores > threshold).astype(int)  # 1 = anomaly
+    y_true = test_labels
+
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        y_true, preds, average="binary"
+    )
+
+    print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")

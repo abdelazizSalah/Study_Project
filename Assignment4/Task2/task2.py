@@ -21,38 +21,81 @@ from sheet4_task2_utility_tools import *
 def task2_sheet4_main():
     # Main logic of the task
     n, mode = phase1_read_arguments() # I think I should read n only when we should perform training, but for inference mode, I should let him select from the two other modes. 
+    m = 10  # number of packets per sample
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
+    print(f'[*] Using device: {device} for training')
+    
+    
+    print('[*] Phase 1: Starting data prepration...')
+    # Load and preprocess data
+    normal_data, attack_data = phase1_data_prepration(n)
+    print(f"[*] Total normal samples: {len(normal_data)}")
+    print(f"[*] Total attack samples: {len(attack_data)}")
+
+    # Convert data to tensors
+    normalData, normalLabels = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
+    attackData, attackLabels = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
+    training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
+        # converting normal data to tensor
+        normal_data = normalData,
+
+        # converting attack data to tensor
+        attack_data = attackData, 
+
+        normal_labels = normalLabels,
+        attack_labels = attackLabels,
+    )
+    print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
 
     # Data preparation
     # check if ./models/discriminator.pth and ./models/generator.pth exist 
     Training_Models_Exist = os.path.exists('./models/discriminator.pth') and os.path.exists('./models/generator.pth')
     if Training_Models_Exist:
-        return # TODO: implement inference mode here phase 6 and 7
+        print('[*] Phase 6: Trained models found. Starting inference mode...')
+        if mode == 'D':
+            # load discriminator model
+            print("[*] Mode: INFERENCE (Discriminator-based)")
+            D, G = load_trained_models(
+                m=m,
+                n=n,
+                device=device,
+                model_dir="models"
+            )
+
+            phase6_discriminator_mode(
+                D,
+                validation_data,
+                validation_labels,
+                testing_data,
+                test_labels,
+                device
+            )
+        elif mode == 'G':
+            # load generator model
+            print("[*] Mode: INFERENCE (Generator-based)")
+            D, G = load_trained_models(
+                m=m,
+                n=n,
+                device=device,
+                model_dir="models"
+            )
+
+            phase6_generator_mode(
+                D,
+                G,
+                validation_data,
+                validation_labels,
+                testing_data,
+                test_labels,
+                m,
+                n,
+                device
+            )
+        else:
+            print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
+        return 
     else: 
-        print('[*] Phase 1: Starting data prepration...')
-        # Load and preprocess data
-        normal_data, attack_data = phase1_data_prepration(n)
-        print(f"[*] Total normal samples: {len(normal_data)}")
-        print(f"[*] Total attack samples: {len(attack_data)}")
-
-        # Convert data to tensors
-        normalData = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
-        attackData = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
-        training_data, validation_data, testing_data = phase1_dataset_splitting(
-            # converting normal data to tensor
-            normal_data = normalData,
-
-            # converting attack data to tensor
-            attack_data = attackData
-        )
-
-        print(f"[*] Training samples: {len(training_data)}")
-        print(f"[*] Validation samples: {len(validation_data)}")
-        print(f"[*] Testing samples: {len(testing_data)}")
-        print(training_data.shape)
-        print(validation_data.shape)
-        print(testing_data.shape)
-
-        print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
+        
 
         # Running sanity checks for Discriminator implementation
         phase2_sanity_checks(n , m=10)
@@ -65,8 +108,6 @@ def task2_sheet4_main():
 
         # running phase 5 sanity check for GAN Training loop
         print('[*] Phase 5: Starting GAN Training loop...')
-        m = 10  # number of packets per sample
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         D = Discriminator(input_shape=(1, m, n))
         G = Generator(m=m, n=n)
 
