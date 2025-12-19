@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 import os
 
-from measure_runtime import start_ram_monitor, stop_ram_monitor, bytes_to_mb
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
@@ -205,6 +204,8 @@ def extract_features_for_all_folds(
     num_folds: int,
     out_dir: str = "datasets",
 ):
+    from measure_runtime import start_ram_monitor, stop_ram_monitor, bytes_to_mb
+
     Path(out_dir).mkdir(exist_ok=True)
 
     fold_runtimes=[]
