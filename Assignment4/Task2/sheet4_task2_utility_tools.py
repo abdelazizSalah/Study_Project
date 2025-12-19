@@ -657,8 +657,8 @@ def train_gan_on_training_data(
     n,
     epochs=30,
     batch_size=64,
-    lr_D=1e-4,
-    lr_G=1e-4,
+    lr_D=5e-4,
+    lr_G=2e-4,
     device="cpu",
     save_dir="models"
 ):
