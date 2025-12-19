@@ -381,7 +381,7 @@ def release_main_new():
     elif args.mode == "measure_runtime":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        k = check_requirements_feature_extraction_mode(global_label_encoder)
+        k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
 
         print(f"k:{k}")
