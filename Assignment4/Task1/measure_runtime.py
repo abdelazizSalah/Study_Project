@@ -5,7 +5,7 @@ import time
 import psutil
 from keras.src.models import model
 
-from feature_creation_autoencoder import train_and_save_models_rt
+from feature_creation_autoencoder import train_and_save_models_rt, create_features_for_ds_rt
 from tensorflow import keras
 
 
@@ -58,18 +58,30 @@ def measure_all(k):
     #measure RAM, runtime
     #feature extraction (autoencoder training)
     # training RAW (avg all folds):
-    avg_runtime, avg_peak_ram=train_and_save_models_rt("raw")
-    line=(
-    "=== Autoencoder Training Results (RAW feature type) ===\n"
-    "Averaged over all folds:\n"
-    f"  • Average runtime : {avg_runtime:.2f} s\n"
-    f"  • Peak RAM (max)  : {avg_peak_ram:.1f} MB\n"
-    "-----------------------------------------------\n\n"
+
+    #avg_runtime, avg_peak_ram=train_and_save_models_rt("raw")
+    #line=(
+    #"=== Autoencoder Training Results (RAW feature type) ===\n"
+    #"Averaged over all folds:\n"
+    #f"  • Average runtime : {avg_runtime:.2f} s\n"
+    #f"  • Peak RAM (max)  : {avg_peak_ram:.1f} MB\n"
+    #"-----------------------------------------------\n\n"
+    #)
+    #with open("results/runtime_raw.txt", "a") as f:
+    #    f.write(line)
+
+    #feature extraction RAW (5 folds):
+    avg_runtime, avg_peak_ram=create_features_for_ds_rt(k, "raw")
+
+    line = (
+        "=== Autoencoder Feature Extraction Results (RAW feature type) ===\n"
+        "Averaged over all folds:\n"
+        f"  • Average runtime : {avg_runtime:.2f} s\n"
+        f"  • Peak RAM (max)  : {avg_peak_ram:.1f} MB\n"
+        "-----------------------------------------------\n\n"
     )
     with open("results/runtime_raw.txt", "a") as f:
         f.write(line)
-    #feature extraction RAW (5 folds):
-    #create_features_for_ds(k)
 
     #scenario 1
     #ee,lof,ocsvm
@@ -88,10 +100,23 @@ def measure_all(k):
 
 
     #training RE:
-    avg_runtime, avg_peak_ram=train_and_save_models_rt("re")
+    #avg_runtime, avg_peak_ram=train_and_save_models_rt("re")
+
+    #line = (
+    #    "=== Autoencoder Training Results (RE15 feature type) ===\n"
+    #    "Averaged over all folds:\n"
+    #    f"  • Average runtime : {avg_runtime:.2f} s\n"
+    #    f"  • Peak RAM (max)  : {avg_peak_ram:.1f} MB\n"
+    #    "-----------------------------------------------\n\n"
+    #)
+
+    #with open("results/runtime_re15.txt", "a") as f:
+    #    f.write(line)
+
+    avg_runtime, avg_peak_ram=create_features_for_ds_rt(k, "re")
 
     line = (
-        "=== Autoencoder Training Results (RE15 feature type) ===\n"
+        "=== Autoencoder Feature Extraction Results (RE15 feature type) ===\n"
         "Averaged over all folds:\n"
         f"  • Average runtime : {avg_runtime:.2f} s\n"
         f"  • Peak RAM (max)  : {avg_peak_ram:.1f} MB\n"
@@ -100,7 +125,6 @@ def measure_all(k):
 
     with open("results/runtime_re15.txt", "a") as f:
         f.write(line)
-
 
     #training (per fold)
     #testing (per fold)

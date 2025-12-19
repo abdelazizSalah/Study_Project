@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 import os
 
+from measure_runtime import start_ram_monitor, stop_ram_monitor, bytes_to_mb
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import tensorflow as tf
@@ -123,7 +124,7 @@ def train_and_save_models_rt(prefix):
             model_prefix="raw",
         )
     else:
-        print("\nTraining Models on RE:\n")
+        print("\nTraining Models on RE15:\n")
 
         avg_runtime, avg_peak_ram = train_ae_for_representation(
             base_model_path=base_dir / "models" / "ae_untrained_386.keras",
@@ -206,13 +207,20 @@ def extract_features_for_all_folds(
 ):
     Path(out_dir).mkdir(exist_ok=True)
 
+    fold_runtimes=[]
+    fold_peak_ram=[]
     if model_prefix == "raw":
         model_prefix_ae="raw"
     else:
-        model_prefix_ae="re"    #for re5, re10, re15 and re (size will be the same, same autoencoders per fold)
+        model_prefix_ae="re"    #for rt measurements, re autoencoders will be trained on re15!
     for fold_idx in range(num_folds):
         model_path = f"models/ae_fold{fold_idx}_{model_prefix_ae}.keras"   #model trained for the specific fold (0 to k-1)
         out_path = f"{out_dir}/{model_prefix}_features_fold{fold_idx}.npy"
+
+        ram_handle = start_ram_monitor(interval=0.1)
+
+        # measure runtime
+        start_time = time.perf_counter()  # ⏱ start timing
 
         extract_and_save_features_for_model(
             model_path=model_path,
@@ -220,8 +228,51 @@ def extract_features_for_all_folds(
             out_path=out_path,
             batch_size=128,
         )
-    return
 
+        # measure runtime end
+        end_time = time.perf_counter()
+        runtime = end_time - start_time
+        fold_runtimes.append(runtime)
+
+        # measure ram end
+        peak_rss = stop_ram_monitor(ram_handle)
+        fold_peak_ram.append(peak_rss)
+    avg_runtime = np.mean(fold_runtimes)
+    avg_peak_ram = bytes_to_mb(np.max(fold_peak_ram))
+    return avg_runtime, avg_peak_ram
+
+
+
+#creae features for RAW and RE
+def create_features_for_ds_rt(num_folds: int = 5, prefix="raw"):
+    raw_path = Path("datasets/raw_bytes.npy")
+    re_path = Path("datasets/re_bytes.npy")
+
+    if not raw_path.exists() or not re_path.exists():
+        raise FileNotFoundError(
+            f"Dataset files not found ({raw_path} or {re_path}). Make sure to extract them first."
+        )
+
+    if prefix=="raw":
+        print("Using Autoencoder to create features for RAW bytes dataset\n")
+        avg_runtime, avg_peak_ram=extract_features_for_all_folds(
+        model_prefix="raw",
+        bytes_path=str(raw_path),
+        num_folds=num_folds,
+        out_dir="datasets",
+        )
+        print("Feature extraction for RAW done!")
+    else:
+        print("\nUsing Autoencoder to create features for RE15 bytes dataset\n")
+        avg_runtime, avg_peak_ram=extract_features_for_all_folds(
+            model_prefix=f"re{15}",
+            bytes_path=str(re_path),
+            num_folds=num_folds,
+            out_dir=f"datasets/re_bytes_{15}/",
+        )
+        print("Feature extraction for RE done!")
+
+    return avg_runtime, avg_peak_ram
 
 
 #creae features for RAW and RE
@@ -235,7 +286,7 @@ def create_features_for_ds(num_folds: int = 5):
         )
 
     print("Using Autoencoder to create features for RAW bytes dataset\n")
-    extract_features_for_all_folds(
+    avg_runtime, avg_peak_ram=extract_features_for_all_folds(
         model_prefix="raw",
         bytes_path=str(raw_path),
         num_folds=num_folds,
@@ -251,6 +302,8 @@ def create_features_for_ds(num_folds: int = 5):
         out_dir="datasets",
     )
     print("Feature extraction for RE done!")
+
+    return avg_runtime, avg_peak_ram
 
 
 #creae features for RAW and RE
