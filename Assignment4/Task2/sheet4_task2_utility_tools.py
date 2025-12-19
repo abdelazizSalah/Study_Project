@@ -831,13 +831,14 @@ def phase6_discriminator_mode(
 
     # ---- use ONLY normal validation samples for threshold ----
     val_normal = filter_normal_samples(validation_data, validation_labels)
+    print(f"[*] Number of normal validation samples: {len(val_normal)}")
 
     val_scores = []
     with torch.no_grad():
         for x in val_normal:
             x = x.unsqueeze(0).to(device)
             val_scores.append(D(x).item())
-
+    print(f"[*] Collected {len(val_scores)} validation scores")
     # threshold: low scores = anomaly
     threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
     print(f"[✓] D threshold: {threshold:.6f}")
