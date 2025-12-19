@@ -814,7 +814,7 @@ def evaluate(scores, threshold, true_labels, anomaly_if_lower):
 # We do not use labels for training, we use them for vaidation and testing only. 
 # ==================================================
 def filter_normal_samples(data, labels):
-    return data[labels == 0]
+    return data[labels == 'normal']
 
 
 def phase6_discriminator_mode(
@@ -837,7 +837,7 @@ def phase6_discriminator_mode(
             val_scores.append(D(x).item())
 
     # threshold: low scores = anomaly
-    threshold = np.percentile(val_scores, 5)
+    threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
     print(f"[✓] D threshold: {threshold:.6f}")
 
     # ---- test evaluation ----
