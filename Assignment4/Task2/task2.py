@@ -23,7 +23,7 @@ def task2_sheet4_main():
     n, mode = phase1_read_arguments() # I think I should read n only when we should perform training, but for inference mode, I should let him select from the two other modes. 
     m = 10  # number of packets per sample
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
-    print(f'[*] Using device: {device} for training')
+    print(f'[*] Using device: {device}')
     
     
     print('[*] Phase 1: Starting data prepration...')
@@ -42,8 +42,8 @@ def task2_sheet4_main():
         # converting attack data to tensor
         attack_data = attackData, 
 
-        normal_labels = normalLabels,
-        attack_labels = attackLabels,
+        normalLabels = normalLabels,
+        attackLabels = attackLabels,
     )
     print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
 
