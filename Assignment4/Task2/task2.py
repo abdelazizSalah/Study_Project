@@ -70,16 +70,16 @@ def task2_sheet4_main():
         D = Discriminator(input_shape=(1, m, n))
         G = Generator(m=m, n=n)
 
-        train_gan_on_training_data(
-            training_data=training_data,
-            D=D,
-            G=G,
-            m=m,
-            n=n,
-            epochs=30,
-            batch_size=64,
-            device=device
-        )
+        # train_gan_on_training_data(
+        #     training_data=training_data,
+        #     D=D,
+        #     G=G,
+        #     m=m,
+        #     n=n,
+        #     epochs=30,
+        #     batch_size=64,
+        #     device=device
+        # )
 
 
 

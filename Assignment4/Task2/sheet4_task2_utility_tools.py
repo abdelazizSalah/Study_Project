@@ -142,6 +142,9 @@ def prepare_tensors(data, n, m):
         Output:
             - data_tensor: tensor of shape (num_samples, 1, m, n)
     '''
+    print(f'[*] Converting data to tensors...\n data shape is : {len(data)}')
+    print(type(data))
+    print(f'shape of first packet: {len(data[0][0])} , label: {data[0][1]}')
     num_samples = len(data) // m
     data_tensor = torch.zeros((num_samples, 1, m, n), dtype=torch.float32)
     for i in range(num_samples):
