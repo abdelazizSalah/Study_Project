@@ -41,27 +41,26 @@ def task2_sheet4_main():
 
 
         # Convert data to tensors
-        normalData, normalLabels = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
-        attackData, attackLabels = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
+        normalData = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
+        attackData = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
         training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
             # converting normal data to tensor
             normal_data = normalData,
 
             # converting attack data to tensor
             attack_data = attackData, 
-
-            normalLabels = normalLabels,
-            attackLabels = attackLabels,
         )
         # Save training, validation, testing data into .npy
         np.save('./data/training_data.npy', training_data.numpy())
         np.save('./data/validation_data.npy', validation_data.numpy())
         np.save('./data/testing_data.npy', testing_data.numpy())
+        print('Saved training, validation, testing data into .npy files.')
 
         # Save training, validation, testing labels into .npy
         np.save('./data/training_labels.npy', training_labels)
         np.save('./data/validation_labels.npy', validation_labels)
         np.save('./data/testing_labels.npy', test_labels)
+        print('Saved training, validation, testing labels into .npy files.')
 
 
 

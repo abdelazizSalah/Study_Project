@@ -81,7 +81,7 @@ def phase1_read_arguments():
 #     return train_data, val_data, test_data, trainingLabels, validationLabels, testLabels
     
 
-def phase1_dataset_splitting(normal_data, attack_data, normalLabels, attackLabels):
+def phase1_dataset_splitting(normal_data, attack_data):
     """
     Splits data into train / validation / test with proper shuffling.
 
@@ -92,6 +92,10 @@ def phase1_dataset_splitting(normal_data, attack_data, normalLabels, attackLabel
     Test:
         - 15% normal + 15% attack
     """
+    # converting labels into tensors for compatability
+    normalLabels = torch.zeros(len(normal_data), dtype=torch.long)
+    attackLabels = torch.ones(len(attack_data), dtype=torch.long)
+
 
     # --------------------------------------------------
     # Shuffle NORMAL data
@@ -240,14 +244,13 @@ def prepare_tensors(data, n, m):
     print(f'[*] Converting data to tensors...\n data shape is : {len(data)}')
     print(type(data))
     print(f'shape of first packet: {len(data[0][0])} , label: {data[0][1]}')
-    data_labels = [label for (packet, label) in data]
     num_samples = len(data) // m
     data_tensor = torch.zeros((num_samples, 1, m, n), dtype=torch.float32)
     for i in range(num_samples):
         for j in range(m):
-            packet, label = data[i * m + j]
+            packet, _ = data[i * m + j]
             data_tensor[i, 0, j, :] = torch.tensor(np.frombuffer(packet, dtype=np.uint8), dtype=torch.float32)
-    return data_tensor, data_labels
+    return data_tensor
 
 
 # ---------------- Phase 2: Discriminator implementation ---------------- #
