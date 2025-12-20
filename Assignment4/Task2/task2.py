@@ -68,6 +68,7 @@ def task2_sheet4_main():
         return 
     else: 
         # # Running sanity checks for Discriminator implementation
+        # tring better training for GAN
         # phase2_sanity_checks(n , m=m)
 
         # # Running sanity checks for Generator implementation
