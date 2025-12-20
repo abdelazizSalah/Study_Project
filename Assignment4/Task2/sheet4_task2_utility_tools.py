@@ -683,14 +683,15 @@ def train_gan_on_training_data(
             # ============================
             for p in D.parameters():
                 p.requires_grad = False
+            # training G more often than D trying to get better results
+            for _ in range (2):
+                optimizer_G.zero_grad() # clearing old grad also for Gan
 
-            optimizer_G.zero_grad()
-
-            z = torch.randn(curr_batch_size, m * n, device=device)
-            x_fake = G(z)
-            loss_G = phase4_custom_generator_loss(x_real, x_fake, D) # try to force the fake data to match the real data
-            loss_G.backward()
-            optimizer_G.step()
+                z = torch.randn(curr_batch_size, m * n, device=device)
+                x_fake = G(z)
+                loss_G = phase4_custom_generator_loss(x_real, x_fake, D) # try to force the fake data to match the real data
+                loss_G.backward()
+                optimizer_G.step()
 
             for p in D.parameters():
                 p.requires_grad = True
@@ -927,6 +928,8 @@ def phase6_generator_mode(
     # ----------------------------
     # Validation scores (threshold)
     # ----------------------------
+    print(f'validation min: {validation_data.min()}, max: {validation_data.max()}')
+    print(f'test min: {test_data.min()}, max: {test_data.max()}')
     val_scores = []
     with torch.no_grad():
         for x in val_normal:

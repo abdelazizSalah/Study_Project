@@ -48,7 +48,9 @@ def task2_sheet4_main():
                 validation_labels,
                 testing_data,
                 test_labels,
-                device
+                device, 
+                
+
             )
         elif mode == 'G':
             print("[*] Mode: INFERENCE (Generator-based)")
