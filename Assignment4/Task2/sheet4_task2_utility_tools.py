@@ -935,6 +935,7 @@ def load_trained_models(
         torch.load(os.path.join(model_dir, "generator.pth"), map_location=device)
     )
 
+    # prepare them for the evaluation mode. 
     D.eval()
     G.eval()
 
