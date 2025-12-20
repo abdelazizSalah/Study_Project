@@ -635,9 +635,9 @@ def train_gan_on_training_data(
             desc=f"Epoch {epoch + 1}",
             leave=False
         )
-
         # itertaing over Dataloader batches
         for batch_idx, x_real in progress_bar:
+            
             # move batch to device
             x_real = x_real.to(device)
 
@@ -647,36 +647,38 @@ def train_gan_on_training_data(
             # ============================
             # 1. Discriminator step
             # ============================
-            optimizer_D.zero_grad() # clearing old gradients, since by default, gradients are accumulated in PyTorch.
+            if batch_idx % 2 ==0:
+                
+                optimizer_D.zero_grad() # clearing old gradients, since by default, gradients are accumulated in PyTorch.
 
-            # Real samples
-            y_real = torch.ones(curr_batch_size, 1, device=device) # real labels are 1
+                # Real samples
+                y_real = torch.ones(curr_batch_size, 1, device=device) # real labels are 1
 
-            # run real data through D
-            pred_real = D(x_real)
+                # run real data through D
+                pred_real = D(x_real)
 
-            # penalizes the D when it misclassifies real samples
-            loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
+                # penalizes the D when it misclassifies real samples
+                loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
 
-            # Generating Fake samples
-            z = torch.randn(curr_batch_size, m * n, device=device) 
-            with torch.no_grad():
-                x_fake = G(z)
+                # Generating Fake samples
+                z = torch.randn(curr_batch_size, m * n, device=device) 
+                with torch.no_grad():
+                    x_fake = G(z)
 
-            y_fake = torch.zeros(curr_batch_size, 1, device=device) # fake labels are 0
+                y_fake = torch.zeros(curr_batch_size, 1, device=device) # fake labels are 0
 
-            # let the discriminator predict on fake samples
-            pred_fake = D(x_fake)
+                # let the discriminator predict on fake samples
+                pred_fake = D(x_fake)
 
-            # penalizes the D when it misclassifies fake samples
-            loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
+                # penalizes the D when it misclassifies fake samples
+                loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
 
-            # compute the total loss
-            loss_D = loss_real + loss_fake
-            loss_D.backward()
+                # compute the total loss
+                loss_D = loss_real + loss_fake
+                loss_D.backward()
 
-            # update discriminator weights
-            optimizer_D.step()
+                # update discriminator weights
+                optimizer_D.step()
 
             # ============================
             # 2. Generator step (Feature Matching)
