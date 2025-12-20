@@ -40,6 +40,10 @@ def task2_sheet4_main():
                 device=device,
                 model_dir="models"
             )
+        # normalizing validation and testing data
+        
+        validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
+        testing_data = (testing_data - testing_data.min()) / (testing_data.max() - testing_data.min())
         if mode == 'D':
             print("[*] Mode: INFERENCE (Discriminator-based)")
             phase6_discriminator_mode(
@@ -49,7 +53,7 @@ def task2_sheet4_main():
                 testing_data,
                 test_labels,
                 device, 
-                
+
 
             )
         elif mode == 'G':
