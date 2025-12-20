@@ -916,32 +916,35 @@ def phase6_generator_mode(
     device
 ):
     print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
-
+    print('putting models in evaluation mode.')
+    D.eval()
+    G.eval()
     # ---- use ONLY normal validation samples ----
     val_normal = filter_normal_samples(validation_data, validation_labels)
 
     if len(val_normal) == 0:
         raise RuntimeError("No normal samples in validation set")
 
-    K = 32  # number of fake samples for mean feature
+    K = 512  # increase for stability
 
+    with torch.no_grad():
+        z = torch.randn(K, m * n, device=device)
+        x_fake = G(z)
+        f_fake_mean = D.extract_features(x_fake).mean(dim=0)
+        f_fake_mean = F.normalize(f_fake_mean, dim=0)
     # ----------------------------
     # Validation scores (threshold)
     # ----------------------------
+
     print(f'validation min: {validation_data.min()}, max: {validation_data.max()}')
     print(f'test min: {test_data.min()}, max: {test_data.max()}')
     val_scores = []
     with torch.no_grad():
         for x in val_normal:
             x = x.unsqueeze(0).to(device)
-
-            z = torch.randn(K, m * n, device=device)
-            x_fake = G(z)
-
-            f_fake_mean = D.extract_features(x_fake).mean(dim=0)
             f_real = D.extract_features(x)
-
-            score = torch.mean((f_real - f_fake_mean) ** 2)
+            f_real = F.normalize(f_real, dim=1)
+            score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
             val_scores.append(score.item())
 
     val_scores = np.array(val_scores)
@@ -956,14 +959,9 @@ def phase6_generator_mode(
     with torch.no_grad():
         for x in test_data:
             x = x.unsqueeze(0).to(device)
-
-            z = torch.randn(K, m * n, device=device)
-            x_fake = G(z)
-
-            f_fake_mean = D.extract_features(x_fake).mean(dim=0)
             f_real = D.extract_features(x)
-
-            score = torch.mean((f_real - f_fake_mean) ** 2)
+            f_real = F.normalize(f_real, dim=1)
+            score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
             test_scores.append(score.item())
 
     test_scores = np.array(test_scores)
