@@ -1,0 +1,2 @@
+- Results of processing: 
+  - ![After_removing_duplicates](image.png)

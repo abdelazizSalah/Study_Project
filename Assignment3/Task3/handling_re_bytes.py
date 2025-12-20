@@ -127,11 +127,13 @@ def process_npy_file(input_file_path, output_file_path, p):
     # Step 6: Write the processed data to a new .npy file
     save_npy_file(padded_data, output_file_path, p, remainder)
     print(f'Processing complete. Output saved to {output_file_path}')
+    print(f'Padded data shape: {padded_data.shape}')
     return padded_data
 
 
 if __name__ == "__main__":
-    input_file_path = "re_bytes.npy"
-    output_file_path = "processed_packets.npy"
-    p = 5  # Number of packets to concatenate
-    process_npy_file(input_file_path, output_file_path, p)
+    input_file_path = "E:/GitHub/Study_Project/DataSets/Assignment4_experiment_data/Assignment3DataGroup17/datasets/re_bytes.npy"
+    for p in [5, 10, 15]:
+    # p = 5  # Number of packets to concatenate
+        output_file_path = f"processed_packets_{p}.npy"
+        process_npy_file(input_file_path, output_file_path, p)
