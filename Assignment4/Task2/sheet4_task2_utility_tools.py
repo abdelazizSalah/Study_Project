@@ -1043,8 +1043,8 @@ def phase6_discriminator_mode(
     print(f"[*] Collected {len(val_scores)} validation scores")
 
     # threshold: low scores = anomaly
-    # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
-    threshold = np.mean(val_scores) - 2 * np.std(val_scores)
+    threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
+ 
 
     print(f"[✓] D threshold: {threshold:.6f}")
     print(
