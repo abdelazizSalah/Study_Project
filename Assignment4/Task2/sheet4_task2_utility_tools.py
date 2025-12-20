@@ -866,7 +866,10 @@ def phase6_discriminator_mode(
     with torch.no_grad():
         for x in val_normal:
             x = x.unsqueeze(0).to(device)
-            val_scores.append(D(x).item())
+            logit = D(x)
+            prob = torch.sigmoid(logit)
+            val_scores.append(prob.item())
+
     print(f"[*] Collected {len(val_scores)} validation scores")
 
     # threshold: low scores = anomaly
@@ -886,8 +889,9 @@ def phase6_discriminator_mode(
     with torch.no_grad():
         for x in test_data:
             x = x.unsqueeze(0).to(device)
-            test_scores.append(D(x).item())
-
+            logit = D(x)
+            prob = torch.sigmoid(logit)
+            test_scores.append(prob.item())    
     test_scores = np.array(test_scores)
 
     preds = (test_scores < threshold).astype(int)  # 1 = anomaly
