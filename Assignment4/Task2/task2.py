@@ -100,7 +100,7 @@ def task2_sheet4_main():
             G=G,
             m=m,
             n=n,
-            epochs=10,
+            epochs=5,
             batch_size=64,
             device=device
         )
