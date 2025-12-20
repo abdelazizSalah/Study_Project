@@ -42,44 +42,76 @@ def phase1_read_arguments():
     args = parser.parse_args()
     return args.n, args.mode
 
-# def phase1_dataset_splitting(normal_data, attack_data, normalLabels, attackLabels):
-#     '''
-#     Input:
-#         - normal_data: tensor of normal data samples
-#         - attack_data: tensor of attack data samples
-#     Output:
-#         - train_data: tensor of training data samples
-#         - val_data: tensor of validation data samples
-#         - test_data: tensor of test data samples
-#     Logic:
-#         This function splits the dataset into training, validation, and test sets.
-#         - Training set: 70% of normal.
-#         - Validation set: 15%  of normal and 85% of attack.
-#         - Test set: 15% of normal and 15% of attack.        
-#     '''
-#     # 70% of normal data for training
-#     num_normal = len(normal_data)
-#     train_size = int(0.7 * num_normal)
-#     train_data = normal_data[:train_size]
-#     trainingLabels = normalLabels[:train_size]
-
-#     # 15% of normal data for validation
-#     val_size = int(0.15 * num_normal)
-#     val_normal_data = normal_data[train_size:train_size + val_size]
-#     val_attack_size = int(0.85 * len(attack_data))
-#     val_attack_data = attack_data[:val_attack_size]
-#     val_data = torch.cat((val_normal_data, val_attack_data), dim=0)
-#     validationLabels = normalLabels[train_size:train_size + val_size] + attackLabels[:val_attack_size]
-#     # 15% of normal data for testing
-#     test_normal_data = normal_data[train_size + val_size:]
-#     test_attack_size = int(0.15 * len(attack_data))
-#     test_attack_data = attack_data[val_attack_size:val_attack_size + test_attack_size]
-#     testLabels = attackLabels[val_attack_size:val_attack_size + test_attack_size]
-#     test_data = torch.cat((test_normal_data, test_attack_data), dim=0)
+def phase1_getting_data(n,m):
+    '''
+        This function is responsible for checking if the data and labels exist or not, and if not, to generate them
+        Input:
+            - n: number of bytes per packet
+            - m: number of packets per sample
+        Output:
+            - training_data: tensor of shape (num_training_samples, 1, m, n)
+            - validation_data: tensor of shape (num_validation_samples, 1, m, n)
+            - testing_data: tensor of shape (num_testing_samples, 1, m, n)
+            - training_labels: numpy array of shape (num_training_samples,)
+            - validation_labels: numpy array of shape (num_validation_samples,)
+            - test_labels: numpy array of shape (num_testing_samples,)
+    '''
 
 
-#     return train_data, val_data, test_data, trainingLabels, validationLabels, testLabels
-    
+    # check if data and labels already exist.
+    Data_Files_Exist = os.path.exists('./data/training_data.npy') and os.path.exists('./data/validation_data.npy') and os.path.exists('./data/testing_data.npy') and os.path.exists('./data/training_labels.npy') and os.path.exists('./data/validation_labels.npy') and os.path.exists('./data/testing_labels.npy')
+    if Data_Files_Exist:
+        # load them
+        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
+        # print unique labels for training, validation, and testing
+        print(f"[*] Training labels unique values: {np.unique(training_labels)}")
+        print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
+        print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
+        
+        print('[*] Phase 1: Data files found. Loaded successfully.')
+
+    else: 
+        # Load and preprocess data
+        normal_data, attack_data = phase1_data_prepration(n)
+        print(f"[*] Total normal samples: {len(normal_data)}")
+        print(f"[*] Total attack samples: {len(attack_data)}")
+
+
+        # Convert data to tensors
+        normalData = prepare_tensors(normal_data, n, m=m)  
+        attackData = prepare_tensors(attack_data, n, m=m)  
+
+        print('[*] Data converted to tensors successfully.\n --------------------------------------- \n splitting data into training, validation, testing sets...')
+        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
+            # converting normal data to tensor
+            normal_data = normalData,
+
+            # converting attack data to tensor
+            attack_data = attackData, 
+        )
+        # Save training, validation, testing data into .npy
+        # make data folders if not exist
+        if not os.path.exists('./data'):
+            os.makedirs('./data')
+        np.save('./data/training_data.npy', training_data.numpy())
+        np.save('./data/validation_data.npy', validation_data.numpy())
+        np.save('./data/testing_data.npy', testing_data.numpy())
+        print('Saved training, validation, testing data into .npy files.')
+
+        # Save training, validation, testing labels into .npy
+        np.save('./data/training_labels.npy', training_labels)
+        np.save('./data/validation_labels.npy', validation_labels)
+        np.save('./data/testing_labels.npy', test_labels)
+        print('Saved training, validation, testing labels into .npy files.')
+
+
+
+        # print unique labels for training, validation, and testing
+        print(f"[*] Training labels unique values: {np.unique(training_labels)}")
+        print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
+        print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
+    return training_data, validation_data, testing_data, training_labels, validation_labels, test_labels
+
 
 def phase1_dataset_splitting(normal_data, attack_data):
     """
@@ -351,7 +383,7 @@ def phase3_sanity_checks(n, m):
 
 
 # ---------------- Phase 4: Custom Generator Loss ---------------- #
-def phase4_custom_generator_loss():
+def phase4_custom_generator_loss(x_real, x_fake, D):
     """
     Phase 4: Custom Generator Loss sanity check
     Logic:
@@ -359,20 +391,20 @@ def phase4_custom_generator_loss():
         - Compute feature-matching loss using mean feature vectors
         - Do NOT use discriminator output
     """
-    print("[*] Phase 4: Custom Generator Loss sanity checks")
+    # print("[*] Phase 4: Custom Generator Loss sanity checks")
 
     # 1. Create dummy batches
-    batch_size = 8
-    m, n = 10, 50
-    x_real = torch.randn(batch_size, 1, m, n)
-    x_fake = torch.randn(batch_size, 1, m, n)
+    # batch_size = 8
+    # m, n = 10, 50
+    # x_real = torch.randn(batch_size, 1, m, n)
+    # x_fake = torch.randn(batch_size, 1, m, n)
 
     # 2. Instantiate discriminator
-    D = Discriminator(input_shape=(1, m, n))
+    # D = Discriminator(input_shape=(1, m, n))
 
     # 3. Freeze discriminator
-    for p in D.parameters():
-        p.requires_grad = False
+    # for p in D.parameters():
+    #     p.requires_grad = False
 
     # 4. Feature matching loss
     def feature_matching_loss(D, x_real, x_fake):
@@ -394,137 +426,22 @@ def phase4_custom_generator_loss():
         mean_real = f_real.mean(dim=0)
         mean_fake = f_fake.mean(dim=0)
 
-        loss = torch.mean((mean_real - mean_fake) ** 2)  # L2 -> higher punishment
+        loss = torch.mean((mean_real - mean_fake) ** 2) / mean_real.numel()  # L2 -> higher punishment
         return loss
 
     loss = feature_matching_loss(D, x_real, x_fake)
 
     # 5. Sanity checks
-    print("[*] Feature matching loss value:", loss.item())
+    # print("[*] Feature matching loss value:", loss.item())
 
     assert isinstance(loss.item(), float), "Loss is not scalar"
     assert loss.item() >= 0.0, "Loss must be non-negative"
 
-    print("[✓] Phase 4 sanity checks passed successfully")
-    print("-----------------------------------------------\n")
+    # print("[✓] Phase 4 sanity checks passed successfully")
+    # print("-----------------------------------------------\n")
+    return loss
 
 # ---------------- Phase 5: GAN Training Loop ---------------- #
-def train_discriminator_step(D, G, x_real, optimizer_D, m, n):
-    D.train()
-    G.eval()  # generator is NOT updated here
-
-    batch_size = x_real.size(0)
-    device = x_real.device
-
-    optimizer_D.zero_grad()
-
-    # --- Real samples ---
-    y_real = torch.ones(batch_size, 1, device=device)
-    pred_real = D(x_real)
-    loss_real = F.binary_cross_entropy(pred_real, y_real)
-
-    # --- Fake samples ---
-    z = torch.randn(batch_size, m * n, device=device)
-    with torch.no_grad():  # do NOT update G here
-        x_fake = G(z)
-
-    y_fake = torch.zeros(batch_size, 1, device=device)
-    pred_fake = D(x_fake)
-    loss_fake = F.binary_cross_entropy(pred_fake, y_fake)
-
-    # --- Total loss ---
-    loss_D = loss_real + loss_fake
-    loss_D.backward()
-    optimizer_D.step()
-
-    return loss_D.item()
-
-def train_generator_step(D, G, x_real, optimizer_G, m, n):
-    G.train()
-    D.eval()  # discriminator is frozen here
-
-    # Freeze discriminator parameters
-    for p in D.parameters():
-        p.requires_grad = False
-
-    optimizer_G.zero_grad()
-
-    batch_size = x_real.size(0)
-    device = x_real.device
-
-    # Generate fake samples
-    z = torch.randn(batch_size, m * n, device=device)
-    x_fake = G(z)
-
-    # Extract features
-    f_real = D.extract_features(x_real)
-    f_fake = D.extract_features(x_fake)
-
-    # Feature-matching loss (L2)
-    mean_real = f_real.mean(dim=0)
-    mean_fake = f_fake.mean(dim=0)
-    # loss_G = torch.mean((mean_real - mean_fake) ** 2)
-    loss_feat = torch.mean((mean_real - mean_fake) ** 2)
-
-    pred_fake = D(x_fake)
-    loss_adv = F.binary_cross_entropy(
-        pred_fake,
-        torch.ones_like(pred_fake)
-    )
-
-    loss_G = loss_feat + 0.1 * loss_adv
-
-
-    loss_G.backward()
-    optimizer_G.step()
-
-    # Unfreeze discriminator
-    for p in D.parameters():
-        p.requires_grad = True
-
-    return loss_G.item()
-
-def train_gan(
-    D,
-    G,
-    train_loader,
-    epochs,
-    optimizer_D,
-    optimizer_G,
-    m,
-    n,
-    device
-):
-    D.to(device)
-    G.to(device)
-
-    for epoch in range(epochs):
-        epoch_loss_D = 0.0
-        epoch_loss_G = 0.0
-
-        for x_real in train_loader:
-            x_real = x_real.to(device)
-
-            # --- Discriminator step ---
-            loss_D = train_discriminator_step(
-                D, G, x_real, optimizer_D, m, n
-            )
-
-            # --- Generator step ---
-            loss_G = train_generator_step(
-                D, G, x_real, optimizer_G, m, n
-            )
-
-            epoch_loss_D += loss_D
-            epoch_loss_G += loss_G
-
-        # --- Logging ---
-        print(
-            f"[Epoch {epoch+1}/{epochs}] "
-            f"D loss: {epoch_loss_D:.4f} | "
-            f"G feature loss: {epoch_loss_G:.6f}"
-        )
-
 def discriminator_accuracy(D, x_real, G, m, n):
     batch_size = x_real.size(0)
     z = torch.randn(batch_size, m * n, device=x_real.device)
@@ -657,9 +574,9 @@ def train_gan_on_training_data(
     n,
     epochs=30,
     batch_size=64,
-    lr_D=5e-4,
-    lr_G=2e-4,
-    device="cpu",
+    lr_D=5e-4, # learning rate for Discriminator
+    lr_G=2e-4, # learning rate for Generator
+    device="cuda",
     save_dir="models"
 ):
     """
@@ -675,22 +592,22 @@ def train_gan_on_training_data(
     # --------------------------------------------------
     # DataLoader
     # --------------------------------------------------
-    train_loader = DataLoader(
+    train_loader = DataLoader( # instead of passing the whole dataset at once, we add them batch by batch
         training_data,
         batch_size=batch_size,
-        shuffle=True,
-        drop_last=True
+        shuffle=True, # the order of samples is randomly change every epoch, so the GAN does not learn patterns tied to data order.
+        drop_last=True # if the total number of samples is not divisible by batch size, the last incomplete batch is dropped.
     )
 
-    num_batches = len(train_loader)
+    num_batches = len(train_loader) # number of batches per epoch
 
     # --------------------------------------------------
     # Optimizers
     # --------------------------------------------------
-    optimizer_D = optim.Adam(D.parameters(), lr=lr_D)
+    optimizer_D = optim.Adam(D.parameters(), lr=lr_D) # gradient-based optimization algorithm used to train NN. it updates model parameters using adaptive learning rates instead of a fixed learning rate.
     optimizer_G = optim.Adam(G.parameters(), lr=lr_G)
 
-    D.to(device)
+    D.to(device) # since they inherit from nn.Module, we can use .to() to move them to the desired device (CPU or GPU)
     G.to(device)
 
     print("\n[*] Starting GAN training")
@@ -704,7 +621,7 @@ def train_gan_on_training_data(
     # Training loop
     # --------------------------------------------------
     for epoch in range(epochs):
-        D.train()
+        D.train() # put the D in the training mode. 
         G.train()
 
         epoch_loss_D = 0.0
@@ -719,31 +636,46 @@ def train_gan_on_training_data(
             leave=False
         )
 
+        # itertaing over Dataloader batches
         for batch_idx, x_real in progress_bar:
+            # move batch to device
             x_real = x_real.to(device)
+
+            # get current batch size. 
             curr_batch_size = x_real.size(0)
 
             # ============================
             # 1. Discriminator step
             # ============================
-            optimizer_D.zero_grad()
+            optimizer_D.zero_grad() # clearing old gradients, since by default, gradients are accumulated in PyTorch.
 
             # Real samples
-            y_real = torch.ones(curr_batch_size, 1, device=device)
-            pred_real = D(x_real)
-            loss_real = F.binary_cross_entropy(pred_real, y_real)
+            y_real = torch.ones(curr_batch_size, 1, device=device) # real labels are 1
 
-            # Fake samples
-            z = torch.randn(curr_batch_size, m * n, device=device)
+            # run real data through D
+            pred_real = D(x_real)
+
+            # penalizes the D when it misclassifies real samples
+            loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
+
+            # Generating Fake samples
+            z = torch.randn(curr_batch_size, m * n, device=device) 
             with torch.no_grad():
                 x_fake = G(z)
 
-            y_fake = torch.zeros(curr_batch_size, 1, device=device)
-            pred_fake = D(x_fake)
-            loss_fake = F.binary_cross_entropy(pred_fake, y_fake)
+            y_fake = torch.zeros(curr_batch_size, 1, device=device) # fake labels are 0
 
+            # let the discriminator predict on fake samples
+            pred_fake = D(x_fake)
+
+            # penalizes the D when it misclassifies fake samples
+            loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
+
+            # compute the total loss
             loss_D = loss_real + loss_fake
             loss_D.backward()
+
+            # update discriminator weights
             optimizer_D.step()
 
             # ============================
@@ -756,14 +688,7 @@ def train_gan_on_training_data(
 
             z = torch.randn(curr_batch_size, m * n, device=device)
             x_fake = G(z)
-
-            f_real = D.extract_features(x_real)
-            f_fake = D.extract_features(x_fake)
-
-            mean_real = f_real.mean(dim=0)
-            mean_fake = f_fake.mean(dim=0)
-
-            loss_G = torch.mean((mean_real - mean_fake) ** 2)
+            loss_G = phase4_custom_generator_loss(x_real, x_fake, D) # try to force the fake data to match the real data
             loss_G.backward()
             optimizer_G.step()
 

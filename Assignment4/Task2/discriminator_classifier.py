@@ -17,20 +17,24 @@ import torch.nn as nn
 
 class DiscriminatorClassifier(nn.Module):
     def __init__(self, feature_dim):
+        '''
+            Takes features vector as input and outputs real/fake score.
+        '''
         super().__init__()
 
+        # typical architecture for binary classification
         self.fc_layers = nn.Sequential(
-            nn.Linear(feature_dim, 512),
-            nn.ReLU(),
+            nn.Linear(feature_dim, 512), # map the input feature vector to 512-dim
+            nn.ReLU(), # add non-linearity
 
-            nn.Linear(512, 256),
-            nn.ReLU(),
+            nn.Linear(512, 256), # map to 256-dim
+            nn.ReLU(), # add non-linearity for more complex decision boundary
 
             nn.Linear(256, 128),
             nn.ReLU(),
 
             nn.Linear(128, 1),
-            nn.Sigmoid()
+            # nn.Sigmoid() # output probability of being real (1) or fake (0)
         )
 
     def forward(self, features):

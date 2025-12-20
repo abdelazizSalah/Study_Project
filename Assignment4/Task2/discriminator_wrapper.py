@@ -24,16 +24,27 @@ class Discriminator(nn.Module):
         self.feature_extractor = DiscriminatorFeatures()
 
         # Compute feature dimension dynamically
-        with torch.no_grad():
-            dummy = torch.zeros(1, *input_shape)
-            feature_dim = self.feature_extractor(dummy).shape[1]
+        with torch.no_grad(): # disable gradient calculation because this step is not part of training
 
+            # create fake input tensor filled with zeros
+            dummy = torch.zeros(1, *input_shape) # 1 is batch size, *input_shape unpacks the input shape tuple
+
+            # runs this dummy input through the feature extractor to get the feature dimension
+            feature_dim = self.feature_extractor(dummy).shape[1] # number of features per sample. 
+
+        # define a classifier using the computed feature dimension
         self.classifier = DiscriminatorClassifier(feature_dim)
 
     def extract_features(self, x):
+        '''
+            - This function to extract the features part only, which will be used in feature matching loss.
+        '''
         return self.feature_extractor(x)
 
     def forward(self, x):
+        '''
+            - This function is to perform the full forward pass, which will be used in real/fake classification.
+        '''
         features = self.extract_features(x)
         score = self.classifier(features)
         return score

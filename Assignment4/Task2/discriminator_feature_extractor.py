@@ -79,6 +79,7 @@ class DiscriminatorFeatures(nn.Module):
             # Conv 9 (NO dropout)
             nn.Conv2d(256, 256, kernel_size=kernel_size, padding=1),
             nn.ReLU(),
+            nn.AdaptiveAvgPool2d((4,4))
         )
 
     def forward(self, x):

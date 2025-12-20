@@ -16,87 +16,32 @@ Phase 0: Design Decisions:
         - Standard normal distribution (mean=0, std=1) (Gaussian)
 '''
 from sheet4_task2_utility_tools import *
-
 # Main function
 def task2_sheet4_main():
     # Main logic of the task
-    n, mode = phase1_read_arguments() # I think I should read n only when we should perform training, but for inference mode, I should let him select from the two other modes. 
+    n, mode = phase1_read_arguments() 
     m = 10  # number of packets per sample
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
     print(f'[*] Using device: {device}')
     
     
     print('[*] Phase 1: Starting data prepration...')
-    # check if ./data/training_data.npy, ./data/validation_data.npy, ./data/testing_data.npy, ./data/training_labels.npy, ./data/validation_labels.npy, ./data/testing_labels.npy exist
-    Data_Files_Exist = os.path.exists('./data/training_data.npy') and os.path.exists('./data/validation_data.npy') and os.path.exists('./data/testing_data.npy') and os.path.exists('./data/training_labels.npy') and os.path.exists('./data/validation_labels.npy') and os.path.exists('./data/testing_labels.npy')
-    if Data_Files_Exist:
-        # load them
-        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
-        # print unique labels for training, validation, and testing
-        print(f"[*] Training labels unique values: {np.unique(training_labels)}")
-        print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
-        print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
-        
-        print('[*] Phase 1: Data files found. Loaded successfully.')
-    else: 
-        # Load and preprocess data
-        normal_data, attack_data = phase1_data_prepration(n)
-        print(f"[*] Total normal samples: {len(normal_data)}")
-        print(f"[*] Total attack samples: {len(attack_data)}")
-
-
-        # Convert data to tensors
-        normalData = prepare_tensors(normal_data, n, m=10)  # assuming m=10 packets per sample
-        attackData = prepare_tensors(attack_data, n, m=10)  # assuming m=10 packets per sample
-
-        print('[*] Data converted to tensors successfully.\n --------------------------------------- \n splitting data into training, validation, testing sets...')
-        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_dataset_splitting(
-            # converting normal data to tensor
-            normal_data = normalData,
-
-            # converting attack data to tensor
-            attack_data = attackData, 
-        )
-        # Save training, validation, testing data into .npy
-        # make data folders if not exist
-        if not os.path.exists('./data'):
-            os.makedirs('./data')
-        np.save('./data/training_data.npy', training_data.numpy())
-        np.save('./data/validation_data.npy', validation_data.numpy())
-        np.save('./data/testing_data.npy', testing_data.numpy())
-        print('Saved training, validation, testing data into .npy files.')
-
-        # Save training, validation, testing labels into .npy
-        np.save('./data/training_labels.npy', training_labels)
-        np.save('./data/validation_labels.npy', validation_labels)
-        np.save('./data/testing_labels.npy', test_labels)
-        print('Saved training, validation, testing labels into .npy files.')
-
-
-
-        # print unique labels for training, validation, and testing
-        print(f"[*] Training labels unique values: {np.unique(training_labels)}")
-        print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
-        print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
-
-
+    training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_getting_data(n, m)
     print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
 
-    # Data preparation
+
     # check if ./models/discriminator.pth and ./models/generator.pth exist 
     Training_Models_Exist = os.path.exists('./models/discriminator.pth') and os.path.exists('./models/generator.pth')
     if Training_Models_Exist:
         print('[*] Phase 6: Trained models found. Starting inference mode...')
-        if mode == 'D':
-            # load discriminator model
-            print("[*] Mode: INFERENCE (Discriminator-based)")
-            D, G = load_trained_models(
+        D, G = load_trained_models(
                 m=m,
                 n=n,
                 device=device,
                 model_dir="models"
             )
-
+        if mode == 'D':
+            print("[*] Mode: INFERENCE (Discriminator-based)")
             phase6_discriminator_mode(
                 D,
                 validation_data,
@@ -106,15 +51,7 @@ def task2_sheet4_main():
                 device
             )
         elif mode == 'G':
-            # load generator model
             print("[*] Mode: INFERENCE (Generator-based)")
-            D, G = load_trained_models(
-                m=m,
-                n=n,
-                device=device,
-                model_dir="models"
-            )
-
             phase6_generator_mode(
                 D,
                 G,
@@ -130,22 +67,26 @@ def task2_sheet4_main():
             print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
         return 
     else: 
-        
+        # # Running sanity checks for Discriminator implementation
+        # phase2_sanity_checks(n , m=m)
 
-        # Running sanity checks for Discriminator implementation
-        phase2_sanity_checks(n , m=10)
+        # # Running sanity checks for Generator implementation
+        # phase3_sanity_checks(n , m=m)
 
-        # Running sanity checks for Generator implementation
-        phase3_sanity_checks(n , m=10)
-
-        # running sanity check for custom loss function
-        phase4_custom_generator_loss()
+        # # running sanity check for custom loss function
+        # phase4_custom_generator_loss()
 
         # running phase 5 sanity check for GAN Training loop
         print('[*] Phase 5: Starting GAN Training loop...')
         D = Discriminator(input_shape=(1, m, n))
         G = Generator(m=m, n=n)
-
+        print('before training:')
+        print(training_data.min(), training_data.max())
+        # normalize training data to [0, 1]
+        training_data = (training_data - training_data.min()) / (training_data.max() - training_data.min())
+        print('after normalization:')
+        print(training_data.min(), training_data.max())
+        
         train_gan_on_training_data(
             training_data=training_data,
             D=D,
