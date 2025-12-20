@@ -97,7 +97,7 @@ Example on how Bloom filter work:
         - we check bits at these indices, by incident all are set, so we will consider carpet as in the set => (false-positive)
 '''
 
-TESTING = True
+TESTING = False
 import sys
 import numpy as np
 import math
@@ -553,6 +553,7 @@ def sheet3_task1():
     
     if len(sys.argv) > 1:
         n = int(sys.argv[1])
+        print(f"[*] Using n-gram size: {n}")
     else:
         # print a hint how to call it in command line
         raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
@@ -578,7 +579,7 @@ def sheet3_task1():
     validation_scores = [score_packet(pkt[0], bloom, weights, n)
                     for pkt in validation_packets]
     # save validation scores to a file
-    with open('validation_scores.txt', 'w') as f:
+    with open(f'validation_scores_{n}.txt', 'w') as f:
         f.write("Index\tScore\tLabel\n")
         for index, (_, label) in enumerate(validation_packets):
             f.write(f"{index}\t{validation_scores[index]:.6f}\t{label}\n")
@@ -588,7 +589,7 @@ def sheet3_task1():
     print("[*] Finding optimal threshold...")
     best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(validation_packets,scores=validation_scores)
     # save best threshold to a file
-    with open('best_metrics.txt', 'w') as f:
+    with open(f'best_metrics_{n}.txt', 'w') as f:
         f.write(f"Best Threshold: {best_t:.6f}\n")
         f.write(f"Accuracy: {best_acc:.6f}\n")
         f.write(f"Precision: {best_prec:.6f}\n")
@@ -602,12 +603,11 @@ def sheet3_task1():
     results = test_model(test_packets, bloom, weights, n, best_t) 
 
     # save results to a file
-    with open('test_results.txt', 'w') as f:
+    with open(f'test_results_{n}.txt', 'w') as f:
         f.write("Index\tScore\tLabel\n")
         for index, score, label in results:
             f.write(f"{index}\t{score:.6f}\t{label}\n")
-    print("[*] Test results saved to test_results.txt")
-
+    print(f"[*] Test results saved to test_results_{n}.txt")
 
    
 if __name__ == "__main__":
