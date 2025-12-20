@@ -572,9 +572,9 @@ def train_gan_on_training_data(
     G,
     m,
     n,
-    epochs=10,
+    epochs=5,
     batch_size=64,
-    lr_D=1e-4, # learning rate for Discriminator
+    lr_D=1e-5, # learning rate for Discriminator
     lr_G=3e-4, # learning rate for Generator
     device="cuda",
     save_dir="models"
