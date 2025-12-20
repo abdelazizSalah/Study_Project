@@ -1037,13 +1037,15 @@ def phase6_discriminator_mode(
         for x in val_normal:
             x = x.unsqueeze(0).to(device)
             logit = D(x)
-            prob = torch.sigmoid(logit)
+            prob = torch.sigmoid(logit) # to get output in range [0,1]
             val_scores.append(prob.item())
 
     print(f"[*] Collected {len(val_scores)} validation scores")
 
     # threshold: low scores = anomaly
-    threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
+    # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
+    threshold = np.mean(val_scores) - 2 * np.std(val_scores)
+
     print(f"[✓] D threshold: {threshold:.6f}")
     print(
     f"Val scores stats | "
@@ -1060,7 +1062,7 @@ def phase6_discriminator_mode(
         for x in test_data:
             x = x.unsqueeze(0).to(device)
             logit = D(x)
-            prob = torch.sigmoid(logit)
+            prob = torch.sigmoid(logit) # to get output in range [0,1]
             test_scores.append(prob.item())    
     test_scores = np.array(test_scores)
 
