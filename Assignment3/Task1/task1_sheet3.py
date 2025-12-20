@@ -481,25 +481,25 @@ def load_and_label_data():
 def compute_bloom_weights_and_counts(train_packets, n):
     
     print("[*] Training model...")
-    if os.path.exists('bloom_filter.pkl') and os.path.exists('ngram_weights.pkl') and os.path.exists('ngram_count_training.pkl'):
+    if os.path.exists(f'bloom_filter_{n}.pkl') and os.path.exists(f'ngram_weights_{n}.pkl') and os.path.exists(f'ngram_count_training_{n}.pkl'):
         
-        with open('bloom_filter.pkl', 'rb') as f:
+        with open(f'bloom_filter_{n}.pkl', 'rb') as f:
             bloom = pickle.load(f)
-        with open('ngram_weights.pkl', 'rb') as f:
+        with open(f'ngram_weights_{n}.pkl', 'rb') as f:
             weights = pickle.load(f)
-        with open('ngram_count_training.pkl', 'rb') as f:
+        with open(f'ngram_count_training_{n}.pkl', 'rb') as f:
             ngram_count_training = pickle.load(f)
         print(f"[*] Loaded pre-trained model from disk. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
     else:
         bloom, weights, ngram_count_training = train_ngram_models(train_packets, n)
         # save the bloom filter and weights to disk for future use
-        with open('bloom_filter.pkl', 'wb') as f:
+        with open(f'bloom_filter_{n}.pkl', 'wb') as f:
             pickle.dump(bloom, f)
-        with open('ngram_weights.pkl', 'wb') as f:
+        with open(f'ngram_weights_{n}.pkl', 'wb') as f:
             pickle.dump(weights, f)
         # store ngram_count_training for future use
-        with open('ngram_count_training.pkl', 'wb') as f:
+        with open(f'ngram_count_training_{n}.pkl', 'wb') as f:
             pickle.dump(ngram_count_training, f)
         print(f"[*] Training completed. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
