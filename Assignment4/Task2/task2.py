@@ -32,47 +32,7 @@ def task2_sheet4_main():
 
     # check if ./models/discriminator.pth and ./models/generator.pth exist 
     Training_Models_Exist = os.path.exists('./models/discriminator.pth') and os.path.exists('./models/generator.pth')
-    if Training_Models_Exist:
-        print('[*] Phase 6: Trained models found. Starting inference mode...')
-        D, G = load_trained_models(
-                m=m,
-                n=n,
-                device=device,
-                model_dir="models"
-            )
-        # normalizing validation and testing data
-        
-        validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
-        testing_data = (testing_data - testing_data.min()) / (testing_data.max() - testing_data.min())
-        if mode == 'D':
-            print("[*] Mode: INFERENCE (Discriminator-based)")
-            phase6_discriminator_mode(
-                D,
-                validation_data,
-                validation_labels,
-                testing_data,
-                test_labels,
-                device, 
-
-
-            )
-        elif mode == 'G':
-            print("[*] Mode: INFERENCE (Generator-based)")
-            phase6_generator_mode(
-                D,
-                G,
-                validation_data,
-                validation_labels,
-                testing_data,
-                test_labels,
-                m,
-                n,
-                device
-            )
-        else:
-            print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
-        return 
-    else: 
+    if not Training_Models_Exist:
         # # Running sanity checks for Discriminator implementation
         # tring better training for GAN
         # phase2_sanity_checks(n , m=m)
@@ -104,7 +64,46 @@ def task2_sheet4_main():
             batch_size=64,
             device=device
         )
+    # excuting the inference phase always 
+    print('[*] Phase 6: Trained models found. Starting inference mode...')
+    D, G = load_trained_models(
+            m=m,
+            n=n,
+            device=device,
+            model_dir="models"
+        )
+    # normalizing validation and testing data
+    
+    validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
+    testing_data = (testing_data - testing_data.min()) / (testing_data.max() - testing_data.min())
+    if mode == 'D':
+        print("[*] Mode: INFERENCE (Discriminator-based)")
+        phase6_discriminator_mode(
+            D,
+            validation_data,
+            validation_labels,
+            testing_data,
+            test_labels,
+            device, 
 
+
+        )
+    elif mode == 'G':
+        print("[*] Mode: INFERENCE (Generator-based)")
+        phase6_generator_mode(
+            D,
+            G,
+            validation_data,
+            validation_labels,
+            testing_data,
+            test_labels,
+            m,
+            n,
+            device
+        )
+    else:
+        print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
+    
 
 
 if __name__ == "__main__":

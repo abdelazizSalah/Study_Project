@@ -566,173 +566,340 @@ def phase5_sanity_checks(m,n,batch_size=8, lr=1e-4, epochs=1):
     print("\n[✓] Phase 5 CHECK 1 passed successfully\n")
 
 
+# def train_gan_on_training_data(
+#     training_data,
+#     D,
+#     G,
+#     m,
+#     n,
+#     epochs=5,
+#     batch_size=64,
+#     lr_D=1e-5, # learning rate for Discriminator
+#     lr_G=3e-4, # learning rate for Generator
+#     device="cuda",
+#     save_dir="models"
+# ):
+#     """
+#     Phase 5: Full GAN training using ONLY training_data (normal samples)
+#     With detailed verbosity (epoch + batch progress).
+
+#     Inputs:
+#         - training_data: Tensor (N, 1, m, n)
+#         - D: Discriminator (fresh instance)
+#         - G: Generator (fresh instance)
+#     """
+
+#     # --------------------------------------------------
+#     # DataLoader
+#     # --------------------------------------------------
+#     train_loader = DataLoader( # instead of passing the whole dataset at once, we add them batch by batch
+#         training_data,
+#         batch_size=batch_size,
+#         shuffle=True, # the order of samples is randomly change every epoch, so the GAN does not learn patterns tied to data order.
+#         drop_last=True # if the total number of samples is not divisible by batch size, the last incomplete batch is dropped.
+#     )
+
+#     num_batches = len(train_loader) # number of batches per epoch
+
+#     # --------------------------------------------------
+#     # Optimizers
+#     # --------------------------------------------------
+#     optimizer_D = optim.Adam(D.parameters(), lr=lr_D) # gradient-based optimization algorithm used to train NN. it updates model parameters using adaptive learning rates instead of a fixed learning rate.
+#     optimizer_G = optim.Adam(G.parameters(), lr=lr_G)
+
+#     D.to(device) # since they inherit from nn.Module, we can use .to() to move them to the desired device (CPU or GPU)
+#     G.to(device)
+
+#     print("\n[*] Starting GAN training")
+#     print(f"    Epochs: {epochs}")
+#     print(f"    Batch size: {batch_size}")
+#     print(f"    Training samples: {len(training_data)}")
+#     print(f"    Number of batches per epoch: {num_batches}")
+#     print("--------------------------------------------------")
+
+#     # --------------------------------------------------
+#     # Training loop
+#     # --------------------------------------------------
+#     for epoch in range(epochs):
+#         D.train() # put the D in the training mode. 
+#         G.train()
+
+#         epoch_loss_D = 0.0
+#         epoch_loss_G = 0.0
+
+#         print(f"\n[*] Epoch {epoch + 1}/{epochs}")
+
+#         progress_bar = tqdm(
+#             enumerate(train_loader),
+#             total=num_batches,
+#             desc=f"Epoch {epoch + 1}",
+#             leave=False
+#         )
+#         # itertaing over Dataloader batches
+#         for batch_idx, x_real in progress_bar:
+            
+#             # move batch to device
+#             x_real = x_real.to(device)
+
+#             # get current batch size. 
+#             curr_batch_size = x_real.size(0)
+
+#             # ============================
+#             # 1. Discriminator step
+#             # ============================
+#             if batch_idx % 2 ==0:
+                
+#                 optimizer_D.zero_grad() # clearing old gradients, since by default, gradients are accumulated in PyTorch.
+
+#                 # Real samples
+#                 y_real = torch.ones(curr_batch_size, 1, device=device) # real labels are 1
+
+#                 # run real data through D
+#                 pred_real = D(x_real)
+
+#                 # penalizes the D when it misclassifies real samples
+#                 loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
+
+#                 # Generating Fake samples
+#                 z = torch.randn(curr_batch_size, m * n, device=device) 
+#                 with torch.no_grad():
+#                     x_fake = G(z)
+
+#                 y_fake = torch.zeros(curr_batch_size, 1, device=device) # fake labels are 0
+
+#                 # let the discriminator predict on fake samples
+#                 pred_fake = D(x_fake)
+
+#                 # penalizes the D when it misclassifies fake samples
+#                 loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
+
+#                 # compute the total loss
+#                 loss_D = loss_real + loss_fake
+#                 loss_D.backward()
+
+#                 # update discriminator weights
+#                 optimizer_D.step()
+
+#             # ============================
+#             # 2. Generator step (Feature Matching)
+#             # ============================
+#             for p in D.parameters():
+#                 p.requires_grad = False
+#             # training G more often than D trying to get better results
+#             for _ in range (2):
+#                 optimizer_G.zero_grad() # clearing old grad also for Gan
+
+#                 z = torch.randn(curr_batch_size, m * n, device=device)
+#                 x_fake = G(z)
+#                 loss_G = phase4_custom_generator_loss(x_real, x_fake, D) # try to force the fake data to match the real data
+#                 loss_G.backward()
+#                 optimizer_G.step()
+
+#             for p in D.parameters():
+#                 p.requires_grad = True
+
+#             # ============================
+#             # Logging
+#             # ============================
+#             epoch_loss_D += loss_D.item()
+#             epoch_loss_G += loss_G.item()
+
+#             if batch_idx % 50 == 0:
+#                 progress_bar.set_postfix({
+#                     "D_loss": f"{loss_D.item():.4f}",
+#                     "G_loss": f"{loss_G.item():.2e}"
+#                 })
+
+#         # --------------------------------------------------
+#         # Epoch summary
+#         # --------------------------------------------------
+#         avg_loss_D = epoch_loss_D / num_batches
+#         avg_loss_G = epoch_loss_G / num_batches
+
+#         print(
+#             f"[Epoch {epoch + 1} DONE] "
+#             f"Avg D loss: {avg_loss_D:.4f} | "
+#             f"Avg G feature loss: {avg_loss_G:.2e}"
+#         )
+
+#     # --------------------------------------------------
+#     # Save trained models
+#     # --------------------------------------------------
+#     os.makedirs(save_dir, exist_ok=True)
+
+#     torch.save(D.state_dict(), os.path.join(save_dir, "discriminator.pth"))
+#     torch.save(G.state_dict(), os.path.join(save_dir, "generator.pth"))
+
+#     print("\n[✓] Training finished successfully")
+#     print(f"[✓] Models saved to '{save_dir}/'")
+#     print('[*] Phase 5: GAN Training Done Successfully. \n --------------------------------------- \n ')
+
+
+# -----------------------------
+# Hyperparameters for control
+# -----------------------------
+D_LOSS_TOO_LOW = 0.1     # D dominating
+D_LOSS_TOO_HIGH = 0.7   # D too weak
+G_UPDATES = 2           # train G twice when allowed
+
+
 def train_gan_on_training_data(
     training_data,
     D,
     G,
     m,
     n,
-    epochs=5,
+    epochs=10,
     batch_size=64,
-    lr_D=1e-5, # learning rate for Discriminator
-    lr_G=3e-4, # learning rate for Generator
+    lr_D=1e-4,
+    lr_G=3e-4,
     device="cuda",
     save_dir="models"
 ):
-    """
-    Phase 5: Full GAN training using ONLY training_data (normal samples)
-    With detailed verbosity (epoch + batch progress).
-
-    Inputs:
-        - training_data: Tensor (N, 1, m, n)
-        - D: Discriminator (fresh instance)
-        - G: Generator (fresh instance)
-    """
-
-    # --------------------------------------------------
+    # -----------------------------
     # DataLoader
-    # --------------------------------------------------
-    train_loader = DataLoader( # instead of passing the whole dataset at once, we add them batch by batch
+    # -----------------------------
+    train_loader = DataLoader(
         training_data,
         batch_size=batch_size,
-        shuffle=True, # the order of samples is randomly change every epoch, so the GAN does not learn patterns tied to data order.
-        drop_last=True # if the total number of samples is not divisible by batch size, the last incomplete batch is dropped.
+        shuffle=True,
+        drop_last=True
     )
 
-    num_batches = len(train_loader) # number of batches per epoch
-
-    # --------------------------------------------------
+    # -----------------------------
     # Optimizers
-    # --------------------------------------------------
-    optimizer_D = optim.Adam(D.parameters(), lr=lr_D) # gradient-based optimization algorithm used to train NN. it updates model parameters using adaptive learning rates instead of a fixed learning rate.
+    # -----------------------------
+    optimizer_D = optim.Adam(D.parameters(), lr=lr_D)
     optimizer_G = optim.Adam(G.parameters(), lr=lr_G)
 
-    D.to(device) # since they inherit from nn.Module, we can use .to() to move them to the desired device (CPU or GPU)
+    D.to(device)
     G.to(device)
 
     print("\n[*] Starting GAN training")
-    print(f"    Epochs: {epochs}")
-    print(f"    Batch size: {batch_size}")
-    print(f"    Training samples: {len(training_data)}")
-    print(f"    Number of batches per epoch: {num_batches}")
+    print(f"Epochs: {epochs} | Batch size: {batch_size}")
     print("--------------------------------------------------")
 
-    # --------------------------------------------------
+    # -----------------------------
     # Training loop
-    # --------------------------------------------------
+    # -----------------------------
     for epoch in range(epochs):
-        D.train() # put the D in the training mode. 
+        D.train()
         G.train()
 
         epoch_loss_D = 0.0
         epoch_loss_G = 0.0
 
-        print(f"\n[*] Epoch {epoch + 1}/{epochs}")
+        print(f"\n[*] Epoch {epoch+1}/{epochs}")
 
-        progress_bar = tqdm(
-            enumerate(train_loader),
-            total=num_batches,
-            desc=f"Epoch {epoch + 1}",
-            leave=False
-        )
-        # itertaing over Dataloader batches
-        for batch_idx, x_real in progress_bar:
-            
-            # move batch to device
+        progress_bar = tqdm(train_loader, leave=False)
+
+        for x_real in progress_bar:
             x_real = x_real.to(device)
+            bs = x_real.size(0)
 
-            # get current batch size. 
-            curr_batch_size = x_real.size(0)
+            # =========================
+            # 1. Discriminator forward
+            # =========================
+            z = torch.randn(bs, m * n, device=device)
+            with torch.no_grad():
+                x_fake = G(z)
 
-            # ============================
-            # 1. Discriminator step
-            # ============================
-            if batch_idx % 2 ==0:
-                
-                optimizer_D.zero_grad() # clearing old gradients, since by default, gradients are accumulated in PyTorch.
+            y_real = torch.ones(bs, 1, device=device)
+            y_fake = torch.zeros(bs, 1, device=device)
 
-                # Real samples
-                y_real = torch.ones(curr_batch_size, 1, device=device) # real labels are 1
+            pred_real = D(x_real)
+            pred_fake = D(x_fake)
 
-                # run real data through D
-                pred_real = D(x_real)
+            loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
+            loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
+            loss_D = loss_real + loss_fake
 
-                # penalizes the D when it misclassifies real samples
-                loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
+            # -------------------------
+            # Decide who trains
+            # -------------------------
+            update_D = True
+            update_G = True
 
-                # Generating Fake samples
-                z = torch.randn(curr_batch_size, m * n, device=device) 
-                with torch.no_grad():
-                    x_fake = G(z)
+            if loss_D.item() < D_LOSS_TOO_LOW:
+                # D too strong → freeze D
+                update_D = False
+                update_G = True
+            elif loss_D.item() > D_LOSS_TOO_HIGH:
+                # D too weak → freeze G
+                update_D = True
+                update_G = False
 
-                y_fake = torch.zeros(curr_batch_size, 1, device=device) # fake labels are 0
-
-                # let the discriminator predict on fake samples
-                pred_fake = D(x_fake)
-
-                # penalizes the D when it misclassifies fake samples
-                loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
-
-                # compute the total loss
-                loss_D = loss_real + loss_fake
+            # =========================
+            # 2. Update Discriminator
+            # =========================
+            if update_D:
+                optimizer_D.zero_grad()
                 loss_D.backward()
-
-                # update discriminator weights
                 optimizer_D.step()
 
-            # ============================
-            # 2. Generator step (Feature Matching)
-            # ============================
-            for p in D.parameters():
-                p.requires_grad = False
-            # training G more often than D trying to get better results
-            for _ in range (2):
-                optimizer_G.zero_grad() # clearing old grad also for Gan
+            # =========================
+            # 3. Update Generator
+            # =========================
+            if update_G:
+                for p in D.parameters():
+                    p.requires_grad = False
 
-                z = torch.randn(curr_batch_size, m * n, device=device)
-                x_fake = G(z)
-                loss_G = phase4_custom_generator_loss(x_real, x_fake, D) # try to force the fake data to match the real data
-                loss_G.backward()
-                optimizer_G.step()
+                for _ in range(G_UPDATES):
+                    optimizer_G.zero_grad()
 
-            for p in D.parameters():
-                p.requires_grad = True
+                    z = torch.randn(bs, m * n, device=device)
+                    x_fake = G(z)
 
-            # ============================
+                    # Feature matching loss
+                    f_real = D.extract_features(x_real)
+                    f_fake = D.extract_features(x_fake)
+
+                    mean_real = f_real.mean(dim=0)
+                    mean_fake = f_fake.mean(dim=0)
+
+                    loss_G = torch.mean((mean_real - mean_fake) ** 2)
+
+                    loss_G.backward()
+                    optimizer_G.step()
+
+                for p in D.parameters():
+                    p.requires_grad = True
+            else:
+                loss_G = torch.tensor(0.0)
+
+            # =========================
             # Logging
-            # ============================
+            # =========================
             epoch_loss_D += loss_D.item()
             epoch_loss_G += loss_G.item()
 
-            if batch_idx % 50 == 0:
-                progress_bar.set_postfix({
-                    "D_loss": f"{loss_D.item():.4f}",
-                    "G_loss": f"{loss_G.item():.2e}"
-                })
+            progress_bar.set_postfix({
+                "D_loss": f"{loss_D.item():.4f}",
+                "G_loss": f"{loss_G.item():.2e}",
+                "upd_D": update_D,
+                "upd_G": update_G
+            })
 
-        # --------------------------------------------------
+        # -----------------------------
         # Epoch summary
-        # --------------------------------------------------
-        avg_loss_D = epoch_loss_D / num_batches
-        avg_loss_G = epoch_loss_G / num_batches
-
+        # -----------------------------
+        num_batches = len(train_loader)
         print(
-            f"[Epoch {epoch + 1} DONE] "
-            f"Avg D loss: {avg_loss_D:.4f} | "
-            f"Avg G feature loss: {avg_loss_G:.2e}"
+            f"[Epoch {epoch+1} DONE] "
+            f"Avg D loss: {epoch_loss_D/num_batches:.4f} | "
+            f"Avg G loss: {epoch_loss_G/num_batches:.2e}"
         )
 
-    # --------------------------------------------------
-    # Save trained models
-    # --------------------------------------------------
+    # -----------------------------
+    # Save models
+    # -----------------------------
     os.makedirs(save_dir, exist_ok=True)
-
     torch.save(D.state_dict(), os.path.join(save_dir, "discriminator.pth"))
     torch.save(G.state_dict(), os.path.join(save_dir, "generator.pth"))
 
     print("\n[✓] Training finished successfully")
     print(f"[✓] Models saved to '{save_dir}/'")
-    print('[*] Phase 5: GAN Training Done Successfully. \n --------------------------------------- \n ')
+
 
 
 # ---------------- Phase 6: Anomaly Detection modes ---------------- #
