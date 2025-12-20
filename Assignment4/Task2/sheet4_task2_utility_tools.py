@@ -949,7 +949,9 @@ def phase6_generator_mode(
 
     val_scores = np.array(val_scores)
 
-    threshold = np.percentile(val_scores, 95)
+    mu = np.mean(val_scores)
+    sigma = np.std(val_scores)
+    threshold = mu + 3 * sigma
     print(f"[✓] G threshold: {threshold:.6f}")
 
     # ----------------------------
