@@ -2,13 +2,10 @@ import argparse
 import os
 import sys
 import time
-from pathlib import Path
 
-import numpy as np
 from sklearn.preprocessing import LabelEncoder
-from tensorflow import keras
 
-from Assignment4.error_overlap import all_error_overlaps
+from Assignment4.Task1.error_overlap import all_error_overlaps
 from measure_runtime import measure_all
 from use_classifiers import execute_experiments_def, execute_experiments_abc
 from handling_re_bytes_integrated import create_preprocessed_re_files, create_preprocessed_re15
@@ -17,8 +14,7 @@ from file_helper_t3 import verify_amount_feature_files, load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
 from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
 from feature_creation_autoencoder import create_features_for_ds
-from preprocessing_s3t2 import find_M, \
-    pcaps_byte_and_metadata_extraction
+from preprocessing_s3t2 import pcaps_byte_and_metadata_extraction
 
 
 def require_file(path: str):
