@@ -1075,6 +1075,12 @@ def phase6_discriminator_mode(
     )
 
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
+    # write results in metrics_D.txt
+    with open("metrics_D.txt", "w") as f:
+        f.write(f"Precision: {precision:.4f}\n")
+        f.write(f"Recall: {recall:.4f}\n")
+        f.write(f"F1: {f1:.4f}\n")
+    
 
 def phase6_generator_mode(
     D,
@@ -1148,3 +1154,9 @@ def phase6_generator_mode(
     )
 
     print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
+    # write results in metrics_G.txt
+    with open("metrics_G.txt", "w") as f:
+        f.write(f"Precision: {precision:.4f}\n")
+        f.write(f"Recall: {recall:.4f}\n")
+        f.write(f"F1: {f1:.4f}\n")
+    

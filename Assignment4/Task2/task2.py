@@ -66,6 +66,7 @@ def task2_sheet4_main():
         )
     # excuting the inference phase always 
     print('[*] Phase 6: Trained models found. Starting inference mode...')
+
     D, G = load_trained_models(
             m=m,
             n=n,
@@ -84,7 +85,7 @@ def task2_sheet4_main():
             validation_labels,
             testing_data,
             test_labels,
-            device, 
+            torch.device("cuda:1" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied 
 
 
         )
@@ -99,7 +100,7 @@ def task2_sheet4_main():
             test_labels,
             m,
             n,
-            device
+            torch.device("cuda:2" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
         )
     else:
         print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
