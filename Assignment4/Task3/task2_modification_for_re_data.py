@@ -64,7 +64,7 @@ def task2_sheet4_main():
             m=m,
             n=n,
             device=device,
-            model_dir="models2"
+            model_dir=f"models_{p}"
         )
     # normalizing validation and testing data
     
