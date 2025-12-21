@@ -200,14 +200,25 @@ def phase1_data_prepration(n,p):
             And it should truncate/pad each packet to M bytes
             It is already implemented before, but we will just need to adapt it here.    
     '''
+    # def pad_or_truncate_packet(packet, n):
+    #     '''
+    #         This function pads or truncates a packet to have exactly n bytes.
+    #         Input:
+    #             - packet: byte array of the packet
+    #         Output:
+    #             - processed_packet: byte array of the packet with exactly n bytes
+    #     '''
+    #     if len(packet) > n:
+    #         return packet[:n]
+    #     elif len(packet) < n:
+    #         return packet + bytes(n - len(packet))
+    #     else:
+    #         return packet
     def pad_or_truncate_packet(packet, n):
-        '''
-            This function pads or truncates a packet to have exactly n bytes.
-            Input:
-                - packet: byte array of the packet
-            Output:
-                - processed_packet: byte array of the packet with exactly n bytes
-        '''
+        # لو packet جاي NumPy array → حوّله bytes
+        if isinstance(packet, np.ndarray):
+            packet = packet.tobytes()
+
         if len(packet) > n:
             return packet[:n]
         elif len(packet) < n:
