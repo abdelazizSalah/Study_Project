@@ -190,7 +190,6 @@ def measure_all(k: int, global_label_encoder) -> None:
     #re_features_fold0_log_ae_feature_extraction(k=k, feature_label="RE15 feature type", out_file=re_file, prefix_for_features="re")
 
     keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
-    print(keep_indices)
 
     _log_classifiers_for_feature_type(
         k=k,
