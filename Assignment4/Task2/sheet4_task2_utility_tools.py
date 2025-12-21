@@ -740,7 +740,7 @@ def phase5_sanity_checks(m,n,batch_size=8, lr=1e-4, epochs=1):
 # -----------------------------
 D_LOSS_TOO_LOW = 0.1     # D dominating
 D_LOSS_TOO_HIGH = 0.7   # D too weak
-G_UPDATES = 3           # train G three times when allowed
+G_UPDATES = 2         # train G two times when allowed
 
 
 def train_gan_on_training_data(

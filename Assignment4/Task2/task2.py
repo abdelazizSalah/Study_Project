@@ -21,7 +21,7 @@ def task2_sheet4_main():
     # Main logic of the task
     n, mode = phase1_read_arguments() 
     m = 10  # number of packets per sample
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
+    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
     print(f'[*] Using device: {device}')
     
     
@@ -31,7 +31,7 @@ def task2_sheet4_main():
 
 
     # check if ./models/discriminator.pth and ./models/generator.pth exist 
-    Training_Models_Exist = os.path.exists(f'./models/discriminator.pth') and os.path.exists(f'./models/generator.pth')
+    Training_Models_Exist = os.path.exists(f'./models2/discriminator.pth') and os.path.exists(f'./models2/generator.pth')
     if not Training_Models_Exist:
         # # Running sanity checks for Discriminator implementation
         # tring better training for GAN
@@ -60,9 +60,10 @@ def task2_sheet4_main():
             G=G,
             m=m,
             n=n,
-            epochs=30,
+            epochs=5,
             batch_size=64,
-            device=device
+            device=device,
+            save_dir="models2"
         )
     # excuting the inference phase always 
     print('[*] Phase 6: Trained models found. Starting inference mode...')
@@ -71,7 +72,7 @@ def task2_sheet4_main():
             m=m,
             n=n,
             device=device,
-            model_dir="models"
+            model_dir="models2"
         )
     # normalizing validation and testing data
     
