@@ -1,0 +1,1 @@
+![Using_2_GPUs_for_GANs](image-4.png)
