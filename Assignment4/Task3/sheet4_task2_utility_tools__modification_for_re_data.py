@@ -225,13 +225,11 @@ def phase1_data_prepration(n,p):
         labeled_data_normal =[ ]
         labeled_data_attack =[ ]
         for array in data_normal_arrays:
-            for pkt in array:
-                labeled_data_normal.append( (pad_or_truncate_packet(pkt, n), 'normal') ) 
+            labeled_data_normal.append( (pad_or_truncate_packet(array, n), 'normal') ) 
 
         
         for array in data_attacked:
-            for pkt in array:
-                labeled_data_attack.append( (pad_or_truncate_packet(pkt,n), 'attack') )
+            labeled_data_attack.append( (pad_or_truncate_packet(array,n), 'attack') )
         return labeled_data_normal, labeled_data_attack
 
     return load_and_label_data(n,p)
