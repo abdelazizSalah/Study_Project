@@ -8,11 +8,11 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from tensorflow import keras
 
+from Assignment4.error_overlap import all_error_overlaps
 from measure_runtime import measure_all
 from use_classifiers import execute_experiments_def, execute_experiments_abc
 from handling_re_bytes_integrated import create_preprocessed_re_files, create_preprocessed_re15
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
-from use_classifiers import execute_scenario
 from file_helper_t3 import verify_amount_feature_files, load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
 from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
@@ -245,66 +245,6 @@ def run_extract_features():
     print("[extract_features] Trained autoencoders and extracted features.")
 
 
-# Runs the selected classifier(s) on selected scenario(s).
-def run_classifiers(classifier: str | None,
-                    scenario: int | None,
-                    global_label_encoder: LabelEncoder):
-    k = check_requirements_classifier_modes()
-
-    # Helper to decide which scenarios are valid per classifier
-    def valid_scenarios_for(clf_name: str):
-        if clf_name in ("ocsvm", "ee", "lof"):
-            return [1]
-        elif clf_name in ("bsvm", "rf", "knn"):
-            return [2, 3]
-        else:
-            # "all" -> all three scenarios
-            return [1, 2, 3]
-
-    # Helper to actually run one classifier on one scenario for both RAW/RE
-    def run_one(clf_name: str, scen: int):
-        print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RAW)\n")
-        execute_scenario(
-            global_label_encoder,
-            classifier=clf_name,
-            k=k,
-            prefix="raw",
-            scenario=scen,
-        )
-
-        print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RE)\n")
-        execute_scenario(
-            global_label_encoder,
-            classifier=clf_name,
-            k=k,
-            prefix="re",
-            scenario=scen,
-        )
-
-    # Determine which classifiers to run
-    if classifier == "all":
-        classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn", "lof"]
-    else:
-        classifiers_to_run = [classifier]
-
-    for clf_name in classifiers_to_run:
-        scenarios_for_clf = valid_scenarios_for(clf_name)
-
-        if scenario is not None:
-            # User requested a specific scenario
-            if scenario not in scenarios_for_clf:
-                print(
-                    f"WARNING: classifier '{clf_name}' is not defined for Scenario {scenario}. "
-                    f"Valid scenarios for {clf_name}: {scenarios_for_clf}. Skipping."
-                )
-                continue
-            # run only the requested scenario
-            run_one(clf_name, scenario)
-        else:
-            # run all valid scenarios for this classifier
-            for scen in scenarios_for_clf:
-                run_one(clf_name, scen)
-
 
 # -------------------------------------------------------------------
 # Main entry point
@@ -324,14 +264,6 @@ def release_main():
         print_k_fold_pretty()
     elif args.mode == "extract_features":
         run_extract_features()  # needs server for RAM
-
-    elif args.mode == "classifiers":
-        # Build global label encoder once
-        # LabelEncoder from the Scikit-learn -> set up a way to convert text labels (categories) into numerical values for ML
-        global_label_encoder = LabelEncoder()
-        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        os.makedirs("models", exist_ok=True)
-        run_classifiers(args.classifier, args.scenario, global_label_encoder)
     elif args.mode == "run_experiments_abc":
         # runs experiments a, b and c with grid search and saves results for precision and recall in files
         global_label_encoder = LabelEncoder()
@@ -379,9 +311,7 @@ def release_main_new():
         run_k_fold(args.k)
         print_k_fold_pretty()
     elif args.mode == "measure_runtime":
-        global_label_encoder = LabelEncoder()
-        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        k = check_requirements_feature_extraction_mode()
+
         os.makedirs("results", exist_ok=True)
 
         print(f"k:{k}")
@@ -393,6 +323,11 @@ def release_main_new():
         # training (per fold)
 
         # testing (per fold)
+    elif args.mode == "error_overlap":
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_feature_extraction_mode()
+        all_error_overlaps(k, global_label_encoder)
 
 
 if __name__ == "__main__":

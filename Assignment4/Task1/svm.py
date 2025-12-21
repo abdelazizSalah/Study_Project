@@ -62,30 +62,18 @@ def one_class_svm_evaluate(X_test, y_test):
     return roc_auc, precision, recall
 
 
-def one_class_svm_predict(X_test, t_test):
-    """For each set of measurements at a given time step in the
-    testing set, your piece of code should print out whether this set of measurements contains
-    any attack or not."""
+def one_class_svm_predict_error_overlap(X_test, y_test):
 
     try:
         ocsvm = joblib.load("models/ocsvm.joblib")
     except FileNotFoundError:
-        print("ERROR: oscmv model not found")
-        return pd.DataFrame({
-            'Timestamp (Unix)': [],
-            'Predicted_Label': []
-        })
+        raise FileNotFoundError("models/ocsvm.joblib not found. Please train first.")
 
-    # The predict method returns +1 for Normal and -1 for Anomaly
-    y_pred_numeric = ocsvm.predict(X_test)
+    y_pred_numeric = ocsvm.predict(X_test)  # +1 normal, -1 attack
+    y_pred_binary = np.where(y_pred_numeric == -1, 1, 0).astype(int)
 
-    y_pred_attack = np.where(y_pred_numeric == -1, 'Attack', 'Normal')  #-1=attack, 1=no attack
-    prediction_report = pd.DataFrame({
-        'Timestamp (Unix)': t_test,
-        'Predicted_Label': y_pred_attack
-    })
-
-    return prediction_report
+    prediction_errors = (y_pred_binary != y_test).astype(int)
+    return prediction_errors
 
 
 ##############################################################BSVM
@@ -132,26 +120,17 @@ def binary_svm_evaluate(X_test, y_test):
     return precision, recall, f1
 
 
-def binary_svm_predict(X_test, t_test):
+def binary_svm_predict_error_overlap(X_test, y_test):
+
     try:
         svm_clf = joblib.load("models/bsvm.joblib")
     except FileNotFoundError:
-        print("ERROR: ‘models/bsvm.joblib’ not found. Please train first.")
-        return pd.DataFrame({
-            'Timestamp (Unix)': [],
-            'Predicted_Label': []
-        })
+        raise FileNotFoundError("models/bsvm.joblib not found. Please train first.")
 
-    # The predict method returns +1 for Normal and -1 for Anomaly
-    y_pred_numeric = svm_clf.predict(X_test)
+    y_pred_binary = svm_clf.predict(X_test).astype(int)
 
-    y_pred_attack = np.where(y_pred_numeric == 1, 'Attack', 'Normal')  # 1=attack, 0=no attack
-    prediction_report = pd.DataFrame({
-        'Timestamp (Unix)': t_test,
-        'Predicted_Label': y_pred_attack
-    })
-
-    return prediction_report
+    prediction_errors = (y_pred_binary != y_test).astype(int)
+    return prediction_errors
 
 
 

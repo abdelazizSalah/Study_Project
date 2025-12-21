@@ -73,33 +73,22 @@ def local_outlier_factor_evaluate(X_test, y_test):
     return roc_auc, precision, recall
 
 
-def local_outlier_factor_predict(X_test, t_test):
-    """
-    For each set of measurements at a given time step in the testing set,
-    print/return whether this set of measurements contains any attack or not.
-
-    Returns a DataFrame with:
-      - 'Timestamp (Unix)'
-      - 'Predicted_Label'  in {'Normal', 'Attack'}
-    """
+def local_outlier_factor_predict_error_overlap(X_test, y_test):
 
     try:
         lof_clf = joblib.load("models/local_outlier_factor.joblib")
     except FileNotFoundError:
-        print("ERROR: local_outlier_factor model not found")
-        return pd.DataFrame({
-            'Timestamp (Unix)': [],
-            'Predicted_Label': []
-        })
+        raise FileNotFoundError("local_outlier_factor model not found")
 
-    # +1 = Normal, -1 = Anomaly
+    # LOF convention:
+    # +1 = inlier (Normal)
+    # -1 = outlier (Attack)
     y_pred_numeric = lof_clf.predict(X_test)
 
-    y_pred_attack = np.where(y_pred_numeric == -1, 'Attack', 'Normal')
+    # convert BACK to binary labels: 1 = attack, 0 = normal
+    y_pred_binary = np.where(y_pred_numeric == -1, 1, 0)
 
-    prediction_report = pd.DataFrame({
-        'Timestamp (Unix)': t_test,
-        'Predicted_Label': y_pred_attack
-    })
+    # y_test is already binary: 1 = attack, 0 = normal
+    prediction_errors = (y_pred_binary != y_test).astype(int)
 
-    return prediction_report
+    return prediction_errors

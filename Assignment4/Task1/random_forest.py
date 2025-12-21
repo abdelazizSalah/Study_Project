@@ -60,30 +60,16 @@ def binary_rf_evaluate(X_test, y_test):
     return precision, recall, f1
 
 
-def binary_rf_predict(X_test, t_test):
-    """
-    For each measurement set at time t_test[i], predict Attack/Normal.
-    Returns a DataFrame with timestamps and predicted labels.
-    """
+def binary_rf_predict_error_overlap(X_test, y_test):
 
     try:
         rf_clf = joblib.load("models/brf.joblib")
     except FileNotFoundError:
-        print("ERROR: ‘models/bsvm.joblib’ not found. Please train first.")
-        return pd.DataFrame({
-            'Timestamp (Unix)': [],
-            'Predicted_Label': []
-        })
+        raise FileNotFoundError("models/brf.joblib not found. Please train first.")
 
-    y_pred_numeric = rf_clf.predict(X_test)  # 0/1
+    y_pred_binary = rf_clf.predict(X_test).astype(int)
 
-    y_pred_attack = np.where(y_pred_numeric == 1, 'Attack', 'Normal')  # 1=attack, 0=no attack
-
-    prediction_report = pd.DataFrame({
-        'Timestamp (Unix)': t_test,
-        'Predicted_Label': y_pred_attack
-    })
-
-    return prediction_report
+    prediction_errors = (y_pred_binary != y_test).astype(int)
+    return prediction_errors
 
 

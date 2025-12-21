@@ -66,30 +66,20 @@ def elliptic_envelope_evaluate(X_test, y_test):
     return roc_auc, precision, recall
 
 
-def elliptic_envelope_predict(X_test, t_test):
+def elliptic_envelope_predict_error_overlap(X_test, y_test):
     """
-    For each set of measurements at a given time step in the testing set,
-    print/return whether this set of measurements contains any attack or not.
-
+    EE predict returns:
+      +1 = inlier (Normal)
+      -1 = outlier (Attack)
+    Returns 1D error array (0/1) aligned to X_test/y_test order.
     """
-
     try:
         ee_clf = joblib.load("models/elliptic_envelope.joblib")
     except FileNotFoundError:
-        print("ERROR: elliptic_envelope model not found")
-        return pd.DataFrame({
-            'Timestamp (Unix)': [],
-            'Predicted_Label': []
-        })
+        raise FileNotFoundError("models/elliptic_envelope.joblib not found. Please train first.")
 
-    # +1 = Normal, -1 = Anomaly
-    y_pred_numeric = ee_clf.predict(X_test)
+    y_pred_numeric = ee_clf.predict(X_test)  # +1 normal, -1 attack
+    y_pred_binary = np.where(y_pred_numeric == -1, 1, 0).astype(int)
 
-    y_pred_attack = np.where(y_pred_numeric == -1, 'Attack', 'Normal')
-
-    prediction_report = pd.DataFrame({
-        'Timestamp (Unix)': t_test,
-        'Predicted_Label': y_pred_attack
-    })
-
-    return prediction_report
+    prediction_errors = (y_pred_binary != y_test).astype(int)
+    return prediction_errors

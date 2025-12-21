@@ -66,27 +66,13 @@ def binary_knn_evaluate(X_test, y_test):
 
 
 
-def binary_knn_predict(X_test, t_test):
-
+def binary_knn_predict_error_overlap(X_test, y_test):
 
     try:
         knn_clf = joblib.load("models/bknn.joblib")
     except FileNotFoundError:
-        print("ERROR: 'models/bknn.joblib' not found. Please train the model first.")
-        return pd.DataFrame({
-            'Timestamp (Unix)': [],
-            'Predicted_Label': []
-        })
+        raise FileNotFoundError("models/bknn.joblib not found. Please train first.")
 
-    # Numeric predictions: 0 = Control, 1 = Attack
-    y_pred_numeric = knn_clf.predict(X_test)
-
-    # Convert to textual labels
-    y_pred_text = np.where(y_pred_numeric == 1, "Attack", "Normal")
-
-    prediction_report = pd.DataFrame({
-        'Timestamp (Unix)': t_test,
-        'Predicted_Label': y_pred_text
-    })
-
-    return prediction_report
+    y_pred_binary = knn_clf.predict(X_test).astype(int)
+    prediction_errors = (y_pred_binary != y_test).astype(int)
+    return prediction_errors

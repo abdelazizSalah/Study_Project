@@ -9,19 +9,19 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
 import pandas as pd
-from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, local_outlier_factor_predict
+from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, local_outlier_factor_predict_error_overlap
 from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds
 from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
     grid_search_random_forest, grid_search_knn, grid_search_lof_parallel
-from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict
+from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict_error_overlap
 from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluate, \
-    elliptic_envelope_predict
+    elliptic_envelope_predict_error_overlap
 from file_helper_t3 import load_k_fold_results
-from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict
+from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict_error_overlap
 from labels_helper import encode_labels
-from svm import one_class_svm_evaluate, binary_svm_train, binary_svm_evaluate, one_class_svm_predict, \
-    one_class_svm_train, binary_svm_predict
+from svm import one_class_svm_evaluate, binary_svm_train, binary_svm_evaluate, one_class_svm_predict_error_overlap, \
+    one_class_svm_train, binary_svm_predict_error_overlap
 import numpy as np
 
 #indices not restored
@@ -43,77 +43,7 @@ def split_training_and_test(ds, labels, timestamps, train_indices_fold, test_ind
     return X_train, X_test, y_train, y_test, T_train, T_test
 
 
-#input: indices for one fold of one scenario!
-#ocsvm=1 - ocsvm, 0 - binary svm
-def execute_fold(fold_idx, binary_numeric_labels, timestamps,train_indices, test_indices, classifier, prefix, scenario):
-    """train, measure result, print timestamp + prediction for test dataset for one fold"""
 
-
-    ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")    #fold_idx: 1 to k, files are named 0 to k-1
-    print(f"Excuting {classifier} for fold {fold_idx} in Scenario {scenario}.")
-
-    X_train, X_test, y_train, y_test, t_train, t_test=split_training_and_test(ds, binary_numeric_labels, timestamps,train_indices, test_indices)
-
-    #run on small portion of dataset, for demonstration:
-    #first_indices = np.arange(0, 1000)
-    #last_indices = np.arange(len(X_train) - 1000, len(X_train))
-    #selected_indices = np.concatenate((first_indices, last_indices))
-    #X_train = X_train[selected_indices]
-    #y_train = y_train[selected_indices]
-
-    if classifier=="ocsvm":
-        one_class_svm_train(X_train)
-        one_class_svm_evaluate(X_test, y_test)  #test data and corresponding labels
-        prediction_report=one_class_svm_predict(X_test, t_test) #test data and corresponding timestamps
-    elif classifier=="bsvm":   #binary svm (multiple classes in training)
-        binary_svm_train(X_train, y_train)
-        binary_svm_evaluate(X_test, y_test)
-        prediction_report=binary_svm_predict(X_test, t_test)
-    elif classifier == "ee":
-        elliptic_envelope_train(X_train)
-        elliptic_envelope_evaluate(X_test, y_test)  # test data and corresponding labels
-        prediction_report = elliptic_envelope_predict(X_test, t_test)  # test data and corresponding timestamps
-
-    elif classifier == "rf":
-        binary_rf_train(X_train, y_train)
-        binary_rf_evaluate(X_test, y_test)
-        prediction_report = binary_rf_predict(X_test, t_test)
-    elif classifier == "knn":
-        binary_knn_train(X_train, y_train)
-        binary_knn_evaluate(X_test, y_test)
-        prediction_report = binary_knn_predict(X_test, t_test)
-    elif classifier == "lof":
-        local_outlier_factor_train(X_train)
-        local_outlier_factor_evaluate(X_test, y_test)
-        prediction_report=local_outlier_factor_predict(X_test, t_test)
-    else:
-        print("wrong classifier choice")
-
-    pd.set_option("display.max_rows", None)
-    print("\n--- Individual Packet Attack Detection Report ---")
-    print(prediction_report)
-    return
-
-
-#train and test indices for each fold ([[][],...]
-def execute_scenario(global_label_encoder, classifier, k, prefix, scenario):
-
-    labels=np.load(f"datasets/{prefix}_labels.npy")
-    timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
-
-    #load train_indices and test_indices for specific scenario
-    #contain indices for all of the k folds
-    train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
-
-
-    numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
-    binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
-
-
-    for fold_idx in range(k):
-        execute_fold(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario)
-
-    return
 
 
 #train and test indices for each fold ([[][],...]
@@ -132,7 +62,6 @@ def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, k
     if param==15:
         labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
-
 
 
     numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
@@ -159,8 +88,12 @@ def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, k
     return avg_runtime_training,avg_peak_ram_training, avg_runtime_testing, avg_peak_ram_testing
 
 
+
+
+
 def execute_fold_rt(fold_idx, binary_numeric_labels, timestamps,
                                  train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
+
     """Train with grid search, save best model, then use *_evaluate for metrics."""
     from measure_runtime import start_ram_monitor, stop_ram_monitor, bytes_to_mb
 
@@ -170,9 +103,8 @@ def execute_fold_rt(fold_idx, binary_numeric_labels, timestamps,
     else:
         ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")
         print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RAW.")
+
     #for task d - f
-
-
     X_train, X_test, y_train, y_test, t_train, t_test = split_training_and_test(
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
@@ -288,6 +220,93 @@ def execute_fold_rt(fold_idx, binary_numeric_labels, timestamps,
     return (
         runtime_training, peak_rss_training, runtime_testing, peak_rss_testing,
     )
+
+
+def execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps,
+                                 train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
+
+
+    if param!=0:
+        ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
+        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RE{param}.")
+    else:
+        ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")
+        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RAW.")
+
+    #for task d - f
+    X_train, X_test, y_train, y_test, t_train, t_test = split_training_and_test(
+        ds, binary_numeric_labels, timestamps, train_indices, test_indices
+    )
+
+    if classifier == "ocsvm":
+        one_class_svm_train(X_train)
+        prediction_errors=one_class_svm_predict_error_overlap(X_test, y_test) #[0,1,1,0,...] prediction errors for fold
+
+    elif classifier == "bsvm":
+
+        binary_svm_train(X_train, y_train)
+
+        prediction_errors=binary_svm_predict_error_overlap(X_test, y_test)
+
+    elif classifier == "ee":
+        elliptic_envelope_train(X_train)
+
+        prediction_errors=elliptic_envelope_predict_error_overlap(X_test, y_test)
+
+    elif classifier == "rf":
+        binary_rf_train(X_train, y_train)
+
+        prediction_errors=binary_rf_predict_error_overlap(X_test, y_test)
+
+    elif classifier == "knn":
+        binary_knn_train(X_train, y_train)
+
+        prediction_errors=binary_knn_predict_error_overlap(X_test, y_test)
+
+    elif classifier == "lof":
+        local_outlier_factor_train(X_train)
+        prediction_errors=local_outlier_factor_evaluate(X_test, y_test)
+
+    else:
+        print("wrong classifier choice")
+        return 0.0, 0.0, 0.0, 0.0
+
+    return prediction_errors #returns list [0,1,0,1,1,0,0,...] for testing for fold -> 1 for error, 0 for no error
+
+
+#executes scenario for one classifier!!
+def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, scenario, keep_indices=0, param=0):
+    labels=np.load(f"datasets/{prefix}_labels.npy")
+    timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
+
+
+    #load train_indices and test_indices for specific scenario
+    #contain indices for all of the k folds
+    train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
+
+
+    #for re15:
+    if param==15:
+        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
+        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices) #[[32432, 23, 334, ...][][][]]
+
+
+    numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
+    binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
+
+    prediction_errors_all_folds=[]
+    for fold_idx in range(k):
+        prediction_errors_fold = execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
+
+        #summarize prediction_errors for all folds for whole dataset
+        #first iteration eg results for test indices [1,2,3,4,..]
+
+        #second iteration for [5,6,7,8,...]
+        prediction_errors_all_folds.extend(prediction_errors_fold.tolist())
+
+
+    return prediction_errors_all_folds ##returns list [0,1,0,1,1,0,0,...] for testing for all folds -> 1 for error, 0 for no error
+
 
 def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
                                  train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
