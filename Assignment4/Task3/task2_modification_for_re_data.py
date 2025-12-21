@@ -15,7 +15,7 @@ Phase 0: Design Decisions:
     - Noise distribution:
         - Standard normal distribution (mean=0, std=1) (Gaussian)
 '''
-from Assignment4.Task3.sheet4_task2_utility_tools__modification_for_re_data import *
+from sheet4_task2_utility_tools__modification_for_re_data import *
 # Main function
 def task2_sheet4_main():
     # Main logic of the task
