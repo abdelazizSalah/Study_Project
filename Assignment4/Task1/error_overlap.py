@@ -209,7 +209,7 @@ def all_error_overlaps(k: int, global_label_encoder):
         param=0,
     )
     # ---------------- RE15 ----------------
-    keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15/re_features_fold0", "re15")
+    keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
 
     run_scenarios_for_feature_type(
         k=k,
