@@ -5,7 +5,7 @@ import time
 
 from sklearn.preprocessing import LabelEncoder
 
-from Assignment4.Task1.error_overlap import all_error_overlaps
+from error_overlap import all_error_overlaps
 from measure_runtime import measure_all
 from use_classifiers import execute_experiments_def, execute_experiments_abc
 from handling_re_bytes_integrated import create_preprocessed_re_files, create_preprocessed_re15
@@ -145,7 +145,7 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold", "measure_runtime"],
+        choices=["dataset_preprocessing", "k_fold", "measure_runtime", "error_overlap"],
         help="Which pipeline step to run.",
     )
 
@@ -307,7 +307,9 @@ def release_main_new():
         run_k_fold(args.k)
         print_k_fold_pretty()
     elif args.mode == "measure_runtime":
-
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
 
         print(f"k:{k}")

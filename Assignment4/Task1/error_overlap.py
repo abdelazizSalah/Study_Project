@@ -4,8 +4,8 @@ import os
 import matplotlib.pyplot as plt
 from matplotlib_venn import venn3
 
-from Assignment4.Task1.handling_re_bytes_integrated import get_keep_indices_from_fold0
-from Assignment4.Task1.use_classifiers import execute_scenario_error_overlap
+from handling_re_bytes_integrated import get_keep_indices_from_fold0
+from use_classifiers import execute_scenario_error_overlap
 
 
 def create_venn_diagram_data(prediction_errors_scenario):
