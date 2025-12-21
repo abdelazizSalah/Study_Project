@@ -311,16 +311,8 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
-
         print(f"k:{k}")
         measure_all(k, global_label_encoder)
-        # RAW, RE15
-        # measure RAM, runtime
-        # feature extraction (autoencoder training)
-
-        # training (per fold)
-
-        # testing (per fold)
     elif args.mode == "error_overlap":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)

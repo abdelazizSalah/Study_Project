@@ -122,6 +122,9 @@ def deduplicate_folds(train_folds, test_folds, keep_indices):
 
     # Old index → new index mapping
     index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(keep_indices)}
+    #keep indices= [10,22,50]
+    ## Resulting dictionary:
+    # {10: 0, 22: 1, 50: 2}
 
     new_train_folds = []
     new_test_folds = []

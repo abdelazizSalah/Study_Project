@@ -64,6 +64,7 @@ def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, k
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
 
 
+
     numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
     binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
 
@@ -72,6 +73,9 @@ def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, k
     fold_peak_rss_training=[]
     fold_peak_rss_testing=[]
     for fold_idx in range(k):
+
+        if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
+            continue
         runtime_training, peak_rss_training, runtime_testing, peak_rss_testing = execute_fold_rt(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
 
         fold_runtimes_training.append(runtime_training)
@@ -265,7 +269,7 @@ def execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps,
 
     elif classifier == "lof":
         local_outlier_factor_train(X_train)
-        prediction_errors=local_outlier_factor_evaluate(X_test, y_test)
+        prediction_errors=local_outlier_factor_predict_error_overlap(X_test, y_test)
 
     else:
         print("wrong classifier choice")
@@ -296,6 +300,9 @@ def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, 
 
     prediction_errors_all_folds=[]
     for fold_idx in range(k):
+        if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
+            continue
+
         prediction_errors_fold = execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
 
         #summarize prediction_errors for all folds for whole dataset
