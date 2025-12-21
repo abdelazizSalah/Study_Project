@@ -78,56 +78,34 @@ def task2_sheet4_main():
     
     validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
     testing_data = (testing_data - testing_data.min()) / (testing_data.max() - testing_data.min())
-    # if mode == 'D':
-    #     print("[*] Mode: INFERENCE (Discriminator-based)")
-    #     phase6_discriminator_mode(
-    #         D,
-    #         validation_data,
-    #         validation_labels,
-    #         testing_data,
-    #         test_labels,
-    #         torch.device("cuda:1" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied 
+    if mode == 'D':
+        print("[*] Mode: INFERENCE (Discriminator-based)")
+        phase6_discriminator_mode(
+            D,
+            validation_data,
+            validation_labels,
+            testing_data,
+            test_labels,
+            torch.device("cuda:1" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied 
 
 
-    #     )
-    # elif mode == 'G':
-    #     print("[*] Mode: INFERENCE (Generator-based)")
-    #     phase6_generator_mode(
-    #         D,
-    #         G,
-    #         validation_data,
-    #         validation_labels,
-    #         testing_data,
-    #         test_labels,
-    #         m,
-    #         n,
-    #         torch.device("cuda:2" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
-    #     )
-    # else:
-    #     print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
-    
-    print("[*] Mode: INFERENCE (Discriminator-based)")
-    phase6_discriminator_mode(
-        D,
-        validation_data,
-        validation_labels,
-        testing_data,
-        test_labels,
-        device
-    )
-    print("[*] Mode: INFERENCE (Generator-based)")
-    phase6_generator_mode(
-        D,
-        G,
-        validation_data,
-        validation_labels,
-        testing_data,
-        test_labels,
-        m,
-        n,
-        device
-    )
-
+        )
+    elif mode == 'G':
+        print("[*] Mode: INFERENCE (Generator-based)")
+        phase6_generator_mode(
+            D,
+            G,
+            validation_data,
+            validation_labels,
+            testing_data,
+            test_labels,
+            m,
+            n,
+            torch.device("cuda:2" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
+        )
+    else:
+        print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
+    #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
 
 if __name__ == "__main__":
     task2_sheet4_main()
