@@ -76,6 +76,12 @@ def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, k
 
         if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
             continue
+
+        if scenario in (2, 3):
+            y_tr = binary_numeric_labels[train_indices[fold_idx]]
+            if np.unique(y_tr).size < 2:
+                continue
+
         runtime_training, peak_rss_training, runtime_testing, peak_rss_testing = execute_fold_rt(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
 
         fold_runtimes_training.append(runtime_training)
@@ -302,7 +308,11 @@ def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, 
     for fold_idx in range(k):
         if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
             continue
-
+            
+        if scenario in (2, 3):
+            y_tr = binary_numeric_labels[train_indices[fold_idx]]
+            if np.unique(y_tr).size < 2:
+                continue
         prediction_errors_fold = execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
 
         #summarize prediction_errors for all folds for whole dataset
