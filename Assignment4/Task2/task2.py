@@ -30,9 +30,9 @@ def task2_sheet4_main():
     D_threshold = [0.1,0.3,0.5]
     G_threshold = [0.1,0.3,0.5]
     K = [128,256,512]
-    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2],     # D dominating
-    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9],   # D too weak
-    G_UPDATES = [1,2,3],
+    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2]    # D dominating
+    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9]   # D too weak
+    G_UPDATES = [1,2,3]
 
     # use single value only for faster testing
     # m = [10]  # number of packets per sample
