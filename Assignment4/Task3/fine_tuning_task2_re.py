@@ -23,17 +23,28 @@ def task2_sheet4_main():
     p_vals = [5,10,15]
     #! finetuning parameters. 
     
-    m = [10,20,30,40,50]  # number of packets per sample
-    epochs=[5,10,15,20,25]
+    m = [10,20]  # number of packets per sample
+    epochs=[5,10,20]
     batch_size=[32,64,128]
-    lr_D=[1e-4, 1e-5, 5e-5]
-    lr_G=[3e-4, 3e-4,5e-4]
-    D_threshold = [0.1,0.3,0.5]
-    G_threshold = [0.1,0.3,0.5]
-    K = [128,256,512]
-    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2]   # D dominating
-    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9] # D too weak
-    G_UPDATES = [1,2,3]
+    lr_D=[1e-4, 1e-5]
+    lr_G=[3e-4, 3e-4,]
+    D_threshold = [0.1,0.3]
+    G_threshold = [0.9,0.7]
+    K = [128,256]
+    D_LOSS_TOO_LOW = [0.1, 0.05]   # D dominating
+    D_LOSS_TOO_HIGH = [0.8, 0.9] # D too weak
+    G_UPDATES = [2,3]
+    # m = [10,20,30,40,50]  # number of packets per sample
+    # epochs=[5,10,15,20,25]
+    # batch_size=[32,64,128]
+    # lr_D=[1e-4, 1e-5, 5e-5]
+    # lr_G=[3e-4, 3e-4,5e-4]
+    # D_threshold = [0.1,0.3,0.5]
+    # G_threshold = [0.1,0.3,0.5]
+    # K = [128,256,512]
+    # D_LOSS_TOO_LOW = [0.1, 0.05, 0.2]   # D dominating
+    # D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9] # D too weak
+    # G_UPDATES = [1,2,3]
     configurations = [
         {'m': m_val, 'epochs': epoch_val, 'batch_size': batch_val, 'lr_D': lr_D_val, 'lr_G': lr_G_val, 'D_threshold': D_threshold_val, 'G_threshold': G_threshold_val, 'K': K_val, 'D_LOSS_TOO_LOW': D_LOSS_TOO_LOW_val, 'D_LOSS_TOO_HIGH': D_LOSS_TOO_HIGH_val, 'G_UPDATES': G_UPDATES_val} for m_val in m for epoch_val in epochs for batch_val in batch_size for lr_D_val in lr_D for lr_G_val in lr_G for D_threshold_val in D_threshold for G_threshold_val in G_threshold for K_val in K for D_LOSS_TOO_LOW_val in D_LOSS_TOO_LOW for D_LOSS_TOO_HIGH_val in D_LOSS_TOO_HIGH for G_UPDATES_val in G_UPDATES
     ] # generating all combinations
