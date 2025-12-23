@@ -97,7 +97,7 @@ def task2_sheet4_main():
                     G=G,
                     m=m,
                     n=n,
-                    p=p,
+                    p_value=p,
                     epochs=epoch,
                     batch_size=batch,
                     lr_D=d_lr,
@@ -116,11 +116,12 @@ def task2_sheet4_main():
                 D, G = load_trained_models(
                         m=m,
                         n=n,
+                        device=device,
+                        p=p,
                         epochs=epoch,
                         batch_size=batch,
                         lr_D=d_lr,
                         lr_G=g_lr,
-                        device=device,
                         D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
                         D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
                         G_UPDATES=G_UPDATES_val,
@@ -134,7 +135,7 @@ def task2_sheet4_main():
                 print("[*] Mode: INFERENCE (Discriminator-based)")
                 percision, recall, f1 = phase6_discriminator_mode(
                     D = D,
-                    p= p,
+                    p_value= p,
                     data = validation_data,
                     labels = validation_labels,
                     device = device,
