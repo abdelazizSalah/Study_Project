@@ -99,6 +99,7 @@ def task2_sheet4_main():
                 D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
                 D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
                 G_UPDATES=G_UPDATES_val,
+                p=p
                 # save_dir="models2"
             )
             # excuting the inference phase always 
@@ -135,6 +136,7 @@ def task2_sheet4_main():
                     batch_size=batch,
                     g_lr=g_lr,
                     threshold=d_threshold
+                    ,p=p
 
                 )
                 
@@ -216,7 +218,8 @@ def task2_sheet4_main():
         if mode == 'D':
             print("[*] Mode: INFERENCE (Discriminator-based) on test set")
             percision, recall, f1 = phase6_discriminator_mode(
-                D,
+                p= p,   
+                D=D,
                 data=testing_data,
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied 
@@ -235,6 +238,7 @@ def task2_sheet4_main():
             percision, recall, f1 = phase6_generator_mode(
                 D=D,
                 G=G,
+                p=p,
                 data=testing_data,
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied

@@ -543,6 +543,7 @@ def train_gan_on_training_data(
     G,
     m,
     n,
+    p,
     epochs=10,
     batch_size=64,
     lr_D=1e-4,
@@ -701,8 +702,8 @@ def train_gan_on_training_data(
     
     '''
     os.makedirs(save_dir, exist_ok=True)
-    d_file_name = f"discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
-    g_file_name = f"generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    d_file_name = f"p_{p}_discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"p_{p}_generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
     torch.save(D.state_dict(), os.path.join(save_dir, d_file_name))
     torch.save(G.state_dict(), os.path.join(save_dir, g_file_name))
 
@@ -733,6 +734,7 @@ def load_trained_models(
     m,
     n,
     device,
+    p,
     epochs=10,
     batch_size=64,
     lr_D=1e-4,
@@ -744,8 +746,8 @@ def load_trained_models(
 ):
     D = Discriminator(input_shape=(1, m, n)).to(device)
     G = Generator(m=m, n=n).to(device)
-    d_file_name = f"discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
-    g_file_name = f"generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    d_file_name = f"p_{p}_discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"p_{p}_generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
     D.load_state_dict(
         torch.load(os.path.join(model_dir, d_file_name), map_location=device)
     )
@@ -839,6 +841,7 @@ def filter_normal_samples(data, labels):
 
 def phase6_discriminator_mode(
     D,
+    p,
     data,
     labels,
     device,
@@ -871,7 +874,7 @@ def phase6_discriminator_mode(
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_D.txt
     final_label = 'final_testing' if not validation else 'validation'
-    file_name = f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt"
+    file_name = f"p_{p}_metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt"
     with open(file_name, "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
@@ -882,6 +885,7 @@ def phase6_discriminator_mode(
 def phase6_generator_mode(
     D,
     G,
+    p,  
     data,
     labels,
     device,
@@ -902,7 +906,7 @@ def phase6_generator_mode(
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
-        
+
     scores = []
     with torch.no_grad():
         for x in data:
@@ -924,7 +928,7 @@ def phase6_generator_mode(
     print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_G.txt
     final_label = 'final_testing' if not validation else 'validation'
-    file_name = f"metrics_G_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt"
+    file_name = f"p_{p}_metrics_G_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt"
     with open(file_name, "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
