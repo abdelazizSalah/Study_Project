@@ -880,6 +880,77 @@ def filter_normal_samples(data, labels):
     return data[labels == 0]
 
 
+# def phase6_discriminator_mode(
+#     D,
+#     batch_size,
+#     data,
+#     labels,
+#     device,
+#     d_lr,
+#     g_lr,
+#     epochs,
+#     validation:bool = False,
+#     threshold=0.5,
+#     m=10,
+# ):
+#     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
+
+#     # # ---- use ONLY normal validation samples for threshold ----
+#     # val_normal = filter_normal_samples(data, labels)
+#     # print(f"[*] Number of normal validation samples: {len(val_normal)}")
+
+#     # val_scores = []
+#     # with torch.no_grad():
+#     #     for x in val_normal:
+#     #         x = x.unsqueeze(0).to(device)
+#     #         logit = D(x)
+#     #         prob = torch.sigmoid(logit) # to get output in range [0,1]
+#     #         val_scores.append(prob.item())
+
+#     # print(f"[*] Collected {len(val_scores)} validation scores")
+
+#     # # threshold: low scores = anomaly
+#     # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
+ 
+
+#     # print(f"[✓] D threshold: {threshold:.6f}")
+#     # print(
+#     # f"Val scores stats | "
+#     # f"min={np.min(val_scores):.6f}, "
+#     # f"mean={np.mean(val_scores):.6f}, "
+#     # f"max={np.max(val_scores):.6f}"
+#     # )
+
+
+#     # ---- test evaluation ----
+#     print('Testing on test data...')
+#     scores = []
+#     with torch.no_grad():
+#         for x in data:
+#             x = x.unsqueeze(0).to(device)
+#             logit = D(x)
+#             prob = torch.sigmoid(logit) # to get output in range [0,1]
+#             scores.append(prob.item())    
+#     print(f"[*] Collected {len(scores)} test scores")
+#     scores = np.array(scores)
+
+#     preds = (scores < threshold).astype(int)  # 1 = anomaly
+#     y_true = labels
+
+#     print('computing precision, recall, f1...')
+#     precision, recall, f1, _ = precision_recall_fscore_support(
+#         y_true, preds, average="binary"
+#     )
+
+#     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
+#     # write results in metrics_D.txt
+#     final_label = 'final_testing' if not validation else 'validation'
+#     with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt", "w") as f:
+#         f.write(f"Precision: {precision:.4f}\n")
+#         f.write(f"Recall: {recall:.4f}\n")
+#         f.write(f"F1: {f1:.4f}\n")
+#     return precision, recall, f1
+    
 def phase6_discriminator_mode(
     D,
     batch_size,
@@ -889,68 +960,54 @@ def phase6_discriminator_mode(
     d_lr,
     g_lr,
     epochs,
-    validation:bool = False,
+    validation=False,
     threshold=0.5,
     m=10,
 ):
     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
+    print("Testing on test data...")
 
-    # # ---- use ONLY normal validation samples for threshold ----
-    # val_normal = filter_normal_samples(data, labels)
-    # print(f"[*] Number of normal validation samples: {len(val_normal)}")
-
-    # val_scores = []
-    # with torch.no_grad():
-    #     for x in val_normal:
-    #         x = x.unsqueeze(0).to(device)
-    #         logit = D(x)
-    #         prob = torch.sigmoid(logit) # to get output in range [0,1]
-    #         val_scores.append(prob.item())
-
-    # print(f"[*] Collected {len(val_scores)} validation scores")
-
-    # # threshold: low scores = anomaly
-    # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
- 
-
-    # print(f"[✓] D threshold: {threshold:.6f}")
-    # print(
-    # f"Val scores stats | "
-    # f"min={np.min(val_scores):.6f}, "
-    # f"mean={np.mean(val_scores):.6f}, "
-    # f"max={np.max(val_scores):.6f}"
-    # )
-
-
-    # ---- test evaluation ----
-    print('Testing on test data...')
+    D.eval()
     scores = []
+
+    loader = DataLoader(
+        data,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+
     with torch.no_grad():
-        for x in data:
-            x = x.unsqueeze(0).to(device)
-            logit = D(x)
-            prob = torch.sigmoid(logit) # to get output in range [0,1]
-            scores.append(prob.item())    
-    print(f"[*] Collected {len(scores)} test scores")
+        for batch in loader:
+            batch = batch.to(device)                 # (B,1,m,n)
+            logits = D(batch)                        # (B,1)
+            probs = torch.sigmoid(logits).squeeze()  # (B,)
+            scores.extend(probs.cpu().numpy())
+
     scores = np.array(scores)
+    print(f"[*] Collected {len(scores)} test scores")
 
-    preds = (scores < threshold).astype(int)  # 1 = anomaly
-    y_true = labels
+    preds = (scores < threshold).astype(int)
+    y_true = labels[:len(preds)]  # safety
 
-    print('computing precision, recall, f1...')
     precision, recall, f1, _ = precision_recall_fscore_support(
-        y_true, preds, average="binary"
+        y_true, preds, average="binary", zero_division=0
     )
 
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
-    # write results in metrics_D.txt
-    final_label = 'final_testing' if not validation else 'validation'
-    with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt", "w") as f:
+
+    final_label = "final_testing" if not validation else "validation"
+    with open(
+        f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt",
+        "w"
+    ) as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
+
     return precision, recall, f1
-    
+
+
 
 def phase6_generator_mode(
     D,
