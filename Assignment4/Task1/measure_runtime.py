@@ -4,12 +4,9 @@ import time
 from pathlib import Path
 
 import psutil
-from keras.src.models import model
 
 from use_classifiers import execute_scenario_rt
-from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from feature_creation_autoencoder import train_and_save_models_rt, create_features_for_ds_rt
-from tensorflow import keras
 
 
 def bytes_to_mb(num_bytes):
@@ -171,7 +168,7 @@ def measure_all(k: int, global_label_encoder) -> None:
     raw_file = "results/runtime_raw.txt"
     _log_ae_training(feature_label="RAW feature type", out_file=raw_file, prefix_for_training="raw")
     _log_ae_feature_extraction(k=k, feature_label="RAW feature type", out_file=raw_file, prefix_for_features="raw")
-#
+
     #_log_classifiers_for_feature_type(
     #    k=k,
     #    global_label_encoder=global_label_encoder,
@@ -181,10 +178,10 @@ def measure_all(k: int, global_label_encoder) -> None:
     #    keep_indices=0,
     #    param=0,
     #)
-#
+
     ## ---------------- RE15 ----------------
     re_file = "results/runtime_re15.txt"
-#
+
     ## AE training for RE (your train_and_save_models_rt uses prefix "re" to load the right base model)
     _log_ae_training(feature_label="RE15 feature type", out_file=re_file, prefix_for_training="re")
     #re_features_fold0

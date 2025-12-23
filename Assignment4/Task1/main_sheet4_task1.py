@@ -3,8 +3,10 @@ import os
 import sys
 import time
 
-from sklearn.preprocessing import LabelEncoder
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
+from sklearn.preprocessing import LabelEncoder
 from error_overlap import all_error_overlaps
 from measure_runtime import measure_all
 from use_classifiers import execute_experiments_def, execute_experiments_abc
