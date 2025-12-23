@@ -20,28 +20,59 @@ from sheet4_task2_utility_tools import *
 def task2_sheet4_main():
     # Main logic of the task
     n, mode = phase1_read_arguments() 
-    m = 10  # number of packets per sample
+    #! finetuning parameters. 
+    m = [10,20,30,40,50]  # number of packets per sample
+    epochs=[5,10,15,20,25]
+    batch_size=[32,64,128]
+    lr_D=[1e-4, 1e-5, 5e-5]
+    lr_G=[3e-4, 3e-4,5e-4]
+    D_threshold = [0.1,0.3,0.5]
+    G_threshold = [0.1,0.3,0.5]
+    K = [128,256,512]
+    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2],     # D dominating
+    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9],   # D too weak
+    G_UPDATES = [1,2,3],
+    configurations = [
+        {'m': m_val, 'epochs': epoch_val, 'batch_size': batch_val, 'lr_D': lr_D_val, 'lr_G': lr_G_val, 'D_threshold': D_threshold_val, 'K': K_val, 'D_LOSS_TOO_LOW': D_LOSS_TOO_LOW_val, 'D_LOSS_TOO_HIGH': D_LOSS_TOO_HIGH_val, 'G_UPDATES': G_UPDATES_val} for m_val in m for epoch_val in epochs for batch_val in batch_size for lr_D_val in lr_D for lr_G_val in lr_G for D_threshold_val in D_threshold for K_val in K for D_LOSS_TOO_LOW_val in D_LOSS_TOO_LOW for D_LOSS_TOO_HIGH_val in D_LOSS_TOO_HIGH for G_UPDATES_val in G_UPDATES
+    ] # generating all combinations
+    print (configurations[:2])
+    print(len(configurations)) # 5 * 5 * 3 * 3 * 3 * 3 * 3 = 6075 combinations
     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
     print(f'[*] Using device: {device}')
     
-    
-    print('[*] Phase 1: Starting data prepration...')
-    training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = phase1_getting_data(n, m)
-    print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
+    # define best parameters
+    best_config = {}
+    best_f1 = 5
+    best_percision = 5
+    best_recall = 5
+
+    highest_f1 = 0
+    highest_percision = 0
+    highest_recall = 0
+
+    # #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
+    for config in configurations:
+        print('[*] Phase 7: Hyperparameter tuning iteration started...')
+        print(f'[*] Testing configuration: {config}')
+        m = config['m']
+        print('[*] Phase 1: Starting data prepration...')
+        training_data, validation_data, testing_data, _, validation_labels, test_labels = phase1_getting_data(n, m)
+        print('[*] Phase 1: Prepration Done Successfully. \n --------------------------------------- \n ')
 
 
-    # check if ./models/discriminator.pth and ./models/generator.pth exist 
-    Training_Models_Exist = os.path.exists(f'./models2/discriminator.pth') and os.path.exists(f'./models2/generator.pth')
-    if not Training_Models_Exist:
-        # # Running sanity checks for Discriminator implementation
-        # tring better training for GAN
-        # phase2_sanity_checks(n , m=m)
+        ## check if ./models/discriminator.pth and ./models/generator.pth exist 
 
-        # # Running sanity checks for Generator implementation
-        # phase3_sanity_checks(n , m=m)
+        ## Training_Models_Exist = os.path.exists(f'./models2/discriminator.pth') and os.path.exists(f'./models2/generator.pth')
+        ## if not Training_Models_Exist:
+        ##     # Running sanity checks for Discriminator implementation
+        ##     # tring better training for GAN
+        ##     phase2_sanity_checks(n , m=m)
 
-        # # running sanity check for custom loss function
-        # phase4_custom_generator_loss()
+        ##     # Running sanity checks for Generator implementation
+        ##     phase3_sanity_checks(n , m=m)
+
+        ##     # running sanity check for custom loss function
+        ##     phase4_custom_generator_loss()
 
         # running phase 5 sanity check for GAN Training loop
         print('[*] Phase 5: Starting GAN Training loop...')
@@ -53,59 +84,182 @@ def task2_sheet4_main():
         training_data = (training_data - training_data.min()) / (training_data.max() - training_data.min())
         print('after normalization:')
         print(training_data.min(), training_data.max())
-        
-        train_gan_on_training_data(
+
+        # extracting hyperparameters from config
+        epoch = config['epochs']
+        d_lr = config['lr_D']
+        g_lr = config['lr_G']
+        batch = config['batch_size']
+        D_LOSS_TOO_LOW_val = config['D_LOSS_TOO_LOW']
+        D_LOSS_TOO_HIGH_val = config['D_LOSS_TOO_HIGH']
+        G_UPDATES_val = config['G_UPDATES']
+        d_threshold = config['D_threshold']
+        g_threshold = config['G_threshold']
+        k = config['K']
+       
+        print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={D_LOSS_TOO_LOW_val}, D_LOSS_TOO_HIGH={D_LOSS_TOO_HIGH_val}, G_UPDATES={G_UPDATES_val}')
+        print('[*] Phase 5: GAN Training loop sanity check passed. \n --------------------------------------- \n ')
+        # train the model on the current configurations        
+        D,G = train_gan_on_training_data(
             training_data=training_data,
             D=D,
             G=G,
             m=m,
             n=n,
-            epochs=5,
-            batch_size=64,
+            epochs=epoch,
+            batch_size=batch,
+            lr_D=d_lr,
+            lr_G=g_lr,
             device=device,
-            save_dir="models2"
+            D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+            D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
+            G_UPDATES=G_UPDATES_val,
+            # save_dir="models2"
         )
-    # excuting the inference phase always 
-    print('[*] Phase 6: Trained models found. Starting inference mode...')
+        # excuting the inference phase always 
+        print('[*] Phase 6: Trained models found. Starting inference mode...')
 
+        
+        # D, G = load_trained_models(
+        #         m=m,
+        #         n=n,
+        #         epochs=epoch,
+        #         batch_size=batch,
+        #         lr_D=d_lr,
+        #         lr_G=g_lr,
+        #         device=device,
+        #         D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+        #         D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
+        #         G_UPDATES=G_UPDATES_val,
+        #         device=device,
+        #         # model_dir="models"
+        #     )
+        # normalizing validation and testing data
+        
+        validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
+        testing_data = (testing_data - testing_data.min()) / (testing_data.max() - testing_data.min())
+        if mode == 'D':
+            print("[*] Mode: INFERENCE (Discriminator-based)")
+            percision, recall, f1 = phase6_discriminator_mode(
+                D,
+                validation_data,
+                validation_labels,
+                device,
+                validation=True,
+                d_lr=d_lr,
+                epochs=epoch,
+                batch_size=batch,
+                g_lr=g_lr,
+                threshold=d_threshold
+
+            )
+            
+            if f1 > highest_f1:
+                highest_f1 = f1
+            if percision > highest_percision:
+                highest_percision = percision
+            if recall > highest_recall:
+                highest_recall = recall
+
+
+            if f1 > best_f1:
+                best_f1 = f1
+                best_percision = percision
+                best_recall = recall
+                best_config = config
+            
+        elif mode == 'G':
+            print("[*] Mode: INFERENCE (Generator-based)")
+            percision, recall, f1 = phase6_generator_mode(
+                D,
+                G,
+                validation_data,
+                validation_labels,
+                device,
+                m,
+                n,
+                K=k,
+                threshold=g_threshold,
+            )
+            if f1 > highest_f1:
+                highest_f1 = f1
+            if percision > highest_percision:
+                highest_percision = percision
+            if recall > highest_recall:
+                highest_recall = recall
+
+            if f1 > best_f1:
+                best_f1 = f1
+                best_percision = percision
+                best_recall = recall
+                best_config = config
+
+        else:
+            print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
+    
+    print(f'best configuration: {best_config}')
+
+    # use best configuration to evaluate on test set
+    print(f'[*] Evaluating best configuration on test set...')
+    m = best_config['m']
+    d_lr = best_config['lr_D']
+    g_lr = best_config['lr_G']
+    epoch = best_config['epochs']
+    batch = best_config['batch_size']
+    k = best_config['K']
+    d_threshold = best_config['D_threshold']
+    g_threshold = best_config['G_threshold']
+    # load best trained models
     D, G = load_trained_models(
             m=m,
             n=n,
+            epochs=epoch,
+            batch_size=batch,
+            lr_D=d_lr,
+            lr_G=g_lr,
             device=device,
-            model_dir="models2"
+            D_LOSS_TOO_LOW=best_config['D_LOSS_TOO_LOW'],
+            D_LOSS_TOO_HIGH=best_config['D_LOSS_TOO_HIGH'],
+            G_UPDATES=best_config['G_UPDATES'],
+            device=device,
+            # model_dir="models"
         )
-    # normalizing validation and testing data
-    
-    validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
     testing_data = (testing_data - testing_data.min()) / (testing_data.max() - testing_data.min())
     if mode == 'D':
-        print("[*] Mode: INFERENCE (Discriminator-based)")
-        phase6_discriminator_mode(
+        print("[*] Mode: INFERENCE (Discriminator-based) on test set")
+        percision, recall, f1 = phase6_discriminator_mode(
             D,
-            validation_data,
-            validation_labels,
             testing_data,
             test_labels,
-            torch.device("cuda:1" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied 
-
+            device, # because GPU 0 is occupied 
+            validation=False,
+            d_lr=d_lr,
+            epochs=epoch,
+            batch_size=batch,
+            g_lr=g_lr,
+            threshold=d_threshold
 
         )
+        print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
+        
     elif mode == 'G':
-        print("[*] Mode: INFERENCE (Generator-based)")
-        phase6_generator_mode(
+        print("[*] Mode: INFERENCE (Generator-based) on test set")
+        percision, recall, f1 = phase6_generator_mode(
             D,
             G,
-            validation_data,
-            validation_labels,
             testing_data,
             test_labels,
+            device, # because GPU 0 is occupied
             m,
             n,
-            torch.device("cuda:2" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
+            K=k,
+            threshold=g_threshold,
         )
+        print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
     else:
         print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
-    #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
+
+
 
 if __name__ == "__main__":
     task2_sheet4_main()

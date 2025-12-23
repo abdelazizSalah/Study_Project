@@ -59,7 +59,7 @@ def phase1_getting_data(n,m):
 
 
     # check if data and labels already exist.
-    Data_Files_Exist = os.path.exists('./data/training_data.npy') and os.path.exists('./data/validation_data.npy') and os.path.exists('./data/testing_data.npy') and os.path.exists('./data/training_labels.npy') and os.path.exists('./data/validation_labels.npy') and os.path.exists('./data/testing_labels.npy')
+    Data_Files_Exist = os.path.exists(f'./data/training_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/training_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_labels_n_{n}_m_{m}.npy')
     if Data_Files_Exist:
         # load them
         training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
@@ -93,15 +93,15 @@ def phase1_getting_data(n,m):
         # make data folders if not exist
         if not os.path.exists('./data'):
             os.makedirs('./data')
-        np.save('./data/training_data.npy', training_data.numpy())
-        np.save('./data/validation_data.npy', validation_data.numpy())
-        np.save('./data/testing_data.npy', testing_data.numpy())
+        np.save(f'./data/training_data_n_{n}_m_{m}.npy', training_data.numpy())
+        np.save(f'./data/validation_data_n_{n}_m_{m}.npy', validation_data.numpy())
+        np.save(f'./data/testing_data_n_{n}_m_{m}.npy', testing_data.numpy())
         print('Saved training, validation, testing data into .npy files.')
 
         # Save training, validation, testing labels into .npy
-        np.save('./data/training_labels.npy', training_labels)
-        np.save('./data/validation_labels.npy', validation_labels)
-        np.save('./data/testing_labels.npy', test_labels)
+        np.save(f'./data/training_labels_n_{n}_m_{m}.npy', training_labels)
+        np.save(f'./data/validation_labels_n_{n}_m_{m}.npy', validation_labels)
+        np.save(f'./data/testing_labels_n_{n}_m_{m}.npy', test_labels)
         print('Saved training, validation, testing labels into .npy files.')
 
 
@@ -565,182 +565,9 @@ def phase5_sanity_checks(m,n,batch_size=8, lr=1e-4, epochs=1):
 
     print("\n[✓] Phase 5 CHECK 1 passed successfully\n")
 
-
-# def train_gan_on_training_data(
-#     training_data,
-#     D,
-#     G,
-#     m,
-#     n,
-#     epochs=5,
-#     batch_size=64,
-#     lr_D=1e-5, # learning rate for Discriminator
-#     lr_G=3e-4, # learning rate for Generator
-#     device="cuda",
-#     save_dir="models"
-# ):
-#     """
-#     Phase 5: Full GAN training using ONLY training_data (normal samples)
-#     With detailed verbosity (epoch + batch progress).
-
-#     Inputs:
-#         - training_data: Tensor (N, 1, m, n)
-#         - D: Discriminator (fresh instance)
-#         - G: Generator (fresh instance)
-#     """
-
-#     # --------------------------------------------------
-#     # DataLoader
-#     # --------------------------------------------------
-#     train_loader = DataLoader( # instead of passing the whole dataset at once, we add them batch by batch
-#         training_data,
-#         batch_size=batch_size,
-#         shuffle=True, # the order of samples is randomly change every epoch, so the GAN does not learn patterns tied to data order.
-#         drop_last=True # if the total number of samples is not divisible by batch size, the last incomplete batch is dropped.
-#     )
-
-#     num_batches = len(train_loader) # number of batches per epoch
-
-#     # --------------------------------------------------
-#     # Optimizers
-#     # --------------------------------------------------
-#     optimizer_D = optim.Adam(D.parameters(), lr=lr_D) # gradient-based optimization algorithm used to train NN. it updates model parameters using adaptive learning rates instead of a fixed learning rate.
-#     optimizer_G = optim.Adam(G.parameters(), lr=lr_G)
-
-#     D.to(device) # since they inherit from nn.Module, we can use .to() to move them to the desired device (CPU or GPU)
-#     G.to(device)
-
-#     print("\n[*] Starting GAN training")
-#     print(f"    Epochs: {epochs}")
-#     print(f"    Batch size: {batch_size}")
-#     print(f"    Training samples: {len(training_data)}")
-#     print(f"    Number of batches per epoch: {num_batches}")
-#     print("--------------------------------------------------")
-
-#     # --------------------------------------------------
-#     # Training loop
-#     # --------------------------------------------------
-#     for epoch in range(epochs):
-#         D.train() # put the D in the training mode. 
-#         G.train()
-
-#         epoch_loss_D = 0.0
-#         epoch_loss_G = 0.0
-
-#         print(f"\n[*] Epoch {epoch + 1}/{epochs}")
-
-#         progress_bar = tqdm(
-#             enumerate(train_loader),
-#             total=num_batches,
-#             desc=f"Epoch {epoch + 1}",
-#             leave=False
-#         )
-#         # itertaing over Dataloader batches
-#         for batch_idx, x_real in progress_bar:
-            
-#             # move batch to device
-#             x_real = x_real.to(device)
-
-#             # get current batch size. 
-#             curr_batch_size = x_real.size(0)
-
-#             # ============================
-#             # 1. Discriminator step
-#             # ============================
-#             if batch_idx % 2 ==0:
-                
-#                 optimizer_D.zero_grad() # clearing old gradients, since by default, gradients are accumulated in PyTorch.
-
-#                 # Real samples
-#                 y_real = torch.ones(curr_batch_size, 1, device=device) # real labels are 1
-
-#                 # run real data through D
-#                 pred_real = D(x_real)
-
-#                 # penalizes the D when it misclassifies real samples
-#                 loss_real = F.binary_cross_entropy_with_logits(pred_real, y_real)
-
-#                 # Generating Fake samples
-#                 z = torch.randn(curr_batch_size, m * n, device=device) 
-#                 with torch.no_grad():
-#                     x_fake = G(z)
-
-#                 y_fake = torch.zeros(curr_batch_size, 1, device=device) # fake labels are 0
-
-#                 # let the discriminator predict on fake samples
-#                 pred_fake = D(x_fake)
-
-#                 # penalizes the D when it misclassifies fake samples
-#                 loss_fake = F.binary_cross_entropy_with_logits(pred_fake, y_fake)
-
-#                 # compute the total loss
-#                 loss_D = loss_real + loss_fake
-#                 loss_D.backward()
-
-#                 # update discriminator weights
-#                 optimizer_D.step()
-
-#             # ============================
-#             # 2. Generator step (Feature Matching)
-#             # ============================
-#             for p in D.parameters():
-#                 p.requires_grad = False
-#             # training G more often than D trying to get better results
-#             for _ in range (2):
-#                 optimizer_G.zero_grad() # clearing old grad also for Gan
-
-#                 z = torch.randn(curr_batch_size, m * n, device=device)
-#                 x_fake = G(z)
-#                 loss_G = phase4_custom_generator_loss(x_real, x_fake, D) # try to force the fake data to match the real data
-#                 loss_G.backward()
-#                 optimizer_G.step()
-
-#             for p in D.parameters():
-#                 p.requires_grad = True
-
-#             # ============================
-#             # Logging
-#             # ============================
-#             epoch_loss_D += loss_D.item()
-#             epoch_loss_G += loss_G.item()
-
-#             if batch_idx % 50 == 0:
-#                 progress_bar.set_postfix({
-#                     "D_loss": f"{loss_D.item():.4f}",
-#                     "G_loss": f"{loss_G.item():.2e}"
-#                 })
-
-#         # --------------------------------------------------
-#         # Epoch summary
-#         # --------------------------------------------------
-#         avg_loss_D = epoch_loss_D / num_batches
-#         avg_loss_G = epoch_loss_G / num_batches
-
-#         print(
-#             f"[Epoch {epoch + 1} DONE] "
-#             f"Avg D loss: {avg_loss_D:.4f} | "
-#             f"Avg G feature loss: {avg_loss_G:.2e}"
-#         )
-
-#     # --------------------------------------------------
-#     # Save trained models
-#     # --------------------------------------------------
-#     os.makedirs(save_dir, exist_ok=True)
-
-#     torch.save(D.state_dict(), os.path.join(save_dir, "discriminator.pth"))
-#     torch.save(G.state_dict(), os.path.join(save_dir, "generator.pth"))
-
-#     print("\n[✓] Training finished successfully")
-#     print(f"[✓] Models saved to '{save_dir}/'")
-#     print('[*] Phase 5: GAN Training Done Successfully. \n --------------------------------------- \n ')
-
-
 # -----------------------------
 # Hyperparameters for control
 # -----------------------------
-D_LOSS_TOO_LOW = 0.1     # D dominating
-D_LOSS_TOO_HIGH = 0.7   # D too weak
-G_UPDATES = 2         # train G two times when allowed
 
 
 def train_gan_on_training_data(
@@ -753,6 +580,9 @@ def train_gan_on_training_data(
     batch_size=64,
     lr_D=1e-4,
     lr_G=3e-4,
+    D_LOSS_TOO_LOW = 0.1,     # D dominating
+    D_LOSS_TOO_HIGH = 0.7,   # D too weak
+    G_UPDATES = 2,         # train G two times when allowed
     device="cuda",
     save_dir="models"
 ):
@@ -893,12 +723,25 @@ def train_gan_on_training_data(
     # -----------------------------
     # Save models
     # -----------------------------
+    '''
+    epochs=10,
+    batch_size=64,
+    lr_D=1e-4,
+    lr_G=3e-4,
+    D_LOSS_TOO_LOW = 0.1,     # D dominating
+    D_LOSS_TOO_HIGH = 0.7,   # D too weak
+    G_UPDATES = 2,         # train G two times when allowed
+    
+    '''
     os.makedirs(save_dir, exist_ok=True)
-    torch.save(D.state_dict(), os.path.join(save_dir, "discriminator.pth"))
-    torch.save(G.state_dict(), os.path.join(save_dir, "generator.pth"))
+    d_file_name = f"discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    torch.save(D.state_dict(), os.path.join(save_dir, d_file_name))
+    torch.save(G.state_dict(), os.path.join(save_dir, g_file_name))
 
     print("\n[✓] Training finished successfully")
-    print(f"[✓] Models saved to '{save_dir}/'")
+    print(f"[✓] Models saved to '{save_dir}/{d_file_name}' and '{save_dir}/{g_file_name}'")
+    return D,G
 
 
 
@@ -923,16 +766,24 @@ def load_trained_models(
     m,
     n,
     device,
+    epochs=10,
+    batch_size=64,
+    lr_D=1e-4,
+    lr_G=3e-4,
+    D_LOSS_TOO_LOW = 0.1,     # D dominating
+    D_LOSS_TOO_HIGH = 0.7,   # D too weak
+    G_UPDATES = 2,         # train G two times when allowed
     model_dir="models"
 ):
     D = Discriminator(input_shape=(1, m, n)).to(device)
     G = Generator(m=m, n=n).to(device)
-
+    d_file_name = f"discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
     D.load_state_dict(
-        torch.load(os.path.join(model_dir, "discriminator.pth"), map_location=device)
+        torch.load(os.path.join(model_dir, d_file_name), map_location=device)
     )
     G.load_state_dict(
-        torch.load(os.path.join(model_dir, "generator.pth"), map_location=device)
+        torch.load(os.path.join(model_dir, g_file_name), map_location=device)
     )
 
     # prepare them for the evaluation mode. 
@@ -1021,54 +872,57 @@ def filter_normal_samples(data, labels):
 
 def phase6_discriminator_mode(
     D,
-    validation_data,
-    validation_labels,
-    test_data,
-    test_labels,
-    device
+    data,
+    labels,
+    device,
+    d_lr,
+    g_lr,
+    epochs,
+    validation:bool = False,
+    threshold=0.5
 ):
     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
 
-    # ---- use ONLY normal validation samples for threshold ----
-    val_normal = filter_normal_samples(validation_data, validation_labels)
-    print(f"[*] Number of normal validation samples: {len(val_normal)}")
+    # # ---- use ONLY normal validation samples for threshold ----
+    # val_normal = filter_normal_samples(data, labels)
+    # print(f"[*] Number of normal validation samples: {len(val_normal)}")
 
-    val_scores = []
-    with torch.no_grad():
-        for x in val_normal:
-            x = x.unsqueeze(0).to(device)
-            logit = D(x)
-            prob = torch.sigmoid(logit) # to get output in range [0,1]
-            val_scores.append(prob.item())
+    # val_scores = []
+    # with torch.no_grad():
+    #     for x in val_normal:
+    #         x = x.unsqueeze(0).to(device)
+    #         logit = D(x)
+    #         prob = torch.sigmoid(logit) # to get output in range [0,1]
+    #         val_scores.append(prob.item())
 
-    print(f"[*] Collected {len(val_scores)} validation scores")
+    # print(f"[*] Collected {len(val_scores)} validation scores")
 
-    # threshold: low scores = anomaly
-    threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
+    # # threshold: low scores = anomaly
+    # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
  
 
-    print(f"[✓] D threshold: {threshold:.6f}")
-    print(
-    f"Val scores stats | "
-    f"min={np.min(val_scores):.6f}, "
-    f"mean={np.mean(val_scores):.6f}, "
-    f"max={np.max(val_scores):.6f}"
-    )
+    # print(f"[✓] D threshold: {threshold:.6f}")
+    # print(
+    # f"Val scores stats | "
+    # f"min={np.min(val_scores):.6f}, "
+    # f"mean={np.mean(val_scores):.6f}, "
+    # f"max={np.max(val_scores):.6f}"
+    # )
 
 
     # ---- test evaluation ----
     print('Testing on test data...')
-    test_scores = []
+    scores = []
     with torch.no_grad():
-        for x in test_data:
+        for x in data:
             x = x.unsqueeze(0).to(device)
             logit = D(x)
             prob = torch.sigmoid(logit) # to get output in range [0,1]
-            test_scores.append(prob.item())    
-    test_scores = np.array(test_scores)
+            scores.append(prob.item())    
+    scores = np.array(scores)
 
-    preds = (test_scores < threshold).astype(int)  # 1 = anomaly
-    y_true = test_labels
+    preds = (scores < threshold).astype(int)  # 1 = anomaly
+    y_true = labels
 
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, preds, average="binary"
@@ -1076,78 +930,78 @@ def phase6_discriminator_mode(
 
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_D.txt
-    with open(f"metrics_D_train_epochs_5.txt", "w") as f:
+    final_label = 'final_testing' if not validation else 'validation'
+    with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}.txt", "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
+    return precision, recall, f1
     
 
 def phase6_generator_mode(
     D,
     G,
-    validation_data,
-    validation_labels,
-    test_data,
-    test_labels,
+    data,
+    labels,
+    device,
     m,
     n,
-    device
+    K,
+    threshold,
 ):
     print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
-    print('putting models in evaluation mode.')
-    D.eval()
-    G.eval()
+    
     # ---- use ONLY normal validation samples ----
-    val_normal = filter_normal_samples(validation_data, validation_labels)
+    # val_normal = filter_normal_samples(data, labels)
 
-    if len(val_normal) == 0:
-        raise RuntimeError("No normal samples in validation set")
+    # if len(val_normal) == 0:
+    #     raise RuntimeError("No normal samples in validation set")
 
-    K = 512  # increase for stability
+    # # K = 512  # increase for stability
 
     with torch.no_grad():
         z = torch.randn(K, m * n, device=device)
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
-    # ----------------------------
-    # Validation scores (threshold)
-    # ----------------------------
+    # # ----------------------------
+    # # Validation scores (threshold)
+    # # ----------------------------
 
-    print(f'validation min: {validation_data.min()}, max: {validation_data.max()}')
-    print(f'test min: {test_data.min()}, max: {test_data.max()}')
-    val_scores = []
-    with torch.no_grad():
-        for x in val_normal:
-            x = x.unsqueeze(0).to(device)
-            f_real = D.extract_features(x)
-            f_real = F.normalize(f_real, dim=1)
-            score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
-            val_scores.append(score.item())
+    # print(f'validation min: {data.min()}, max: {data.max()}')
+    # print(f'test min: {test_data.min()}, max: {test_data.max()}')
+    # val_scores = []
+    # with torch.no_grad():
+    #     for x in val_normal:
+    #         x = x.unsqueeze(0).to(device)
+    #         f_real = D.extract_features(x)
+    #         f_real = F.normalize(f_real, dim=1)
+    #         score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
+    #         val_scores.append(score.item())
 
-    val_scores = np.array(val_scores)
+    # val_scores = np.array(val_scores)
 
-    mu = np.mean(val_scores)
-    sigma = np.std(val_scores)
-    threshold = mu + 3 * sigma
-    print(f"[✓] G threshold: {threshold:.6f}")
+    # mu = np.mean(val_scores)
+    # sigma = np.std(val_scores)
+    # threshold = mu + 3 * sigma
+    # print(f"[✓] G threshold: {threshold:.6f}")
 
     # ----------------------------
     # Test evaluation
     # ----------------------------
-    test_scores = []
+    scores = []
     with torch.no_grad():
-        for x in test_data:
+        for x in data:
             x = x.unsqueeze(0).to(device)
             f_real = D.extract_features(x)
             f_real = F.normalize(f_real, dim=1)
             score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
-            test_scores.append(score.item())
+            scores.append(score.item())
 
-    test_scores = np.array(test_scores)
+    scores = np.array(scores)
 
-    preds = (test_scores > threshold).astype(int)  # 1 = anomaly
-    y_true = test_labels
+    preds = (scores > threshold).astype(int)  # 1 = anomaly
+    y_true = labels
 
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, preds, average="binary", zero_division=0
@@ -1159,4 +1013,5 @@ def phase6_generator_mode(
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
+    return precision, recall, f1
     
