@@ -168,9 +168,9 @@ def measure_all(k: int, global_label_encoder) -> None:
     Path("results").mkdir(exist_ok=True)
 
     # ---------------- RAW ----------------
-    #raw_file = "results/runtime_raw.txt"
-    #_log_ae_training(feature_label="RAW feature type", out_file=raw_file, prefix_for_training="raw")
-    #_log_ae_feature_extraction(k=k, feature_label="RAW feature type", out_file=raw_file, prefix_for_features="raw")
+    raw_file = "results/runtime_raw.txt"
+    _log_ae_training(feature_label="RAW feature type", out_file=raw_file, prefix_for_training="raw")
+    _log_ae_feature_extraction(k=k, feature_label="RAW feature type", out_file=raw_file, prefix_for_features="raw")
 #
     #_log_classifiers_for_feature_type(
     #    k=k,
@@ -186,17 +186,19 @@ def measure_all(k: int, global_label_encoder) -> None:
     re_file = "results/runtime_re15.txt"
 #
     ## AE training for RE (your train_and_save_models_rt uses prefix "re" to load the right base model)
-    #_log_ae_training(feature_label="RE15 feature type", out_file=re_file, prefix_for_training="re")
-    #re_features_fold0_log_ae_feature_extraction(k=k, feature_label="RE15 feature type", out_file=re_file, prefix_for_features="re")
+    _log_ae_training(feature_label="RE15 feature type", out_file=re_file, prefix_for_training="re")
+    #re_features_fold0
+    _log_ae_feature_extraction(k=k, feature_label="RE15 feature type", out_file=re_file, prefix_for_features="re")
 
-    keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
-
-    _log_classifiers_for_feature_type(
-        k=k,
-        global_label_encoder=global_label_encoder,
-        prefix="re",  # IMPORTANT: was wrongly "raw" in your old code
-        feature_label="RE15 feature type",
-        out_file=re_file,
-        keep_indices=keep_indices,
-        param=15,
-    )
+    #keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
+#
+    #_log_classifiers_for_feature_type(
+    #    k=k,
+    #    global_label_encoder=global_label_encoder,
+    #    prefix="re",  # IMPORTANT: was wrongly "raw" in your old code
+    #    feature_label="RE15 feature type",
+    #    out_file=re_file,
+    #    keep_indices=keep_indices,
+    #    param=15,
+    #)
+#

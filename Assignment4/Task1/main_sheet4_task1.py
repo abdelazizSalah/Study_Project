@@ -314,6 +314,7 @@ def release_main_new():
         print(f"k:{k}")
         measure_all(k, global_label_encoder)
     elif args.mode == "error_overlap":
+        #execute measure runtime to generate training files for raw and re15
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
