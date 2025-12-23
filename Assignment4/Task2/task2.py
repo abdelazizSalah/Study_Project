@@ -197,6 +197,9 @@ def task2_sheet4_main():
         else:
             print("[!] Invalid mode selected. Please choose 'D' for Discriminator-based inference or 'G' for Generator-based inference.")
     
+    print(f'best results from validation: Precision: {best_percision}, Recall: {best_recall}, F1-score: {best_f1}')
+    print(f' highest results from validation: Precision: {highest_percision}, Recall: {highest_recall}, F1-score: {highest_f1}')
+
     print(f'best configuration: {best_config}')
 
     # use best configuration to evaluate on test set
