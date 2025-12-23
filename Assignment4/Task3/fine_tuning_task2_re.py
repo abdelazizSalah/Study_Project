@@ -15,7 +15,7 @@ Phase 0: Design Decisions:
     - Noise distribution:
         - Standard normal distribution (mean=0, std=1) (Gaussian)
 '''
-from sheet4_task2_utility_tools_re import *
+from fine_tuning_sheet4_task2_utility_tools_re import *
 # Main function
 def task2_sheet4_main():
     # Main logic of the task
@@ -31,28 +31,15 @@ def task2_sheet4_main():
     D_threshold = [0.1,0.3,0.5]
     G_threshold = [0.1,0.3,0.5]
     K = [128,256,512]
-    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2],     # D dominating
-    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9],   # D too weak
-    G_UPDATES = [1,2,3],
-
-    # use single value only for faster testing
-    # m = [10]  # number of packets per sample
-    # epochs=[5]
-    # batch_size=[32]
-    # lr_D=[1e-4]
-    # lr_G=[3e-4]
-    # D_threshold = [0.1]
-    # G_threshold = [0.1]
-    # K = [128]
-    # D_LOSS_TOO_LOW = [0.1]     # D dominating
-    # D_LOSS_TOO_HIGH = [0.7]   # D too weak
-    # G_UPDATES = [1]
+    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2]   # D dominating
+    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9] # D too weak
+    G_UPDATES = [1,2,3]
     configurations = [
         {'m': m_val, 'epochs': epoch_val, 'batch_size': batch_val, 'lr_D': lr_D_val, 'lr_G': lr_G_val, 'D_threshold': D_threshold_val, 'G_threshold': G_threshold_val, 'K': K_val, 'D_LOSS_TOO_LOW': D_LOSS_TOO_LOW_val, 'D_LOSS_TOO_HIGH': D_LOSS_TOO_HIGH_val, 'G_UPDATES': G_UPDATES_val} for m_val in m for epoch_val in epochs for batch_val in batch_size for lr_D_val in lr_D for lr_G_val in lr_G for D_threshold_val in D_threshold for G_threshold_val in G_threshold for K_val in K for D_LOSS_TOO_LOW_val in D_LOSS_TOO_LOW for D_LOSS_TOO_HIGH_val in D_LOSS_TOO_HIGH for G_UPDATES_val in G_UPDATES
     ] # generating all combinations
     print (configurations[:2])
     print(len(configurations)) # 5 * 5 * 3 * 3 * 3 * 3 * 3 = 6075 combinations
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
+    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
     print(f'[*] Using device: {device}')
     
     # define best parameters
@@ -60,13 +47,11 @@ def task2_sheet4_main():
     best_f1 = 5
     best_percision = 5
     best_recall = 5
-
     highest_f1 = 0
     highest_percision = 0
     highest_recall = 0
-
     # #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
-    for p in p_vals:
+    for p in p_vals: # for each value of p, perform the fine tuning
         for config in configurations:
             print('[*] Phase 7: Hyperparameter tuning iteration started...')
             print(f'[*] Validation configuration: {config}')
