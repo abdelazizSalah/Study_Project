@@ -328,8 +328,8 @@ def release_main_new():
         #execute measure runtime to generate feature files for raw and re15
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        k = check_requirements_feature_extraction_mode()
-        all_feature_importance(k, global_label_encoder)
+        #k = check_requirements_feature_extraction_mode()
+        all_feature_importance(5, global_label_encoder)
 
 
 if __name__ == "__main__":

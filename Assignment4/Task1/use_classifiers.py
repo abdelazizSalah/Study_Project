@@ -48,8 +48,7 @@ def split_training_and_test(ds, labels, timestamps, train_indices_fold, test_ind
 def execute_fold_feature_importance(
     fold_idx, binary_numeric_labels, timestamps,
     train_indices, test_indices,
-    classifier, prefix, scenario, param=0,
-    n_samples=3000, n_repeats=1, random_state=0
+    classifier, prefix, scenario, param=0
 ):
     # ---- load features for this fold ----
     if param != 0:
@@ -63,36 +62,38 @@ def execute_fold_feature_importance(
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
-    importance_score=[]
     # ---- train (saves to disk) + load model ----
     if classifier == "ocsvm":
         one_class_svm_train(X_train)  # saves
-
+        print("Calculating Importance Score OCSVM")
         importance_score = ocsvm_permutation_importance(
             X_test, y_test)
 
     elif classifier == "bsvm":
         binary_svm_train(X_train, y_train)
+        print("Calculating Importance Score BSVM")
         importance_score=get_bsvm_feature_importance()
 
     elif classifier == "ee":
         elliptic_envelope_train(X_train)
-
+        print("Calculating Importance Score EE")
         importance_score= ee_permutation_importance(
             X_test, y_test)
 
     elif classifier == "rf":
+        print("Training and calculating Importance Score EE")
         importance_score=binary_rf_train_and_get_importance(X_train, y_train)
 
 
     elif classifier == "knn":
         binary_knn_train(X_train, y_train)
-
+        print("Training and calculating Importance Score KNN")
         importance_score=knn_permutation_importance(
             X_test, y_test)
 
     elif classifier == "lof":
         local_outlier_factor_train(X_train)
+        print("Training and calculating Importance Score LOF")
         importance_score = lof_permutation_importance(X_test, y_test)
     else:
         raise ValueError(f"Unknown classifier: {classifier}")
@@ -102,8 +103,7 @@ def execute_fold_feature_importance(
 
 def execute_scenario_feature_importance(
     global_label_encoder, classifier, k, prefix, scenario,
-    keep_indices=0, param=0,
-    n_samples=3000, n_repeats=1, random_state=0
+    keep_indices=0, param=0
 ):
     labels = np.load(f"datasets/{prefix}_labels.npy")
     timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
@@ -137,11 +137,7 @@ def execute_scenario_feature_importance(
             classifier=classifier,
             prefix=prefix,
             scenario=scenario,
-            keep_indices=keep_indices,
-            param=param,
-            n_samples=n_samples,
-            n_repeats=n_repeats,
-            random_state=random_state
+            param=param
         )
         fold_importances.append(imp) #[[][][]] sublist per fold
 

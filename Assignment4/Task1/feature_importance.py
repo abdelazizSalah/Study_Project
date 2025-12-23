@@ -94,7 +94,7 @@ def run_scenarios_for_feature_importance(
                 prefix=prefix,
                 scenario=scenario,
                 keep_indices=keep_indices,
-                param=param,
+                param=param
             )
 
             imp = np.asarray(imp).ravel()
