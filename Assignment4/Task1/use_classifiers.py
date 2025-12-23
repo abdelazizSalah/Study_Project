@@ -9,19 +9,21 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
 import pandas as pd
-from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, local_outlier_factor_predict_error_overlap
+from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, \
+    local_outlier_factor_predict_error_overlap, lof_permutation_importance
 from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds
 from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
     grid_search_random_forest, grid_search_knn, grid_search_lof_parallel
-from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict_error_overlap
+from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict_error_overlap, knn_permutation_importance
 from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluate, \
-    elliptic_envelope_predict_error_overlap
+    elliptic_envelope_predict_error_overlap, ee_permutation_importance
 from file_helper_t3 import load_k_fold_results
-from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict_error_overlap
+from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict_error_overlap, \
+    binary_rf_train_and_get_importance
 from labels_helper import encode_labels
 from svm import one_class_svm_evaluate, binary_svm_train, binary_svm_evaluate, one_class_svm_predict_error_overlap, \
-    one_class_svm_train, binary_svm_predict_error_overlap
+    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, get_bsvm_feature_importance
 import numpy as np
 
 #indices not restored
@@ -43,7 +45,110 @@ def split_training_and_test(ds, labels, timestamps, train_indices_fold, test_ind
     return X_train, X_test, y_train, y_test, T_train, T_test
 
 
+def execute_fold_feature_importance(
+    fold_idx, binary_numeric_labels, timestamps,
+    train_indices, test_indices,
+    classifier, prefix, scenario, param=0,
+    n_samples=3000, n_repeats=1, random_state=0
+):
+    # ---- load features for this fold ----
+    if param != 0:
+        ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
+        print(f"Feature importance: {classifier}, fold {fold_idx}, scenario {scenario}, RE{param}")
+    else:
+        ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")
+        print(f"Feature importance: {classifier}, fold {fold_idx}, scenario {scenario}, RAW")
 
+    X_train, X_test, y_train, y_test, _, _ = split_training_and_test(
+        ds, binary_numeric_labels, timestamps, train_indices, test_indices
+    )
+
+    importance_score=[]
+    # ---- train (saves to disk) + load model ----
+    if classifier == "ocsvm":
+        one_class_svm_train(X_train)  # saves
+
+        importance_score = ocsvm_permutation_importance(
+            X_test, y_test)
+
+    elif classifier == "bsvm":
+        binary_svm_train(X_train, y_train)
+        importance_score=get_bsvm_feature_importance()
+
+    elif classifier == "ee":
+        elliptic_envelope_train(X_train)
+
+        importance_score= ee_permutation_importance(
+            X_test, y_test)
+
+    elif classifier == "rf":
+        importance_score=binary_rf_train_and_get_importance(X_train, y_train)
+
+
+    elif classifier == "knn":
+        binary_knn_train(X_train, y_train)
+
+        importance_score=knn_permutation_importance(
+            X_test, y_test)
+
+    elif classifier == "lof":
+        local_outlier_factor_train(X_train)
+        importance_score = lof_permutation_importance(X_test, y_test)
+    else:
+        raise ValueError(f"Unknown classifier: {classifier}")
+
+    return importance_score #shape (32,)
+
+
+def execute_scenario_feature_importance(
+    global_label_encoder, classifier, k, prefix, scenario,
+    keep_indices=0, param=0,
+    n_samples=3000, n_repeats=1, random_state=0
+):
+    labels = np.load(f"datasets/{prefix}_labels.npy")
+    timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
+
+    train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
+
+    if param == 15:
+        labels, timestamps = deduplicate_labels_and_timestamps(labels, timestamps, keep_indices)
+        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
+
+    numeric_labels = encode_labels(global_label_encoder, labels)
+    binary_numeric_labels = np.where(numeric_labels == 0, 0, 1)
+
+    fold_importances = []
+
+    for fold_idx in range(k):
+        if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
+            continue
+
+        if scenario in (2, 3):
+            y_tr = binary_numeric_labels[train_indices[fold_idx]]
+            if np.unique(y_tr).size < 2:
+                continue
+
+        imp = execute_fold_feature_importance(
+            fold_idx,
+            binary_numeric_labels,
+            timestamps,
+            train_indices[fold_idx],
+            test_indices[fold_idx],
+            classifier=classifier,
+            prefix=prefix,
+            scenario=scenario,
+            keep_indices=keep_indices,
+            param=param,
+            n_samples=n_samples,
+            n_repeats=n_repeats,
+            random_state=random_state
+        )
+        fold_importances.append(imp) #[[][][]] sublist per fold
+
+    if len(fold_importances) == 0:
+        return None
+
+    return np.mean(np.vstack(fold_importances), axis=0) #stack sublists and average per column -> average per fold
 
 
 #train and test indices for each fold ([[][],...]
@@ -381,7 +486,6 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         return 0.0, 0.0, 0.0, 0.0
 
     return precision, recall
-
 
 
 #train and test indices for each fold ([[][],...]

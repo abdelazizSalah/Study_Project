@@ -1,3 +1,4 @@
+from sklearn.inspection import permutation_importance
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -9,7 +10,6 @@ from sklearn.metrics import (
     recall_score
 )
 import numpy as np
-import pandas as pd
 import joblib
 
 
@@ -93,3 +93,45 @@ def local_outlier_factor_predict_error_overlap(X_test, y_test):
     prediction_errors = (y_pred_binary != y_test).astype(int)
 
     return prediction_errors
+
+
+
+
+def lof_permutation_importance(
+    X_test,
+    y_test,
+    n_samples=3000,
+    n_repeats=3,
+    random_state=0
+):
+    """
+    Permutation feature importance for Local Outlier Factor using ROC-AUC.
+    Uses a subsampled test set for efficiency.
+    """
+    lof_model= joblib.load("models/local_outlier_factor.joblib")
+
+    rng = np.random.default_rng(random_state)
+
+
+    if len(X_test) > n_samples:
+        idx = rng.choice(len(X_test), size=n_samples, replace=False)
+        X_sub = X_test[idx]
+        y_sub = y_test[idx]
+    else:
+        X_sub = X_test
+        y_sub = y_test
+
+    # ---------------------------
+    # Permutation importance
+    # ---------------------------
+    result = permutation_importance(
+        lof_model,
+        X_sub,
+        y_sub,
+        scoring="f1",
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    return result.importances_mean

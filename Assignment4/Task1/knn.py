@@ -1,3 +1,4 @@
+from sklearn.inspection import permutation_importance
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import (
     roc_auc_score,
@@ -76,3 +77,47 @@ def binary_knn_predict_error_overlap(X_test, y_test):
     y_pred_binary = knn_clf.predict(X_test).astype(int)
     prediction_errors = (y_pred_binary != y_test).astype(int)
     return prediction_errors
+
+
+
+
+
+def knn_permutation_importance(
+    X_test,
+    y_test,
+    n_samples=3000,
+    n_repeats=1,
+    random_state=0
+):
+    """
+    Permutation feature importance for supervised binary KNN using ROC-AUC.
+    Uses a subsampled test set for efficiency.
+    """
+    knn_model=joblib.load("models/bknn.joblib")
+    rng = np.random.default_rng(random_state)
+
+    # ---------------------------
+    # Subsample test data
+    # ---------------------------
+    if len(X_test) > n_samples:
+        idx = rng.choice(len(X_test), size=n_samples, replace=False)
+        X_sub = X_test[idx]
+        y_sub = y_test[idx]
+    else:
+        X_sub = X_test
+        y_sub = y_test
+
+    # ---------------------------
+    # Permutation importance
+    # ---------------------------
+    result = permutation_importance(
+        knn_model,
+        X_sub,
+        y_sub,
+        scoring="f1",
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    return result.importances_mean

@@ -3,6 +3,7 @@ from sys import prefix
 
 import joblib
 import numpy as np
+from sklearn.inspection import permutation_importance
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, OneClassSVM
@@ -76,6 +77,37 @@ def one_class_svm_predict_error_overlap(X_test, y_test):
     return prediction_errors
 
 
+def ocsvm_permutation_importance(X_test, y_test, n_samples=2000, n_repeats=3,random_state=0):
+    ocsvm_model= joblib.load("models/ocsvm.joblib")
+    rng = np.random.default_rng(random_state)
+
+    # ---------------------------
+    # Subsample test data
+    # ---------------------------
+    if len(X_test) > n_samples:
+        idx = rng.choice(len(X_test), size=n_samples, replace=False)
+        X_sub = X_test[idx]
+        y_sub = y_test[idx]
+    else:
+        X_sub = X_test
+        y_sub = y_test
+
+
+    # ---------------------------
+    # Permutation importance
+    # ---------------------------
+    result = permutation_importance(
+        ocsvm_model,
+        X_sub,
+        y_sub,
+        scoring="f1",
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    return result.importances_mean
+
 ##############################################################BSVM
 #x - data, y - labels
 def binary_svm_train(X_train, y_train):
@@ -134,5 +166,29 @@ def binary_svm_predict_error_overlap(X_test, y_test):
     return prediction_errors
 
 
+def get_bsvm_feature_importance():
+    """
+    importance : np.ndarray of shape (n_features,)
+        Absolute value of the learned weight vector.
+    """
+    bsvm_model = joblib.load("models/bsvm.joblib")
+    # If this is a pipeline, extract the final SVM step
+    if hasattr(bsvm_model, "named_steps"):
+        svm = bsvm_model[-1]
+    else:
+        svm = bsvm_model
 
+    if not hasattr(svm, "coef_"):
+        raise ValueError(
+            "The provided SVM model does not expose coef_. "
+            "Make sure kernel='linear' was used."
+        )
+
+    # coef_ shape: (1, n_features) for binary classification
+    weights = svm.coef_.ravel()
+
+    # importance = absolute contribution
+    importance = np.abs(weights)
+
+    return importance
 

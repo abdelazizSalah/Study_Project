@@ -1,4 +1,5 @@
 from sklearn.covariance import EllipticEnvelope
+from sklearn.inspection import permutation_importance
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.metrics import (
@@ -83,3 +84,47 @@ def elliptic_envelope_predict_error_overlap(X_test, y_test):
 
     prediction_errors = (y_pred_binary != y_test).astype(int)
     return prediction_errors
+
+
+
+
+def ee_permutation_importance(
+    X_test,
+    y_test,
+    n_samples=5000,
+    n_repeats=3,
+    random_state=0
+):
+    """
+    Permutation feature importance for EllipticEnvelope using ROC-AUC.
+    Uses a subsampled test set for efficiency.
+    """
+    ee_model= joblib.load("models/elliptic_envelope.joblib")
+
+    rng = np.random.default_rng(random_state)
+
+    # ---------------------------
+    # Subsample test data
+    # ---------------------------
+    if len(X_test) > n_samples:
+        idx = rng.choice(len(X_test), size=n_samples, replace=False)
+        X_sub = X_test[idx]
+        y_sub = y_test[idx]
+    else:
+        X_sub = X_test
+        y_sub = y_test
+
+    # ---------------------------
+    # Permutation importance
+    # ---------------------------
+    result = permutation_importance(
+        ee_model,
+        X_sub,
+        y_sub,
+        scoring="f1",
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    return result.importances_mean

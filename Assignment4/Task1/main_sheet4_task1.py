@@ -3,6 +3,8 @@ import os
 import sys
 import time
 
+from joblib import parallel_backend
+
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
@@ -17,6 +19,7 @@ from constants import ALL_POSSIBLE_LABELS
 from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
 from feature_creation_autoencoder import create_features_for_ds
 from preprocessing_s3t2 import pcaps_byte_and_metadata_extraction
+from feature_importance import all_feature_importance
 
 
 def require_file(path: str):
@@ -147,7 +150,7 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold", "measure_runtime", "error_overlap"],
+        choices=["dataset_preprocessing", "k_fold", "measure_runtime", "error_overlap", "feature_importance"],
         help="Which pipeline step to run.",
     )
 
@@ -316,12 +319,20 @@ def release_main_new():
         print(f"k:{k}")
         measure_all(k, global_label_encoder)
     elif args.mode == "error_overlap":
-        #execute measure runtime to generate training files for raw and re15
+        #execute measure runtime to generate feature files for raw and re15
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         all_error_overlaps(k, global_label_encoder)
+    elif args.mode == "feature_importance":
+        #execute measure runtime to generate feature files for raw and re15
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_feature_extraction_mode()
+        all_feature_importance(k, global_label_encoder)
 
 
 if __name__ == "__main__":
     release_main_new()
+
+    #release_main_new()

@@ -1,14 +1,11 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import (
-    roc_auc_score,
     classification_report,
     precision_score,
     recall_score,
     f1_score
 )
 import joblib
-import numpy as np
-import pandas as pd
 
 
 
@@ -33,6 +30,22 @@ def binary_rf_train(X_train, y_train,
     print("Random Forest training done")
     return rf_clf
 
+
+def binary_rf_train_and_get_importance(X_train, y_train):
+
+    rf = RandomForestClassifier(
+        n_estimators=200,
+        n_jobs=-1,
+        random_state=0
+    )
+    rf.fit(X_train, y_train)
+
+    # built-in RF importances (one value per input column)
+    importances = rf.feature_importances_
+
+    joblib.dump(rf, "models/brf.joblib")
+
+    return importances
 
 
 def binary_rf_evaluate(X_test, y_test):
