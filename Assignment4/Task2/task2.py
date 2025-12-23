@@ -47,8 +47,20 @@ def task2_sheet4_main():
     # D_LOSS_TOO_HIGH = [0.7]   # D too weak
     # G_UPDATES = [1]
     configurations = [
-        {'m': m_val, 'epochs': epoch_val, 'batch_size': batch_val, 'lr_D': lr_D_val, 'lr_G': lr_G_val, 'D_threshold': D_threshold_val, 'G_threshold': G_threshold_val, 'K': K_val, 'D_LOSS_TOO_LOW': D_LOSS_TOO_LOW_val, 'D_LOSS_TOO_HIGH': D_LOSS_TOO_HIGH_val, 'G_UPDATES': G_UPDATES_val} for m_val in m for epoch_val in epochs for batch_val in batch_size for lr_D_val in lr_D for lr_G_val in lr_G for D_threshold_val in D_threshold for G_threshold_val in G_threshold for K_val in K for D_LOSS_TOO_LOW_val in D_LOSS_TOO_LOW for D_LOSS_TOO_HIGH_val in D_LOSS_TOO_HIGH for G_UPDATES_val in G_UPDATES
-    ] # generating all combinations
+        {'m': m_val,
+          'epochs': epoch_val,
+            'batch_size': batch_val,
+              'lr_D': lr_D_val,
+                'lr_G': lr_G_val,
+                  'D_threshold': D_threshold_val,
+                    'G_threshold': G_threshold_val,
+                      'K': K_val,
+                        'D_LOSS_TOO_LOW': d_loss_val_low,
+                          'D_LOSS_TOO_HIGH': d_loss_val_high,
+                            'G_UPDATES': g_updates_val} for m_val in m for epoch_val in epochs for batch_val in batch_size for lr_D_val in lr_D for lr_G_val in lr_G for D_threshold_val in D_threshold for G_threshold_val in G_threshold for K_val in K for d_loss_val_low in D_LOSS_TOO_LOW for d_loss_val_high in D_LOSS_TOO_HIGH for g_updates_val in G_UPDATES
+                             
+                             
+                              ] # generating all combinations
     print (configurations[:2])
     print(len(configurations)) # 5 * 5 * 3 * 3 * 3 * 3 * 3 = 6075 combinations
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
