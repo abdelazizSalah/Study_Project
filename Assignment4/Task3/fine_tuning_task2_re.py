@@ -91,7 +91,7 @@ def task2_sheet4_main():
                 G=G,
                 m=m,
                 n=n,
-                device=device,
+                p=p,
                 epochs=epoch,
                 batch_size=batch,
                 lr_D=d_lr,
@@ -99,7 +99,7 @@ def task2_sheet4_main():
                 D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
                 D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
                 G_UPDATES=G_UPDATES_val,
-                p=p
+                device=device,
                 # save_dir="models2"
             )
             # excuting the inference phase always 
@@ -127,17 +127,16 @@ def task2_sheet4_main():
                 print("[*] Mode: INFERENCE (Discriminator-based)")
                 percision, recall, f1 = phase6_discriminator_mode(
                     D = D,
+                    p= p,
                     data = validation_data,
                     labels = validation_labels,
                     device = device,
-                    validation=True,
                     d_lr=d_lr,
+                    g_lr=g_lr,
                     epochs=epoch,
                     batch_size=batch,
-                    g_lr=g_lr,
+                    validation=True,
                     threshold=d_threshold,
-                    p=p
-
                 )
                 
                 if f1 > highest_f1:
@@ -166,9 +165,12 @@ def task2_sheet4_main():
                     m=m,
                     n=n,
                     K=k,
+                    batch_size=batch,
+                    epochs=epoch,
+                    d_lr=d_lr,
+                    g_lr=g_lr,
                     threshold=g_threshold,
                     validation=True,
-                    batch_size=batch
                 )
                 if f1 > highest_f1:
                     highest_f1 = f1
@@ -206,6 +208,7 @@ def task2_sheet4_main():
                 m=m,
                 n=n,
                 device=device,
+                p=p,
                 epochs=epoch,
                 batch_size=batch,
                 lr_D=d_lr,
@@ -219,16 +222,16 @@ def task2_sheet4_main():
         if mode == 'D':
             print("[*] Mode: INFERENCE (Discriminator-based) on test set")
             percision, recall, f1 = phase6_discriminator_mode(
-                p= p,   
                 D=D,
+                p= p,   
                 data=testing_data,
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied 
                 d_lr=d_lr,
                 g_lr=g_lr,
-                validation=False,
                 epochs=epoch,
                 batch_size=batch,
+                validation=False,
                 threshold=d_threshold
 
             )
@@ -246,11 +249,12 @@ def task2_sheet4_main():
                 m=m,
                 n=n,
                 K=k,
+                batch_size=batch,
+                epochs=epoch,
                 d_lr=d_lr,
                 g_lr=g_lr,
                 threshold=g_threshold,
                 validation=False,
-                batch_size=batch
             )
             print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
         else:

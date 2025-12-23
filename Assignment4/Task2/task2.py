@@ -176,15 +176,16 @@ def task2_sheet4_main():
             print("[*] Mode: INFERENCE (Discriminator-based)")
             percision, recall, f1 = phase6_discriminator_mode(
                 D=D,
+                batch_size=batch,
                 data=validation_data,
                 labels=validation_labels,
                 device=device,
-                validation=True,
                 d_lr=d_lr,
-                epochs=epoch,
-                batch_size=batch,
                 g_lr=g_lr,
+                epochs=epoch,
+                validation=True,
                 threshold=d_threshold
+         
 
             )
             
@@ -210,9 +211,14 @@ def task2_sheet4_main():
                 data=validation_data,
                 labels=validation_labels,
                 device=device,
+                batch_size=batch,
+                d_lr=d_lr,
+                g_lr=g_lr,
+                epochs=epoch,
                 m=m,
                 n=n,
                 K=k,
+                validation=True,
                 threshold=g_threshold,
             )
             if f1 > highest_f1:
@@ -248,6 +254,7 @@ def task2_sheet4_main():
     g_threshold = best_config['G_threshold']
     # load best trained models
     D, G = load_trained_models(
+      
             m=m,
             n=n,
             device=device,
@@ -264,15 +271,16 @@ def task2_sheet4_main():
     if mode == 'D':
         print("[*] Mode: INFERENCE (Discriminator-based) on test set")
         percision, recall, f1 = phase6_discriminator_mode(
+    
             D=D,
+            batch_size=batch,
             data=testing_data,
             labels=test_labels,
             device=device, # because GPU 0 is occupied 
             d_lr=d_lr,
-            validation=False,
-            epochs=epoch,
-            batch_size=batch,
             g_lr=g_lr,
+            epochs=epoch,
+            validation=False,
             threshold=d_threshold
 
         )
@@ -286,10 +294,15 @@ def task2_sheet4_main():
             data=testing_data,
             labels=test_labels,
             device=device, # because GPU 0 is occupied
+            batch_size=batch,
+            d_lr=d_lr,
+            g_lr=g_lr,
+            epochs=epoch,
             m=m,
             n=n,
             K=k,
             threshold=g_threshold,
+            validation=False,
         )
         print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
     else:
