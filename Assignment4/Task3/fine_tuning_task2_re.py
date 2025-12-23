@@ -84,41 +84,47 @@ def task2_sheet4_main():
         
             print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={D_LOSS_TOO_LOW_val}, D_LOSS_TOO_HIGH={D_LOSS_TOO_HIGH_val}, G_UPDATES={G_UPDATES_val}')
             print('[*] Phase 5: GAN Training loop sanity check passed. \n --------------------------------------- \n ')
-            # train the model on the current configurations        
-            D,G = train_gan_on_training_data(
-                training_data=training_data,
-                D=D,
-                G=G,
-                m=m,
-                n=n,
-                p=p,
-                epochs=epoch,
-                batch_size=batch,
-                lr_D=d_lr,
-                lr_G=g_lr,
-                D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
-                D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
-                G_UPDATES=G_UPDATES_val,
-                device=device,
-                # save_dir="models2"
-            )
-            # excuting the inference phase always 
-            print('[*] Phase 6: Trained models found. Starting inference mode...')
+            # train the model on the current configurations  
 
-            
-            # D, G = load_trained_models(
-            #         m=m,
-            #         n=n,
-            #         epochs=epoch,
-            #         batch_size=batch,
-            #         lr_D=d_lr,
-            #         lr_G=g_lr,
-            #         device=device,
-            #         D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
-            #         D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
-            #         G_UPDATES=G_UPDATES_val,
-            #         # model_dir="models"
-            #     )
+            d_file_name = f"p_{p}_m_{m}_discriminator_d_lr{d_lr}_epochs_{epoch}_bs{batch}_dl_thresh_low_{D_LOSS_TOO_LOW_val}_dl_thresh_high_{D_LOSS_TOO_HIGH_val}_gupdates_{G_UPDATES_val}.pth"
+            g_file_name = f"p_{p}_m_{m}_generator_g_lr{g_lr}_epochs_{epoch}_bs{batch}_dl_thresh_low_{D_LOSS_TOO_LOW_val}_dl_thresh_high_{D_LOSS_TOO_HIGH_val}_gupdates_{G_UPDATES_val}.pth"
+            modelsExist = os.path.exists(os.path.join("models", d_file_name)) and os.path.exists(os.path.join("models", g_file_name))
+            if not modelsExist:
+                D,G = train_gan_on_training_data(
+                    training_data=training_data,
+                    D=D,
+                    G=G,
+                    m=m,
+                    n=n,
+                    p=p,
+                    epochs=epoch,
+                    batch_size=batch,
+                    lr_D=d_lr,
+                    lr_G=g_lr,
+                    D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+                    D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
+                    G_UPDATES=G_UPDATES_val,
+                    device=device,
+                    # save_dir="models2"
+                )
+                D.eval()
+                G.eval()
+            else: 
+                # excuting the inference phase always 
+                print('[*] Phase 6: Trained models found. Starting inference mode...')
+                D, G = load_trained_models(
+                        m=m,
+                        n=n,
+                        epochs=epoch,
+                        batch_size=batch,
+                        lr_D=d_lr,
+                        lr_G=g_lr,
+                        device=device,
+                        D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+                        D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
+                        G_UPDATES=G_UPDATES_val,
+                        # model_dir="models"
+                    )
             # normalizing validation and testing data
             
             validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())

@@ -837,6 +837,7 @@ def filter_normal_samples(data, labels):
     # print unique values of labels
     print(f"Unique labels: {np.unique(labels)}")
     return data[labels == 0]
+from torch.utils.data import DataLoader
 
 
 def phase6_discriminator_mode(
@@ -849,44 +850,59 @@ def phase6_discriminator_mode(
     g_lr,
     epochs,
     batch_size,
-    validation:bool = False,
+    validation: bool = False,
     threshold=0.5,
     m=10,
 ):
     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
-    # ---- test evaluation ----
-    print('Testing on test data...')
+    print("Testing on test data...")
+
+    D.eval()
     scores = []
+
+    loader = DataLoader(
+        data,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+
     with torch.no_grad():
-        for x in data:
-            x = x.unsqueeze(0).to(device)
-            logit = D(x)
-            prob = torch.sigmoid(logit) # to get output in range [0,1]
-            scores.append(prob.item())    
+        for batch in loader:
+            batch = batch.to(device)               # (B,1,m,n)
+            logits = D(batch)                      # (B,1)
+            probs = torch.sigmoid(logits).squeeze()  # (B,)
+            scores.extend(probs.cpu().numpy())
+
     scores = np.array(scores)
+    print(f"[*] Collected {len(scores)} test scores")
 
     preds = (scores < threshold).astype(int)  # 1 = anomaly
-    y_true = labels
+    y_true = labels[:len(preds)]               # safety guard
 
     precision, recall, f1, _ = precision_recall_fscore_support(
-        y_true, preds, average="binary"
+        y_true, preds, average="binary", zero_division=0
     )
 
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
-    # write results in metrics_D.txt
-    final_label = 'final_testing' if not validation else 'validation'
-    file_name = f"p_{p}_metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt"
+
+    final_label = "final_testing" if not validation else "validation"
+    file_name = (
+        f"p_{p}_metrics_D_{final_label}_epochs_{epochs}"
+        f"_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt"
+    )
+
     with open(file_name, "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
+
     return precision, recall, f1
-    
 
 def phase6_generator_mode(
     D,
     G,
-    p,  
+    p,
     data,
     labels,
     device,
@@ -898,41 +914,70 @@ def phase6_generator_mode(
     d_lr,
     g_lr,
     threshold,
-    validation:bool = False,  
+    validation: bool = False,
 ):
     print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
-    
+
+    D.eval()
+    G.eval()
+
+    # ----------------------------------
+    # 1. Compute reference fake feature mean ONCE
+    # ----------------------------------
     with torch.no_grad():
         z = torch.randn(K, m * n, device=device)
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
 
+    # ----------------------------------
+    # 2. Batched scoring
+    # ----------------------------------
+    loader = DataLoader(
+        data,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+
     scores = []
+
     with torch.no_grad():
-        for x in data:
-            x = x.unsqueeze(0).to(device)
-            f_real = D.extract_features(x)
+        for batch in loader:
+            batch = batch.to(device)              # (B,1,m,n)
+
+            f_real = D.extract_features(batch)    # (B,F)
             f_real = F.normalize(f_real, dim=1)
-            score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
-            scores.append(score.item())
+
+            diff = f_real - f_fake_mean.unsqueeze(0)
+            batch_scores = torch.mean(diff ** 2, dim=1) / f_real.size(1)
+
+            scores.extend(batch_scores.cpu().numpy())
 
     scores = np.array(scores)
+    print(f"[*] Collected {len(scores)} test scores")
 
+    # ----------------------------------
+    # 3. Evaluation
+    # ----------------------------------
     preds = (scores > threshold).astype(int)  # 1 = anomaly
-    y_true = labels
+    y_true = labels[:len(preds)]
 
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, preds, average="binary", zero_division=0
     )
 
     print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
-    # write results in metrics_G.txt
-    final_label = 'final_testing' if not validation else 'validation'
-    file_name = f"p_{p}_metrics_G_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt"
+
+    final_label = "final_testing" if not validation else "validation"
+    file_name = (
+        f"p_{p}_metrics_G_{final_label}_epochs_{epochs}"
+        f"_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt"
+    )
+
     with open(file_name, "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
+
     return precision, recall, f1
-    

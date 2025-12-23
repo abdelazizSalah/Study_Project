@@ -965,7 +965,8 @@ def phase6_discriminator_mode(
     m=10,
 ):
     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
-    print("Testing on test data...")
+    data_type = 'validation' if validation else 'testing'
+    print(f"Testing on {data_type} data...")
 
     D.eval()
     scores = []
