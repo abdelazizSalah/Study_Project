@@ -543,7 +543,7 @@ def train_gan_on_training_data(
     G,
     m,
     n,
-    p,
+    p_value,
     epochs=10,
     batch_size=64,
     lr_D=1e-4,
@@ -702,8 +702,8 @@ def train_gan_on_training_data(
     
     '''
     os.makedirs(save_dir, exist_ok=True)
-    d_file_name = f"p_{p}_m_{m}_discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
-    g_file_name = f"p_{p}_m_{m}_generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    d_file_name = f"p_{p_value}_m_{m}_discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"p_{p_value}_m_{m}_generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
     torch.save(D.state_dict(), os.path.join(save_dir, d_file_name))
     torch.save(G.state_dict(), os.path.join(save_dir, g_file_name))
 
@@ -842,7 +842,7 @@ from torch.utils.data import DataLoader
 
 def phase6_discriminator_mode(
     D,
-    p,
+    p_value,
     data,
     labels,
     device,
@@ -888,7 +888,7 @@ def phase6_discriminator_mode(
 
     final_label = "final_testing" if not validation else "validation"
     file_name = (
-        f"p_{p}_metrics_D_{final_label}_epochs_{epochs}"
+        f"p_{p_value}_metrics_D_{final_label}_epochs_{epochs}"
         f"_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt"
     )
 

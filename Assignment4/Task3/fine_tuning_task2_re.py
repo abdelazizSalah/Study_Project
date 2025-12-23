@@ -52,6 +52,7 @@ def task2_sheet4_main():
     highest_recall = 0
     # #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
     for p in p_vals: # for each value of p, perform the fine tuning
+        print(f'current p value: {p}')
         for config in configurations:
             print('[*] Phase 7: Hyperparameter tuning iteration started...')
             print(f'[*] Validation configuration: {config}')
