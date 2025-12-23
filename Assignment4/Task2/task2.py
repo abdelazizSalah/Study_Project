@@ -116,14 +116,14 @@ def task2_sheet4_main():
         d_lr = config['lr_D']
         g_lr = config['lr_G']
         batch = config['batch_size']
-        D_LOSS_TOO_LOW_val = config['D_LOSS_TOO_LOW']
-        D_LOSS_TOO_HIGH_val = config['D_LOSS_TOO_HIGH']
-        G_UPDATES_val = config['G_UPDATES']
+        d_loss_low = config['D_LOSS_TOO_LOW']
+        d_loss_high = config['D_LOSS_TOO_HIGH']
+        g_updates = config['G_UPDATES']
         d_threshold = config['D_threshold']
         g_threshold = config['G_threshold']
         k = config['K']
        
-        print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={D_LOSS_TOO_LOW_val}, D_LOSS_TOO_HIGH={D_LOSS_TOO_HIGH_val}, G_UPDATES={G_UPDATES_val}')
+        print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={d_loss_low}, D_LOSS_TOO_HIGH={d_loss_high}, G_UPDATES={g_updates}, D_threshold={d_threshold}, G_threshold={g_threshold}, K={k}')
         print('[*] Phase 5: GAN Training loop sanity check passed. \n --------------------------------------- \n ')
         # train the model on the current configurations        
         D,G = train_gan_on_training_data(
@@ -137,9 +137,9 @@ def task2_sheet4_main():
             batch_size=batch,
             lr_D=d_lr,
             lr_G=g_lr,
-            D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
-            D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
-            G_UPDATES=G_UPDATES_val,
+            D_LOSS_TOO_LOW=d_loss_low,
+            D_LOSS_TOO_HIGH=d_loss_high,
+            G_UPDATES=g_updates,
             # save_dir="models2"
         )
         # excuting the inference phase always 
@@ -154,7 +154,7 @@ def task2_sheet4_main():
         #         lr_D=d_lr,
         #         lr_G=g_lr,
         #         device=device,
-        #         D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+        #         D_LOSS_TOO_LOW=d_loss_low,
         #         D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
         #         G_UPDATES=G_UPDATES_val,
         #         # model_dir="models"
