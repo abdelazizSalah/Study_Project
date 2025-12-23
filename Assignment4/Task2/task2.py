@@ -132,42 +132,54 @@ def task2_sheet4_main():
         g_threshold = config['G_threshold']
         k = config['K']
        
+        '''
+        'models/discriminator_m_10_d_lr0.0001_epochs_5_bs32_dl_thresh_low_0.1_dl_thresh_high_0.8_gupdates_1.pth' 
+          'models/generator_m_10_g_lr0.0003_epochs_5_bs32_dl_thresh_low_0.1_dl_thresh_high_0.8_gupdates_1.pth'
+        
+        '''
         print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={d_loss_low}, D_LOSS_TOO_HIGH={d_loss_high}, G_UPDATES={g_updates}, D_threshold={d_threshold}, G_threshold={g_threshold}, K={k}')
         print('[*] Phase 5: GAN Training loop sanity check passed. \n --------------------------------------- \n ')
         # train the model on the current configurations     
-        D,G = train_gan_on_training_data(
-            training_data=training_data,
-            D=D,
-            G=G,
-            m=m,
-            n=n,
-            device=device,
-            epochs=epoch,
-            batch_size=batch,
-            lr_D=d_lr,
-            lr_G=g_lr,
-            D_LOSS_TOO_LOW=d_loss_low,
-            D_LOSS_TOO_HIGH=d_loss_high,
-            G_UPDATES=g_updates,
-            # save_dir="models2"
-        )
-        # excuting the inference phase always 
-        print('[*] Phase 6: Trained models found. Starting inference mode...')
+        d_trained_model_path = f'./models/discriminator_m_{m}_d_lr{d_lr}_epochs_{epoch}_bs{batch}_dl_thresh_low_{d_loss_low}_dl_thresh_high_{d_loss_high}_gupdates_{g_updates}.pth'
+        g_trained_model_path = f'./models/generator_m_{m}_g_lr{g_lr}_epochs_{epoch}_bs{batch}_dl_thresh_low_{d_loss_low}_dl_thresh_high_{d_loss_high}_gupdates_{g_updates}.pth'
+        Training_Models_Exist = os.path.exists(d_trained_model_path) and os.path.exists(g_trained_model_path)
+        if not Training_Models_Exist:
+            print('[*] Phase 6: No trained models found. Starting training phase...')
+             # training the GAN on the training data
+            D,G = train_gan_on_training_data(
+                training_data=training_data,
+                D=D,
+                G=G,
+                m=m,
+                n=n,
+                device=device,
+                epochs=epoch,
+                batch_size=batch,
+                lr_D=d_lr,
+                lr_G=g_lr,
+                D_LOSS_TOO_LOW=d_loss_low,
+                D_LOSS_TOO_HIGH=d_loss_high,
+                G_UPDATES=g_updates,
+                # save_dir="models2"
+            )
+        else:
+            # excuting the inference phase always 
+            print('[*] Phase 6: Trained models found. Starting inference mode...')
 
-        
-        # D, G = load_trained_models(
-        #         m=m,
-        #         n=n,
-        #         epochs=epoch,
-        #         batch_size=batch,
-        #         lr_D=d_lr,
-        #         lr_G=g_lr,
-        #         device=device,
-        #         D_LOSS_TOO_LOW=d_loss_low,
-        #         D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
-        #         G_UPDATES=G_UPDATES_val,
-        #         # model_dir="models"
-        #     )
+            
+            D, G = load_trained_models(
+                    m=m,
+                    n=n,
+                    epochs=epoch,
+                    batch_size=batch,
+                    lr_D=d_lr,
+                    lr_G=g_lr,
+                    device=device,
+                    D_LOSS_TOO_LOW=d_loss_low,
+                    D_LOSS_TOO_HIGH=d_loss_high,
+                    G_UPDATES=g_updates,
+                    # model_dir="models"
+                )
         # normalizing validation and testing data
         
         validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())

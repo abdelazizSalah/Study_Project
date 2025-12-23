@@ -931,11 +931,13 @@ def phase6_discriminator_mode(
             logit = D(x)
             prob = torch.sigmoid(logit) # to get output in range [0,1]
             scores.append(prob.item())    
+    print(f"[*] Collected {len(scores)} test scores")
     scores = np.array(scores)
 
     preds = (scores < threshold).astype(int)  # 1 = anomaly
     y_true = labels
 
+    print('computing precision, recall, f1...')
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, preds, average="binary"
     )
@@ -972,6 +974,7 @@ def phase6_generator_mode(
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
+    print( "[*] Computed mean fake feature vector from Generator samples")
     # ----------------------------
     # Test evaluation
     # ----------------------------
@@ -983,12 +986,13 @@ def phase6_generator_mode(
             f_real = F.normalize(f_real, dim=1)
             score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
             scores.append(score.item())
-
+    print(f"[*] Collected {len(scores)} test scores")
     scores = np.array(scores)
 
     preds = (scores > threshold).astype(int)  # 1 = anomaly
     y_true = labels
 
+    print('computing precision, recall, f1...')
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, preds, average="binary", zero_division=0
     )
