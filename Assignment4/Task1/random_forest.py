@@ -13,7 +13,7 @@ import pandas as pd
 
 
 def binary_rf_train(X_train, y_train,
-                    n_estimators=100,
+                    n_estimators=50,
                     max_depth=None,
                     random_state=42):
 
@@ -22,6 +22,8 @@ def binary_rf_train(X_train, y_train,
         n_estimators=n_estimators, #number of trees in the forest
         max_depth=max_depth,    #max depth of each tree (model complexity)
         random_state=random_state, ## ensures reproducible results by fixing randomness
+        min_samples_split= 5,
+        min_samples_leaf=1,
         n_jobs=-1
     )
 

@@ -19,7 +19,7 @@ def one_class_svm_train(X_train):
         OneClassSVM(
             kernel="rbf", ## Defines the function used to map data to a high-dimensional space; "rbf" = non-linear
             gamma="scale", ## Determines the influence of individual training samples; "scale" = self-adjusting calculation
-            nu=0.05 # An upper bound on the fraction of training errors (outliers) and a lower bound on support vectors
+            nu=0.01 # An upper bound on the fraction of training errors (outliers) and a lower bound on support vectors
         )
     )
 
@@ -83,7 +83,8 @@ def binary_svm_train(X_train, y_train):
 
     svm_clf = SVC(
         kernel='linear', # type of decision boundary; 'linear' fits a straight hyperplane
-        C=1.0,  # regularization strength; smaller C = more regularization (simpler model)
+        gamma="scale",
+        C=10,  # regularization strength; smaller C = more regularization (simpler model)
         random_state=42 # controls randomness in certain internal steps
     )
 

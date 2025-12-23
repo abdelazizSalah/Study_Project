@@ -14,9 +14,9 @@ import pandas as pd
 def binary_knn_train(
     X_train,
     y_train,
-    n_neighbors=5,
+    n_neighbors=3,
     weights="uniform",     # "uniform" (each of the 5 neighbors contributes equally to the final decision)
-    metric="minkowski",     # metric family to compute distance to neighbours
+    metric="manhattan",     # metric family to compute distance to neighbours
     p=2     #choose euclidean distance
 ):
 

@@ -13,7 +13,7 @@ import pandas as pd
 import joblib
 
 
-def local_outlier_factor_train(X_train, contamination=0.05, n_neighbors=20):
+def local_outlier_factor_train(X_train, contamination=0.05, n_neighbors=5):
     """
     Train a Local Outlier Factor (LOF) one-class model.
     contamination = expected fraction of anomalies in data
@@ -26,6 +26,7 @@ def local_outlier_factor_train(X_train, contamination=0.05, n_neighbors=20):
         LocalOutlierFactor(
             n_neighbors=n_neighbors,
             contamination=contamination,
+            leaf_size=30,
             novelty=True,        # IMPORTANT: enables predict/decision_function on unseen data
             n_jobs=-1            # use all cores
         )
