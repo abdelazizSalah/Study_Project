@@ -175,10 +175,10 @@ def task2_sheet4_main():
         if mode == 'D':
             print("[*] Mode: INFERENCE (Discriminator-based)")
             percision, recall, f1 = phase6_discriminator_mode(
-                D,
-                validation_data,
-                validation_labels,
-                device,
+                D=D,
+                data=validation_data,
+                labels=validation_labels,
+                device=device,
                 validation=True,
                 d_lr=d_lr,
                 epochs=epoch,
@@ -205,13 +205,13 @@ def task2_sheet4_main():
         elif mode == 'G':
             print("[*] Mode: INFERENCE (Generator-based)")
             percision, recall, f1 = phase6_generator_mode(
-                D,
-                G,
-                validation_data,
-                validation_labels,
-                device,
-                m,
-                n,
+                D=D,
+                G=G,
+                data=validation_data,
+                labels=validation_labels,
+                device=device,
+                m=m,
+                n=n,
                 K=k,
                 threshold=g_threshold,
             )
@@ -264,7 +264,7 @@ def task2_sheet4_main():
     if mode == 'D':
         print("[*] Mode: INFERENCE (Discriminator-based) on test set")
         percision, recall, f1 = phase6_discriminator_mode(
-            D,
+            D=D,
             data=testing_data,
             labels=test_labels,
             device=device, # because GPU 0 is occupied 

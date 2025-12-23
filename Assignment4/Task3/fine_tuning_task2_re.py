@@ -126,17 +126,17 @@ def task2_sheet4_main():
             if mode == 'D':
                 print("[*] Mode: INFERENCE (Discriminator-based)")
                 percision, recall, f1 = phase6_discriminator_mode(
-                    D,
-                    validation_data,
-                    validation_labels,
-                    device,
+                    D = D,
+                    data = validation_data,
+                    labels = validation_labels,
+                    device = device,
                     validation=True,
                     d_lr=d_lr,
                     epochs=epoch,
                     batch_size=batch,
                     g_lr=g_lr,
-                    threshold=d_threshold
-                    ,p=p
+                    threshold=d_threshold,
+                    p=p
 
                 )
                 
@@ -157,13 +157,14 @@ def task2_sheet4_main():
             elif mode == 'G':
                 print("[*] Mode: INFERENCE (Generator-based)")
                 percision, recall, f1 = phase6_generator_mode(
-                    D,
-                    G,
-                    validation_data,
-                    validation_labels,
-                    device,
-                    m,
-                    n,
+                    D=D,
+                    G=G,
+                    p=p,
+                    data=validation_data,
+                    labels=validation_labels,
+                    device=device,
+                    m=m,
+                    n=n,
                     K=k,
                     threshold=g_threshold,
                     validation=True,
