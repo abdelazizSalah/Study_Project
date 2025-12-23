@@ -845,38 +845,11 @@ def phase6_discriminator_mode(
     d_lr,
     g_lr,
     epochs,
+    batch_size,
     validation:bool = False,
     threshold=0.5
 ):
     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
-
-    # # ---- use ONLY normal validation samples for threshold ----
-    # val_normal = filter_normal_samples(data, labels)
-    # print(f"[*] Number of normal validation samples: {len(val_normal)}")
-
-    # val_scores = []
-    # with torch.no_grad():
-    #     for x in val_normal:
-    #         x = x.unsqueeze(0).to(device)
-    #         logit = D(x)
-    #         prob = torch.sigmoid(logit) # to get output in range [0,1]
-    #         val_scores.append(prob.item())
-
-    # print(f"[*] Collected {len(val_scores)} validation scores")
-
-    # # threshold: low scores = anomaly
-    # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
- 
-
-    # print(f"[✓] D threshold: {threshold:.6f}")
-    # print(
-    # f"Val scores stats | "
-    # f"min={np.min(val_scores):.6f}, "
-    # f"mean={np.mean(val_scores):.6f}, "
-    # f"max={np.max(val_scores):.6f}"
-    # )
-
-
     # ---- test evaluation ----
     print('Testing on test data...')
     scores = []
@@ -898,7 +871,8 @@ def phase6_discriminator_mode(
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_D.txt
     final_label = 'final_testing' if not validation else 'validation'
-    with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}.txt", "w") as f:
+    file_name = f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt"
+    with open(file_name, "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
@@ -914,48 +888,21 @@ def phase6_generator_mode(
     m,
     n,
     K,
+    batch_size,
+    epochs,
+    d_lr,
+    g_lr,
     threshold,
+    validation:bool = False,    
 ):
     print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
     
-    # ---- use ONLY normal validation samples ----
-    # val_normal = filter_normal_samples(data, labels)
-
-    # if len(val_normal) == 0:
-    #     raise RuntimeError("No normal samples in validation set")
-
-    # # K = 512  # increase for stability
-
     with torch.no_grad():
         z = torch.randn(K, m * n, device=device)
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
-    # # ----------------------------
-    # # Validation scores (threshold)
-    # # ----------------------------
-
-    # print(f'validation min: {data.min()}, max: {data.max()}')
-    # print(f'test min: {test_data.min()}, max: {test_data.max()}')
-    # val_scores = []
-    # with torch.no_grad():
-    #     for x in val_normal:
-    #         x = x.unsqueeze(0).to(device)
-    #         f_real = D.extract_features(x)
-    #         f_real = F.normalize(f_real, dim=1)
-    #         score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
-    #         val_scores.append(score.item())
-
-    # val_scores = np.array(val_scores)
-
-    # mu = np.mean(val_scores)
-    # sigma = np.std(val_scores)
-    # threshold = mu + 3 * sigma
-    # print(f"[✓] G threshold: {threshold:.6f}")
-
-    # ----------------------------
-    # Test evaluation
-    # ----------------------------
+        
     scores = []
     with torch.no_grad():
         for x in data:
@@ -976,7 +923,9 @@ def phase6_generator_mode(
 
     print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_G.txt
-    with open("metrics_G_train_epochs_5.txt", "w") as f:
+    final_label = 'final_testing' if not validation else 'validation'
+    file_name = f"metrics_G_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt"
+    with open(file_name, "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")

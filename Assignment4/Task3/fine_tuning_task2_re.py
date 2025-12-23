@@ -164,6 +164,8 @@ def task2_sheet4_main():
                     n,
                     K=k,
                     threshold=g_threshold,
+                    validation=True,
+                    batch_size=batch
                 )
                 if f1 > highest_f1:
                     highest_f1 = f1
@@ -219,10 +221,10 @@ def task2_sheet4_main():
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied 
                 d_lr=d_lr,
+                g_lr=g_lr,
                 validation=False,
                 epochs=epoch,
                 batch_size=batch,
-                g_lr=g_lr,
                 threshold=d_threshold
 
             )
@@ -239,7 +241,11 @@ def task2_sheet4_main():
                 m=m,
                 n=n,
                 K=k,
+                d_lr=d_lr,
+                g_lr=g_lr,
                 threshold=g_threshold,
+                validation=False,
+                batch_size=batch
             )
             print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
         else:
