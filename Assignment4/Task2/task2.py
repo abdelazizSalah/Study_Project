@@ -184,7 +184,8 @@ def task2_sheet4_main():
                 g_lr=g_lr,
                 epochs=epoch,
                 validation=True,
-                threshold=d_threshold
+                threshold=d_threshold,
+                m=m
          
 
             )
@@ -281,7 +282,8 @@ def task2_sheet4_main():
             g_lr=g_lr,
             epochs=epoch,
             validation=False,
-            threshold=d_threshold
+            threshold=d_threshold,
+            m=m
 
         )
         print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')

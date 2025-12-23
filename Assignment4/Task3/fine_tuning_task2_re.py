@@ -137,6 +137,7 @@ def task2_sheet4_main():
                     batch_size=batch,
                     validation=True,
                     threshold=d_threshold,
+                    m=m
                 )
                 
                 if f1 > highest_f1:
@@ -232,7 +233,8 @@ def task2_sheet4_main():
                 epochs=epoch,
                 batch_size=batch,
                 validation=False,
-                threshold=d_threshold
+                threshold=d_threshold,
+                m=m
 
             )
             print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
