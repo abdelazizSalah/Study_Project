@@ -59,9 +59,18 @@ def phase1_getting_data(n,m):
 
 
     # check if data and labels already exist.
+    training_input_path = f'./data/training_data_n_{n}_m_{m}.npy'
+    validation_input_path = f'./data/validation_data_n_{n}_m_{m}.npy'
+    testing_input_path = f'./data/testing_data_n_{n}_m_{m}.npy'
+    print('Checking for data files:'
+          f'\n - Training data: {training_input_path}'
+          f'\n - Validation data: {validation_input_path}'
+          f'\n - Testing data: {testing_input_path}'
+          )
     Data_Files_Exist = os.path.exists(f'./data/training_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/training_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_labels_n_{n}_m_{m}.npy')
     if Data_Files_Exist:
         # load them
+        print('[*] Phase 1: Data files found. Loading...')
         training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
         # print unique labels for training, validation, and testing
         print(f"[*] Training labels unique values: {np.unique(training_labels)}")
@@ -72,6 +81,7 @@ def phase1_getting_data(n,m):
 
     else: 
         # Load and preprocess data
+        print('[*] Phase 1: Data files not found. Preparing data...')
         normal_data, attack_data = phase1_data_prepration(n)
         print(f"[*] Total normal samples: {len(normal_data)}")
         print(f"[*] Total attack samples: {len(attack_data)}")
