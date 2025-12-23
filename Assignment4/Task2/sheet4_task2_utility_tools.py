@@ -882,6 +882,7 @@ def filter_normal_samples(data, labels):
 
 def phase6_discriminator_mode(
     D,
+    batch_size,
     data,
     labels,
     device,
@@ -941,7 +942,7 @@ def phase6_discriminator_mode(
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_D.txt
     final_label = 'final_testing' if not validation else 'validation'
-    with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}.txt", "w") as f:
+    with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt", "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
@@ -954,48 +955,22 @@ def phase6_generator_mode(
     data,
     labels,
     device,
+    batch_size,
+    d_lr,
+    g_lr,
+    epochs,
     m,
     n,
     K,
     threshold,
+    validation:bool = False,
 ):
     print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
-    
-    # ---- use ONLY normal validation samples ----
-    # val_normal = filter_normal_samples(data, labels)
-
-    # if len(val_normal) == 0:
-    #     raise RuntimeError("No normal samples in validation set")
-
-    # # K = 512  # increase for stability
-
     with torch.no_grad():
         z = torch.randn(K, m * n, device=device)
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
-    # # ----------------------------
-    # # Validation scores (threshold)
-    # # ----------------------------
-
-    # print(f'validation min: {data.min()}, max: {data.max()}')
-    # print(f'test min: {test_data.min()}, max: {test_data.max()}')
-    # val_scores = []
-    # with torch.no_grad():
-    #     for x in val_normal:
-    #         x = x.unsqueeze(0).to(device)
-    #         f_real = D.extract_features(x)
-    #         f_real = F.normalize(f_real, dim=1)
-    #         score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
-    #         val_scores.append(score.item())
-
-    # val_scores = np.array(val_scores)
-
-    # mu = np.mean(val_scores)
-    # sigma = np.std(val_scores)
-    # threshold = mu + 3 * sigma
-    # print(f"[✓] G threshold: {threshold:.6f}")
-
     # ----------------------------
     # Test evaluation
     # ----------------------------
@@ -1019,7 +994,9 @@ def phase6_generator_mode(
 
     print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_G.txt
-    with open("metrics_G_train_epochs_5.txt", "w") as f:
+    
+    final_label = 'final_testing' if not validation else 'validation'
+    with open(f"metrics_G_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}.txt", "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")

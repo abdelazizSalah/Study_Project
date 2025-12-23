@@ -134,7 +134,7 @@ def task2_sheet4_main():
        
         print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={d_loss_low}, D_LOSS_TOO_HIGH={d_loss_high}, G_UPDATES={g_updates}, D_threshold={d_threshold}, G_threshold={g_threshold}, K={k}')
         print('[*] Phase 5: GAN Training loop sanity check passed. \n --------------------------------------- \n ')
-        # train the model on the current configurations        
+        # train the model on the current configurations     
         D,G = train_gan_on_training_data(
             training_data=training_data,
             D=D,
