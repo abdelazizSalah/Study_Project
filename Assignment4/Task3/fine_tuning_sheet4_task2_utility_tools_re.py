@@ -192,7 +192,7 @@ def phase1_dataset_splitting(normal_data, attack_data):
 
 
 
-def phase1_data_prepration(n):
+def phase1_data_prepration(n,p):
     '''
     This function prepares the data for training and evaluation.
         Packets preprocessing:
@@ -200,21 +200,10 @@ def phase1_data_prepration(n):
             And it should truncate/pad each packet to M bytes
             It is already implemented before, but we will just need to adapt it here.    
     '''
-    def load_all_modules():
-        # print('loading all necessary modules')
-        curr_dir = os.path.dirname(os.path.abspath(__file__))
-        sheet1_codes_path = os.path.abspath(os.path.join(curr_dir, '..', '..','Assignment1','Abdelaziz_Codes' ,'Sheet1_codes'))
-        sys.path.append(sheet1_codes_path)
-        
-    
     def pad_or_truncate_packet(packet, n):
-        '''
-            This function pads or truncates a packet to have exactly n bytes.
-            Input:
-                - packet: byte array of the packet
-            Output:
-                - processed_packet: byte array of the packet with exactly n bytes
-        '''
+        if isinstance(packet, np.ndarray):
+            packet = packet.tobytes()
+
         if len(packet) > n:
             return packet[:n]
         elif len(packet) < n:
@@ -223,45 +212,23 @@ def phase1_data_prepration(n):
             return packet
 
 
-    def load_and_label_data(n):
-        normal_pcap_path = "../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set"
-        attacked_pcap_path  = "../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks"
-        load_all_modules()
-        from utilities import generate_bytes_array_from_packet_list
+    def load_and_label_data(n, p):
+        normal_pcap_path = f"./final_data/final_processed_packets_{p}_dedup_normal_data.npy"
+        attacked_pcap_path  = f"./final_data/final_processed_packets_{p}_dedup_attack_data.npy"
+        data_normal_arrays = np.load(normal_pcap_path, allow_pickle=True)
+        data_attacked = np.load(attacked_pcap_path, allow_pickle=True)
 
-        # check if .npy files already exist, read it if yes, else generate it from pcap
-        print(f"[*] Loading normal packets...")
-        if os.path.exists("all_packets_control.npy"):
-            data_normal_arrays = np.load("all_packets_control.npy", allow_pickle=True)
-        else:
-            data_normal_arrays = generate_bytes_array_from_packet_list(normal_pcap_path, pad = False, label = 'control')
-    
-
-        print(f"[*] Loading attacked packets...")
-        data_attacked = []
-        if os.path.exists("all_packets_attack.npy"):
-            data_attacked = np.load("all_packets_attack.npy", allow_pickle=True)
-        else:
-            data_attacked = generate_bytes_array_from_packet_list(attacked_pcap_path, pad = False, label = 'attack')
-        
         labeled_data_normal =[ ]
         labeled_data_attack =[ ]
         for array in data_normal_arrays:
-            for pkt in array:
-                labeled_data_normal.append( (pad_or_truncate_packet(pkt, n), 'normal') ) 
+            labeled_data_normal.append( (pad_or_truncate_packet(array, n), 'normal') ) 
 
-        if TESTING:
-            for array in data_attacked[-2]:# this logic should be the same as normal.
-                # for pkt in array:
-                labeled_data_attack.append( (pad_or_truncate_packet(pkt, n), 'attack') )
-        else:
-            for array in data_attacked:
-                for pkt in array:
-                    labeled_data_attack.append( (pad_or_truncate_packet(pkt,n), 'attack') )
+        
+        for array in data_attacked:
+            labeled_data_attack.append( (pad_or_truncate_packet(array,n), 'attack') )
         return labeled_data_normal, labeled_data_attack
 
-    load_all_modules()
-    return load_and_label_data(n)
+    return load_and_label_data(n,p)
 
 def prepare_tensors(data, n, m):
     '''
