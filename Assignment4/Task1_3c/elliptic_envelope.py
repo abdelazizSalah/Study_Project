@@ -6,7 +6,7 @@ from sklearn.metrics import (
     roc_auc_score,
     classification_report,
     precision_score,
-    recall_score
+    recall_score, f1_score
 )
 import numpy as np
 import pandas as pd
@@ -86,6 +86,10 @@ def elliptic_envelope_predict_error_overlap(X_test, y_test):
     return prediction_errors
 
 
+def ee_f1_scorer(estimator, X, y_true):
+    # EllipticEnvelope: +1=inlier(normal), -1=outlier(attack)
+    y_pred = (estimator.predict(X) == -1).astype(int)  # -1 -> 1 (attack), +1 -> 0 (normal)
+    return f1_score(y_true, y_pred, average="binary")
 
 
 def ee_permutation_importance(
@@ -121,7 +125,7 @@ def ee_permutation_importance(
         ee_model,
         X_sub,
         y_sub,
-        scoring="f1",
+        scoring=ee_f1_scorer,
         n_repeats=n_repeats,
         random_state=random_state,
         n_jobs=-1

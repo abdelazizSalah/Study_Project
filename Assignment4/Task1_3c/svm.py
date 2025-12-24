@@ -77,6 +77,11 @@ def one_class_svm_predict_error_overlap(X_test, y_test):
     return prediction_errors
 
 
+def ocsvm_f1_scorer(estimator, X, y_true):
+    # OCSVM: +1=inlier(normal), -1=outlier(attack)
+    y_pred = (estimator.predict(X) == -1).astype(int)   # -1 -> 1 (attack), +1 -> 0 (normal)
+    return f1_score(y_true, y_pred, average="binary")
+
 def ocsvm_permutation_importance(X_test, y_test, n_samples=2000, n_repeats=3,random_state=0):
     ocsvm_model= joblib.load("models/ocsvm.joblib")
     rng = np.random.default_rng(random_state)
@@ -100,7 +105,7 @@ def ocsvm_permutation_importance(X_test, y_test, n_samples=2000, n_repeats=3,ran
         ocsvm_model,
         X_sub,
         y_sub,
-        scoring="f1",
+        scoring=ocsvm_f1_scorer,
         n_repeats=n_repeats,
         random_state=random_state,
         n_jobs=-1
