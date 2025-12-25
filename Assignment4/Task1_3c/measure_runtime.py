@@ -5,7 +5,7 @@ from pathlib import Path
 
 import psutil
 
-from Assignment4.Task1_3c.handling_re_bytes_integrated import get_keep_indices_from_fold0
+from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from use_classifiers import execute_scenario_rt
 from feature_creation_autoencoder import train_and_save_models_rt, create_features_for_ds_rt
 
