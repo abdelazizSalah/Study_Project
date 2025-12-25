@@ -1,4 +1,3 @@
-import threading
 import time
 from pathlib import Path
 import os
@@ -40,7 +39,7 @@ def train_ae_for_representation(
     kfold_json_path: str,   #path to k-fold indices json for scenario1
     labels_path: str,   #path to labels file
     bytes_path: str,    # path to preprocessed re_bytes or raw_bytes
-    model_prefix: str,  #re or raw
+    model_prefix: str,  #re or raw or re5, re10, re15
 ):
 
     from measure_runtime import stop_ram_monitor, start_ram_monitor, bytes_to_mb
@@ -133,6 +132,54 @@ def train_and_save_models_rt(prefix):
         )
 
     return avg_runtime, avg_peak_ram
+
+
+
+def train_and_save_models_classifier(prefix):
+    base_dir = Path(__file__).resolve().parent
+
+    if prefix == "raw":
+        print("Training Models on RAW:\n")
+
+        avg_runtime, avg_peak_ram = train_ae_for_representation(
+            base_model_path=base_dir / "models" / "ae_untrained_466.keras",
+            kfold_json_path=base_dir / "k_fold_results" / "k_fold_s1_raw.json",
+            labels_path=base_dir / "datasets" / "raw_labels.npy",
+            bytes_path=base_dir / "datasets" / "raw_bytes.npy",
+            model_prefix="raw",
+        )
+    elif prefix=="re5":
+        print("\nTraining Models on RE15:\n")
+
+        avg_runtime, avg_peak_ram = train_ae_for_representation(
+            base_model_path=base_dir / "models" / "ae_untrained_386.keras",
+            kfold_json_path=base_dir / "k_fold_results" / "k_fold_s1_re.json",
+            labels_path=base_dir / "datasets" / "re_labels.npy",
+            bytes_path=base_dir / "datasets" / "re_bytes_5.npy",
+            model_prefix="re5",
+        )
+    elif prefix=="re10":
+        print("\nTraining Models on RE15:\n")
+
+        avg_runtime, avg_peak_ram = train_ae_for_representation(
+            base_model_path=base_dir / "models" / "ae_untrained_386.keras",
+            kfold_json_path=base_dir / "k_fold_results" / "k_fold_s1_re.json",
+            labels_path=base_dir / "datasets" / "re_labels.npy",
+            bytes_path=base_dir / "datasets" / "re_bytes_10.npy",
+            model_prefix="re10",
+        )
+    elif prefix=="re15":
+        print("\nTraining Models on RE15:\n")
+
+        avg_runtime, avg_peak_ram = train_ae_for_representation(
+            base_model_path=base_dir / "models" / "ae_untrained_386.keras",
+            kfold_json_path=base_dir / "k_fold_results" / "k_fold_s1_re.json",
+            labels_path=base_dir / "datasets" / "re_labels.npy",
+            bytes_path=base_dir / "datasets" / "re_bytes_15.npy",
+            model_prefix="re15",
+        )
+
+    return
 
 
 #gets k by checking length of training indices by fold!

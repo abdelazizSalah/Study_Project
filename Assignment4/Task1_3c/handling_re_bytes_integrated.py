@@ -147,7 +147,6 @@ def process_npy_file(input_source, output_file_path, p):
 def create_preprocessed_re_files():
     p=[5,10,15]
     input_file_path = "datasets/re_bytes.npy"
-    input_labels = "datasets/labels.npy"
 
     for i in p:
         output_file_path = f"datasets/re_bytes_{i}.npy"
@@ -157,12 +156,12 @@ def create_preprocessed_re_files():
 
 def create_preprocessed_re15():
     input_file_path = "datasets/re_bytes.npy"
-    input_labels = "datasets/labels.npy"
 
 
     output_file_path = f"datasets/re_bytes_15.npy"
     process_npy_file(input_file_path, output_file_path, 15)
     return
+
 
 
 
@@ -177,6 +176,30 @@ def get_keep_indices_from_fold0(feature_dir: str, model_prefix: str) -> np.ndarr
     """
     feature_dir = Path(feature_dir)
     fold0_path = feature_dir / f"{model_prefix}_features_fold0.npy"
+
+    if not fold0_path.exists():
+        raise FileNotFoundError(f"Feature file not found: {fold0_path}")
+
+    feats0 = np.load(fold0_path)
+
+    # unique over rows; index gives first position of each unique row
+    _, unique_indices = np.unique(feats0, axis=0, return_index=True)
+
+    # sort so we preserve original order
+    keep_indices = np.sort(unique_indices)
+
+    print(f"Fold 0: total samples = {len(feats0)}, "
+          f"after dedup = {len(keep_indices)} "
+          f"(removed {len(feats0) - len(keep_indices)} duplicates)")
+    return keep_indices
+
+
+def get_keep_indices_from_fold0_ae(feature_file) -> np.ndarray:
+    """
+    Load fold 0 features and compute indices to keep so that all duplicate
+    rows are removed (only the first occurrence of each row is kept).
+    """
+    fold0_path = Path(feature_file)
 
     if not fold0_path.exists():
         raise FileNotFoundError(f"Feature file not found: {fold0_path}")

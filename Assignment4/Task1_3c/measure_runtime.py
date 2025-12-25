@@ -5,6 +5,7 @@ from pathlib import Path
 
 import psutil
 
+from Assignment4.Task1_3c.handling_re_bytes_integrated import get_keep_indices_from_fold0
 from use_classifiers import execute_scenario_rt
 from feature_creation_autoencoder import train_and_save_models_rt, create_features_for_ds_rt
 
@@ -169,15 +170,15 @@ def measure_all(k: int, global_label_encoder) -> None:
     _log_ae_training(feature_label="RAW feature type", out_file=raw_file, prefix_for_training="raw")
     _log_ae_feature_extraction(k=k, feature_label="RAW feature type", out_file=raw_file, prefix_for_features="raw")
 
-    #_log_classifiers_for_feature_type(
-    #    k=k,
-    #    global_label_encoder=global_label_encoder,
-    #    prefix="raw",
-    #    feature_label="RAW feature type",
-    #    out_file=raw_file,
-    #    keep_indices=0,
-    #    param=0,
-    #)
+    _log_classifiers_for_feature_type(
+        k=k,
+        global_label_encoder=global_label_encoder,
+        prefix="raw",
+        feature_label="RAW feature type",
+        out_file=raw_file,
+        keep_indices=0,
+        param=0,
+    )
 
     ## ---------------- RE15 ----------------
     re_file = "results/runtime_re15.txt"
@@ -187,15 +188,15 @@ def measure_all(k: int, global_label_encoder) -> None:
     #re_features_fold0
     _log_ae_feature_extraction(k=k, feature_label="RE15 feature type", out_file=re_file, prefix_for_features="re")
 
-    #keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
+    keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
 #
-    #_log_classifiers_for_feature_type(
-    #    k=k,
-    #    global_label_encoder=global_label_encoder,
-    #    prefix="re",  # IMPORTANT: was wrongly "raw" in your old code
-    #    feature_label="RE15 feature type",
-    #    out_file=re_file,
-    #    keep_indices=keep_indices,
-    #    param=15,
-    #)
+    _log_classifiers_for_feature_type(
+        k=k,
+        global_label_encoder=global_label_encoder,
+        prefix="re",  # IMPORTANT: was wrongly "raw" in your old code
+        feature_label="RE15 feature type",
+        out_file=re_file,
+        keep_indices=keep_indices,
+        param=15,
+    )
 #

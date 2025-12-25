@@ -2,8 +2,7 @@ import argparse
 import os
 import sys
 import time
-
-from joblib import parallel_backend
+from experiment_ae_classifier import run_experiment_ae_classifier
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
@@ -12,7 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 from error_overlap import all_error_overlaps
 from measure_runtime import measure_all
 from use_classifiers import execute_experiments_def, execute_experiments_abc
-from handling_re_bytes_integrated import create_preprocessed_re_files, create_preprocessed_re15
+from handling_re_bytes_integrated import create_preprocessed_re_files
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
 from file_helper_t3 import verify_amount_feature_files, load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
@@ -27,6 +26,41 @@ def require_file(path: str):
         print(f"ERROR: Required file not found: {path}")
         print("Please run the the respective mode that creates this file first.")
         sys.exit(1)  # terminate program
+
+
+def check_requirements_ae_classifier():
+    require_file(f"k_fold_results/k_fold_s1_raw.json")
+    training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
+    k = len(training_indices_raw)
+
+    # check that k fold files for scenario 1 exists
+    require_file(f"k_fold_results/k_fold_s1_raw.json")
+    require_file(f"k_fold_results/k_fold_s1_re.json")
+
+    # check the amount of folds that was used when the training and test files were created
+    training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
+    training_indices_re, test_indices_re = load_k_fold_results(f"k_fold_results/k_fold_s1_re.json")
+
+    # feature files exist for all folds and number of folds should always be the same
+    if len(training_indices_raw) != k or len(training_indices_re) != k:
+        print(
+            "Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
+        sys.exit(1)
+
+
+
+    # check that label and timestamp files exist
+    require_file("datasets/raw_labels.npy")
+    require_file("datasets/re_labels.npy")
+
+    require_file("datasets/re_bytes.npy")
+    require_file("datasets/re_bytes_5.npy")
+    require_file("datasets/re_bytes_15.npy")
+    require_file("datasets/re_bytes_10.npy")
+    return k
+
+
+
 
 
 def check_requirements_classifier_modes():
@@ -57,8 +91,6 @@ def check_requirements_classifier_modes():
     # check that label and timestamp files exist
     require_file("datasets/raw_labels.npy")
     require_file("datasets/re_labels.npy")
-    require_file("datasets/raw_timestamps.npy")
-    require_file("datasets/re_timestamps.npy")
     return k
 
 
@@ -150,7 +182,7 @@ MODE DETAILS
     parser.add_argument(
         "--mode",
         required=True,
-        choices=["dataset_preprocessing", "k_fold", "measure_runtime", "error_overlap", "feature_importance"],
+        choices=["dataset_preprocessing", "k_fold", "measure_runtime", "error_overlap", "feature_importance", "experiment_ae_classifier"],
         help="Which pipeline step to run.",
     )
 
@@ -306,8 +338,8 @@ def release_main_new():
     args = parse_args()
 
     if args.mode == "dataset_preprocessing":
-        run_dataset_preprocessing(args.attack_dir, args.control_dir)
-        create_preprocessed_re15() #re_bytes_15
+        #run_dataset_preprocessing(args.attack_dir, args.control_dir)
+        create_preprocessed_re_files()
     elif args.mode == "k_fold":
         run_k_fold(args.k)
         print_k_fold_pretty()
@@ -333,8 +365,8 @@ def release_main_new():
     elif args.mode == "experiment_ae_classifier":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        k = check_requirements_feature_extraction_mode()
-        #run_experiment_ae_classifier()
+        check_requirements_ae_classifier()
+        run_experiment_ae_classifier(global_label_encoder)
 
 
 if __name__ == "__main__":

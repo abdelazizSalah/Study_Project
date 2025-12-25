@@ -14,7 +14,6 @@ def classify_single_packet(trained_model, threshold, x):
 
     # Reconstruction from autoencoder
     x_rec = trained_model.predict(x_in, verbose=1)  # shape (1, M)
-
     # Per-sample MSE = mean over features
     mse = float(np.mean(np.square(x_in - x_rec)))
 
