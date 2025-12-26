@@ -55,9 +55,9 @@ def task2_sheet4_main():
     
     # define best parameters
     best_config = {}
-    best_f1 = 5
-    best_percision = 5
-    best_recall = 5
+    best_f1 = 0
+    best_percision = 0
+    best_recall = 0
     highest_f1 = 0
     highest_percision = 0
     highest_recall = 0
