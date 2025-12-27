@@ -17,8 +17,32 @@ from sklearn.metrics import precision_recall_fscore_support
 
 # Phase 1: Data Prepration
 
+def load_phase1_saved_data():
+    # load training, validation, testing data from .npy
+    training_data = torch.from_numpy(np.load('./data/training_data.npy'))
+    validation_data = torch.from_numpy(np.load('./data/validation_data.npy'))
+    testing_data = torch.from_numpy(np.load('./data/testing_data.npy'))
 
-def phase1_getting_data(n,m,p):
+    # load training, validation, testing labels from .npy
+    training_labels = np.load('./data/training_labels.npy', allow_pickle=True)
+    validation_labels = np.load('./data/validation_labels.npy', allow_pickle=True)
+    test_labels = np.load('./data/testing_labels.npy', allow_pickle=True)
+    return training_data, validation_data, testing_data, training_labels, validation_labels, test_labels
+
+
+def phase1_read_arguments():
+    '''
+        This function reads the arguments from command line
+        - --n: number of bytes per packet
+        - --mode: anomaly detection mode (options: 'D' or 'G')
+    '''
+    parser = argparse.ArgumentParser(description='GAN-based Anomaly Detection for ICS Network Traffic')
+    parser.add_argument('--n', type=int, required=True, help='Number of bytes per packet')
+    parser.add_argument('--mode', type=str, choices=['D', 'G'], required=True, help='Anomaly detection mode (D for Discriminator, G for Generator)')
+    args = parser.parse_args()
+    return args.n, args.mode
+
+def phase1_getting_data(n,m):
     '''
         This function is responsible for checking if the data and labels exist or not, and if not, to generate them
         Input:
@@ -35,10 +59,19 @@ def phase1_getting_data(n,m,p):
 
 
     # check if data and labels already exist.
-    Data_Files_Exist = os.path.exists(f'./final_data/training_data_n_{n}_m_{m}_p_{p}.npy') and os.path.exists(f'./final_data/validation_data_n_{n}_m_{m}_p_{p}.npy') and os.path.exists(f'./final_data/testing_data_n_{n}_m_{m}_p_{p}.npy') and os.path.exists(f'./final_data/training_labels_n_{n}_m_{m}_p_{p}.npy') and os.path.exists(f'./final_data/validation_labels_n_{n}_m_{m}_p_{p}.npy') and os.path.exists(f'./final_data/testing_labels_n_{n}_m_{m}_p_{p}.npy')
+    training_input_path = f'./data/training_data_n_{n}_m_{m}.npy'
+    validation_input_path = f'./data/validation_data_n_{n}_m_{m}.npy'
+    testing_input_path = f'./data/testing_data_n_{n}_m_{m}.npy'
+    print('Checking for data files:'
+          f'\n - Training data: {training_input_path}'
+          f'\n - Validation data: {validation_input_path}'
+          f'\n - Testing data: {testing_input_path}'
+          )
+    Data_Files_Exist = os.path.exists(f'./data/training_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/training_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_labels_n_{n}_m_{m}.npy')
     if Data_Files_Exist:
         # load them
-        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data(p,n,m)
+        print('[*] Phase 1: Data files found. Loading...')
+        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
         # print unique labels for training, validation, and testing
         print(f"[*] Training labels unique values: {np.unique(training_labels)}")
         print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
@@ -48,7 +81,8 @@ def phase1_getting_data(n,m,p):
 
     else: 
         # Load and preprocess data
-        normal_data, attack_data = phase1_data_prepration(n,p)
+        print('[*] Phase 1: Data files not found. Preparing data...')
+        normal_data, attack_data = phase1_data_prepration(n)
         print(f"[*] Total normal samples: {len(normal_data)}")
         print(f"[*] Total attack samples: {len(attack_data)}")
 
@@ -67,17 +101,17 @@ def phase1_getting_data(n,m,p):
         )
         # Save training, validation, testing data into .npy
         # make data folders if not exist
-        if not os.path.exists('./final_data'):
-            os.makedirs('./final_data')
-        np.save(f'./final_data/training_data_n_{n}_m_{m}_p_{p}.npy', training_data.numpy())
-        np.save(f'./final_data/validation_data_n_{n}_m_{m}_p_{p}.npy', validation_data.numpy())
-        np.save(f'./final_data/testing_data_n_{n}_m_{m}_p_{p}.npy', testing_data.numpy())
+        if not os.path.exists('./data'):
+            os.makedirs('./data')
+        np.save(f'./data/training_data_n_{n}_m_{m}.npy', training_data.numpy())
+        np.save(f'./data/validation_data_n_{n}_m_{m}.npy', validation_data.numpy())
+        np.save(f'./data/testing_data_n_{n}_m_{m}.npy', testing_data.numpy())
         print('Saved training, validation, testing data into .npy files.')
 
         # Save training, validation, testing labels into .npy
-        np.save(f'./final_data/training_labels_n_{n}_m_{m}_p_{p}.npy', training_labels)
-        np.save(f'./final_data/validation_labels_n_{n}_m_{m}_p_{p}.npy', validation_labels)
-        np.save(f'./final_data/testing_labels_n_{n}_m_{m}_p_{p}.npy', test_labels)
+        np.save(f'./data/training_labels_n_{n}_m_{m}.npy', training_labels)
+        np.save(f'./data/validation_labels_n_{n}_m_{m}.npy', validation_labels)
+        np.save(f'./data/testing_labels_n_{n}_m_{m}.npy', test_labels)
         print('Saved training, validation, testing labels into .npy files.')
 
 
@@ -87,30 +121,6 @@ def phase1_getting_data(n,m,p):
         print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
         print(f"[*] Testing labels unique values: {np.unique(test_labels)}")
     return training_data, validation_data, testing_data, training_labels, validation_labels, test_labels
-
-def load_phase1_saved_data(p,n,m):
-    # load training, validation, testing data from .npy
-    training_data = torch.from_numpy(np.load(f'./final_data/training_data_n_{n}_m_{m}_p_{p}.npy'))
-    validation_data = torch.from_numpy(np.load(f'./final_data/validation_data_n_{n}_m_{m}_p_{p}.npy'))
-    testing_data = torch.from_numpy(np.load(f'./final_data/testing_data_n_{n}_m_{m}_p_{p}.npy'))
-    # load training, validation, testing labels from .npy
-    training_labels = np.load(f'./final_data/training_labels_n_{n}_m_{m}_p_{p}.npy', allow_pickle=True)
-    validation_labels = np.load(f'./final_data/validation_labels_n_{n}_m_{m}_p_{p}.npy', allow_pickle=True)
-    test_labels = np.load(f'./final_data/testing_labels_n_{n}_m_{m}_p_{p}.npy', allow_pickle=True)
-    return training_data, validation_data, testing_data, training_labels, validation_labels, test_labels
-
-
-def phase1_read_arguments():
-    '''
-        This function reads the arguments from command line
-        - --n: number of bytes per packet
-        - --mode: anomaly detection mode (options: 'D' or 'G')
-    '''
-    parser = argparse.ArgumentParser(description='GAN-based Anomaly Detection for ICS Network Traffic')
-    parser.add_argument('--n', type=int, required=True, help='Number of bytes per packet')
-    parser.add_argument('--mode', type=str, choices=['D', 'G'], required=True, help='Anomaly detection mode (D for Discriminator, G for Generator)')
-    args = parser.parse_args()
-    return args.n, args.mode
 
 
 def phase1_dataset_splitting(normal_data, attack_data):
@@ -734,8 +744,8 @@ def train_gan_on_training_data(
     
     '''
     os.makedirs(save_dir, exist_ok=True)
-    d_file_name = f"discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
-    g_file_name = f"generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    d_file_name = f"discriminator_m_{m}_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"generator_m_{m}_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
     torch.save(D.state_dict(), os.path.join(save_dir, d_file_name))
     torch.save(G.state_dict(), os.path.join(save_dir, g_file_name))
 
@@ -777,8 +787,8 @@ def load_trained_models(
 ):
     D = Discriminator(input_shape=(1, m, n)).to(device)
     G = Generator(m=m, n=n).to(device)
-    d_file_name = f"discriminator_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
-    g_file_name = f"generator_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    d_file_name = f"discriminator_m_{m}_d_lr{lr_D}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
+    g_file_name = f"generator_m_{m}_g_lr{lr_G}_epochs_{epochs}_bs{batch_size}_dl_thresh_low_{D_LOSS_TOO_LOW}_dl_thresh_high_{D_LOSS_TOO_HIGH}_gupdates_{G_UPDATES}.pth"
     D.load_state_dict(
         torch.load(os.path.join(model_dir, d_file_name), map_location=device)
     )
@@ -870,73 +880,135 @@ def filter_normal_samples(data, labels):
     return data[labels == 0]
 
 
+# def phase6_discriminator_mode(
+#     D,
+#     batch_size,
+#     data,
+#     labels,
+#     device,
+#     d_lr,
+#     g_lr,
+#     epochs,
+#     validation:bool = False,
+#     threshold=0.5,
+#     m=10,
+# ):
+#     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
+
+#     # # ---- use ONLY normal validation samples for threshold ----
+#     # val_normal = filter_normal_samples(data, labels)
+#     # print(f"[*] Number of normal validation samples: {len(val_normal)}")
+
+#     # val_scores = []
+#     # with torch.no_grad():
+#     #     for x in val_normal:
+#     #         x = x.unsqueeze(0).to(device)
+#     #         logit = D(x)
+#     #         prob = torch.sigmoid(logit) # to get output in range [0,1]
+#     #         val_scores.append(prob.item())
+
+#     # print(f"[*] Collected {len(val_scores)} validation scores")
+
+#     # # threshold: low scores = anomaly
+#     # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
+ 
+
+#     # print(f"[✓] D threshold: {threshold:.6f}")
+#     # print(
+#     # f"Val scores stats | "
+#     # f"min={np.min(val_scores):.6f}, "
+#     # f"mean={np.mean(val_scores):.6f}, "
+#     # f"max={np.max(val_scores):.6f}"
+#     # )
+
+
+#     # ---- test evaluation ----
+#     print('Testing on test data...')
+#     scores = []
+#     with torch.no_grad():
+#         for x in data:
+#             x = x.unsqueeze(0).to(device)
+#             logit = D(x)
+#             prob = torch.sigmoid(logit) # to get output in range [0,1]
+#             scores.append(prob.item())    
+#     print(f"[*] Collected {len(scores)} test scores")
+#     scores = np.array(scores)
+
+#     preds = (scores < threshold).astype(int)  # 1 = anomaly
+#     y_true = labels
+
+#     print('computing precision, recall, f1...')
+#     precision, recall, f1, _ = precision_recall_fscore_support(
+#         y_true, preds, average="binary"
+#     )
+
+#     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
+#     # write results in metrics_D.txt
+#     final_label = 'final_testing' if not validation else 'validation'
+#     with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt", "w") as f:
+#         f.write(f"Precision: {precision:.4f}\n")
+#         f.write(f"Recall: {recall:.4f}\n")
+#         f.write(f"F1: {f1:.4f}\n")
+#     return precision, recall, f1
+    
 def phase6_discriminator_mode(
     D,
+    batch_size,
     data,
     labels,
     device,
     d_lr,
     g_lr,
     epochs,
-    validation:bool = False,
-    threshold=0.5
+    validation=False,
+    threshold=0.5,
+    m=10,
 ):
     print("\n[*] Phase 6 - Mode 1: Discriminator-based")
+    data_type = 'validation' if validation else 'testing'
+    print(f"Testing on {data_type} data...")
 
-    # # ---- use ONLY normal validation samples for threshold ----
-    # val_normal = filter_normal_samples(data, labels)
-    # print(f"[*] Number of normal validation samples: {len(val_normal)}")
-
-    # val_scores = []
-    # with torch.no_grad():
-    #     for x in val_normal:
-    #         x = x.unsqueeze(0).to(device)
-    #         logit = D(x)
-    #         prob = torch.sigmoid(logit) # to get output in range [0,1]
-    #         val_scores.append(prob.item())
-
-    # print(f"[*] Collected {len(val_scores)} validation scores")
-
-    # # threshold: low scores = anomaly
-    # threshold = np.percentile(val_scores, 5) if len(val_scores) > 0 else 0.5
- 
-
-    # print(f"[✓] D threshold: {threshold:.6f}")
-    # print(
-    # f"Val scores stats | "
-    # f"min={np.min(val_scores):.6f}, "
-    # f"mean={np.mean(val_scores):.6f}, "
-    # f"max={np.max(val_scores):.6f}"
-    # )
-
-
-    # ---- test evaluation ----
-    print('Testing on test data...')
+    D.eval()
     scores = []
-    with torch.no_grad():
-        for x in data:
-            x = x.unsqueeze(0).to(device)
-            logit = D(x)
-            prob = torch.sigmoid(logit) # to get output in range [0,1]
-            scores.append(prob.item())    
-    scores = np.array(scores)
 
-    preds = (scores < threshold).astype(int)  # 1 = anomaly
-    y_true = labels
+    loader = DataLoader(
+        data,
+        batch_size=batch_size,
+        shuffle=False,
+        drop_last=False
+    )
+
+    with torch.no_grad():
+        for batch in loader:
+            batch = batch.to(device)                 # (B,1,m,n)
+            logits = D(batch)                        # (B,1)
+            probs = torch.sigmoid(logits).squeeze()  # (B,)
+            scores.extend(probs.cpu().numpy())
+
+    scores = np.array(scores)
+    print(f"[*] Collected {len(scores)} test scores")
+
+    preds = (scores < threshold).astype(int)
+    y_true = labels[:len(preds)]  # safety
 
     precision, recall, f1, _ = precision_recall_fscore_support(
-        y_true, preds, average="binary"
+        y_true, preds, average="binary", zero_division=0
     )
 
     print(f"[D-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
-    # write results in metrics_D.txt
-    final_label = 'final_testing' if not validation else 'validation'
-    with open(f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}.txt", "w") as f:
+
+    final_label = "final_testing" if not validation else "validation"
+    with open(
+        f"metrics_D_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt",
+        "w"
+    ) as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")
+
     return precision, recall, f1
-    
+
+
 
 def phase6_generator_mode(
     D,
@@ -944,48 +1016,23 @@ def phase6_generator_mode(
     data,
     labels,
     device,
+    batch_size,
+    d_lr,
+    g_lr,
+    epochs,
     m,
     n,
     K,
     threshold,
+    validation:bool = False,
 ):
     print("\n[*] Phase 6 - Mode 2: Generator-based (Feature Matching)")
-    
-    # ---- use ONLY normal validation samples ----
-    # val_normal = filter_normal_samples(data, labels)
-
-    # if len(val_normal) == 0:
-    #     raise RuntimeError("No normal samples in validation set")
-
-    # # K = 512  # increase for stability
-
     with torch.no_grad():
         z = torch.randn(K, m * n, device=device)
         x_fake = G(z)
         f_fake_mean = D.extract_features(x_fake).mean(dim=0)
         f_fake_mean = F.normalize(f_fake_mean, dim=0)
-    # # ----------------------------
-    # # Validation scores (threshold)
-    # # ----------------------------
-
-    # print(f'validation min: {data.min()}, max: {data.max()}')
-    # print(f'test min: {test_data.min()}, max: {test_data.max()}')
-    # val_scores = []
-    # with torch.no_grad():
-    #     for x in val_normal:
-    #         x = x.unsqueeze(0).to(device)
-    #         f_real = D.extract_features(x)
-    #         f_real = F.normalize(f_real, dim=1)
-    #         score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
-    #         val_scores.append(score.item())
-
-    # val_scores = np.array(val_scores)
-
-    # mu = np.mean(val_scores)
-    # sigma = np.std(val_scores)
-    # threshold = mu + 3 * sigma
-    # print(f"[✓] G threshold: {threshold:.6f}")
-
+    print( "[*] Computed mean fake feature vector from Generator samples")
     # ----------------------------
     # Test evaluation
     # ----------------------------
@@ -997,19 +1044,22 @@ def phase6_generator_mode(
             f_real = F.normalize(f_real, dim=1)
             score = torch.mean((f_real - f_fake_mean) ** 2) / f_real.size(1)
             scores.append(score.item())
-
+    print(f"[*] Collected {len(scores)} test scores")
     scores = np.array(scores)
 
     preds = (scores > threshold).astype(int)  # 1 = anomaly
     y_true = labels
 
+    print('computing precision, recall, f1...')
     precision, recall, f1, _ = precision_recall_fscore_support(
         y_true, preds, average="binary", zero_division=0
     )
 
     print(f"[G-mode] Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
     # write results in metrics_G.txt
-    with open("metrics_G_train_epochs_5.txt", "w") as f:
+    
+    final_label = 'final_testing' if not validation else 'validation'
+    with open(f"metrics_G_{final_label}_epochs_{epochs}_d_lr_{d_lr}_g_lr_{g_lr}_batch_size_{batch_size}_m_{m}.txt", "w") as f:
         f.write(f"Precision: {precision:.4f}\n")
         f.write(f"Recall: {recall:.4f}\n")
         f.write(f"F1: {f1:.4f}\n")

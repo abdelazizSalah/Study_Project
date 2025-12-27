@@ -15,7 +15,7 @@ Phase 0: Design Decisions:
     - Noise distribution:
         - Standard normal distribution (mean=0, std=1) (Gaussian)
 '''
-from sheet4_task2_utility_tools_re import *
+from fine_tuning_sheet4_task2_utility_tools_re import *
 # Main function
 def task2_sheet4_main():
     # Main logic of the task
@@ -23,50 +23,47 @@ def task2_sheet4_main():
     p_vals = [5,10,15]
     #! finetuning parameters. 
     
-    m = [10,20,30,40,50]  # number of packets per sample
-    epochs=[5,10,15,20,25]
+    m = [10,20]  # number of packets per sample
+    epochs=[5,10,20]
     batch_size=[32,64,128]
-    lr_D=[1e-4, 1e-5, 5e-5]
-    lr_G=[3e-4, 3e-4,5e-4]
-    D_threshold = [0.1,0.3,0.5]
-    G_threshold = [0.1,0.3,0.5]
-    K = [128,256,512]
-    D_LOSS_TOO_LOW = [0.1, 0.05, 0.2],     # D dominating
-    D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9],   # D too weak
-    G_UPDATES = [1,2,3],
-
-    # use single value only for faster testing
-    # m = [10]  # number of packets per sample
-    # epochs=[5]
-    # batch_size=[32]
-    # lr_D=[1e-4]
-    # lr_G=[3e-4]
-    # D_threshold = [0.1]
-    # G_threshold = [0.1]
-    # K = [128]
-    # D_LOSS_TOO_LOW = [0.1]     # D dominating
-    # D_LOSS_TOO_HIGH = [0.7]   # D too weak
-    # G_UPDATES = [1]
+    lr_D=[1e-4, 1e-5]
+    lr_G=[3e-4, 3e-5,]
+    D_threshold = [0.1,0.3]
+    G_threshold = [0.9,0.7]
+    K = [128,256]
+    D_LOSS_TOO_LOW = [0.1, 0.05]   # D dominating
+    D_LOSS_TOO_HIGH = [0.8, 0.9] # D too weak
+    G_UPDATES = [2,3]
+    # m = [10,20,30,40,50]  # number of packets per sample
+    # epochs=[5,10,15,20,25]
+    # batch_size=[32,64,128]
+    # lr_D=[1e-4, 1e-5, 5e-5]
+    # lr_G=[3e-4, 3e-5,5e-4]
+    # D_threshold = [0.1,0.3,0.5]
+    # G_threshold = [0.1,0.3,0.5]
+    # K = [128,256,512]
+    # D_LOSS_TOO_LOW = [0.1, 0.05, 0.2]   # D dominating
+    # D_LOSS_TOO_HIGH = [0.7, 0.8, 0.9] # D too weak
+    # G_UPDATES = [1,2,3]
     configurations = [
         {'m': m_val, 'epochs': epoch_val, 'batch_size': batch_val, 'lr_D': lr_D_val, 'lr_G': lr_G_val, 'D_threshold': D_threshold_val, 'G_threshold': G_threshold_val, 'K': K_val, 'D_LOSS_TOO_LOW': D_LOSS_TOO_LOW_val, 'D_LOSS_TOO_HIGH': D_LOSS_TOO_HIGH_val, 'G_UPDATES': G_UPDATES_val} for m_val in m for epoch_val in epochs for batch_val in batch_size for lr_D_val in lr_D for lr_G_val in lr_G for D_threshold_val in D_threshold for G_threshold_val in G_threshold for K_val in K for D_LOSS_TOO_LOW_val in D_LOSS_TOO_LOW for D_LOSS_TOO_HIGH_val in D_LOSS_TOO_HIGH for G_UPDATES_val in G_UPDATES
     ] # generating all combinations
     print (configurations[:2])
     print(len(configurations)) # 5 * 5 * 3 * 3 * 3 * 3 * 3 = 6075 combinations
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
+    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu") # because GPU 0 is occupied
     print(f'[*] Using device: {device}')
     
     # define best parameters
     best_config = {}
-    best_f1 = 5
-    best_percision = 5
-    best_recall = 5
-
-    highest_f1 = 0
-    highest_percision = 0
-    highest_recall = 0
-
+    best_f1 = -1
+    best_percision = -1
+    best_recall = -1
+    highest_f1 = -1
+    highest_percision = -1
+    highest_recall = -1
     # #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
-    for p in p_vals:
+    for p in p_vals: # for each value of p, perform the fine tuning
+        print(f'current p value: {p}')
         for config in configurations:
             print('[*] Phase 7: Hyperparameter tuning iteration started...')
             print(f'[*] Validation configuration: {config}')
@@ -99,40 +96,48 @@ def task2_sheet4_main():
         
             print(f'[*] Current configuration: m={m}, epochs={epoch}, batch_size={batch}, lr_D={d_lr}, lr_G={g_lr}, D_LOSS_TOO_LOW={D_LOSS_TOO_LOW_val}, D_LOSS_TOO_HIGH={D_LOSS_TOO_HIGH_val}, G_UPDATES={G_UPDATES_val}')
             print('[*] Phase 5: GAN Training loop sanity check passed. \n --------------------------------------- \n ')
-            # train the model on the current configurations        
-            D,G = train_gan_on_training_data(
-                training_data=training_data,
-                D=D,
-                G=G,
-                m=m,
-                n=n,
-                device=device,
-                epochs=epoch,
-                batch_size=batch,
-                lr_D=d_lr,
-                lr_G=g_lr,
-                D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
-                D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
-                G_UPDATES=G_UPDATES_val,
-                # save_dir="models2"
-            )
-            # excuting the inference phase always 
-            print('[*] Phase 6: Trained models found. Starting inference mode...')
+            # train the model on the current configurations  
 
-            
-            # D, G = load_trained_models(
-            #         m=m,
-            #         n=n,
-            #         epochs=epoch,
-            #         batch_size=batch,
-            #         lr_D=d_lr,
-            #         lr_G=g_lr,
-            #         device=device,
-            #         D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
-            #         D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
-            #         G_UPDATES=G_UPDATES_val,
-            #         # model_dir="models"
-            #     )
+            d_file_name = f"p_{p}_m_{m}_discriminator_d_lr{d_lr}_epochs_{epoch}_bs{batch}_dl_thresh_low_{D_LOSS_TOO_LOW_val}_dl_thresh_high_{D_LOSS_TOO_HIGH_val}_gupdates_{G_UPDATES_val}.pth"
+            g_file_name = f"p_{p}_m_{m}_generator_g_lr{g_lr}_epochs_{epoch}_bs{batch}_dl_thresh_low_{D_LOSS_TOO_LOW_val}_dl_thresh_high_{D_LOSS_TOO_HIGH_val}_gupdates_{G_UPDATES_val}.pth"
+            modelsExist = os.path.exists(os.path.join("models", d_file_name)) and os.path.exists(os.path.join("models", g_file_name))
+            if not modelsExist:
+                D,G = train_gan_on_training_data(
+                    training_data=training_data,
+                    D=D,
+                    G=G,
+                    m=m,
+                    n=n,
+                    p_value=p,
+                    epochs=epoch,
+                    batch_size=batch,
+                    lr_D=d_lr,
+                    lr_G=g_lr,
+                    D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+                    D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
+                    G_UPDATES=G_UPDATES_val,
+                    device=device,
+                    # save_dir="models2"
+                )
+                D.eval()
+                G.eval()
+            else: 
+                # excuting the inference phase always 
+                print('[*] Phase 6: Trained models found. Starting inference mode...')
+                D, G = load_trained_models(
+                        m=m,
+                        n=n,
+                        device=device,
+                        p=p,
+                        epochs=epoch,
+                        batch_size=batch,
+                        lr_D=d_lr,
+                        lr_G=g_lr,
+                        D_LOSS_TOO_LOW=D_LOSS_TOO_LOW_val,
+                        D_LOSS_TOO_HIGH=D_LOSS_TOO_HIGH_val,
+                        G_UPDATES=G_UPDATES_val,
+                        # model_dir="models"
+                    )
             # normalizing validation and testing data
             
             validation_data = (validation_data - validation_data.min()) / (validation_data.max() - validation_data.min())
@@ -140,17 +145,18 @@ def task2_sheet4_main():
             if mode == 'D':
                 print("[*] Mode: INFERENCE (Discriminator-based)")
                 percision, recall, f1 = phase6_discriminator_mode(
-                    D,
-                    validation_data,
-                    validation_labels,
-                    device,
-                    validation=True,
+                    D = D,
+                    p_value= p,
+                    data = validation_data,
+                    labels = validation_labels,
+                    device = device,
                     d_lr=d_lr,
+                    g_lr=g_lr,
                     epochs=epoch,
                     batch_size=batch,
-                    g_lr=g_lr,
-                    threshold=d_threshold
-
+                    validation=True,
+                    threshold=d_threshold,
+                    m=m
                 )
                 
                 if f1 > highest_f1:
@@ -170,15 +176,21 @@ def task2_sheet4_main():
             elif mode == 'G':
                 print("[*] Mode: INFERENCE (Generator-based)")
                 percision, recall, f1 = phase6_generator_mode(
-                    D,
-                    G,
-                    validation_data,
-                    validation_labels,
-                    device,
-                    m,
-                    n,
+                    D=D,
+                    G=G,
+                    p=p,
+                    data=validation_data,
+                    labels=validation_labels,
+                    device=device,
+                    m=m,
+                    n=n,
                     K=k,
+                    batch_size=batch,
+                    epochs=epoch,
+                    d_lr=d_lr,
+                    g_lr=g_lr,
                     threshold=g_threshold,
+                    validation=True,
                 )
                 if f1 > highest_f1:
                     highest_f1 = f1
@@ -216,6 +228,7 @@ def task2_sheet4_main():
                 m=m,
                 n=n,
                 device=device,
+                p=p,
                 epochs=epoch,
                 batch_size=batch,
                 lr_D=d_lr,
@@ -229,16 +242,18 @@ def task2_sheet4_main():
         if mode == 'D':
             print("[*] Mode: INFERENCE (Discriminator-based) on test set")
             percision, recall, f1 = phase6_discriminator_mode(
-                D,
+                D=D,
+                p_value= p,   
                 data=testing_data,
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied 
                 d_lr=d_lr,
-                validation=False,
+                g_lr=g_lr,
                 epochs=epoch,
                 batch_size=batch,
-                g_lr=g_lr,
-                threshold=d_threshold
+                validation=False,
+                threshold=d_threshold,
+                m=m
 
             )
             print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
@@ -248,13 +263,19 @@ def task2_sheet4_main():
             percision, recall, f1 = phase6_generator_mode(
                 D=D,
                 G=G,
+                p=p,
                 data=testing_data,
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied
                 m=m,
                 n=n,
                 K=k,
+                batch_size=batch,
+                epochs=epoch,
+                d_lr=d_lr,
+                g_lr=g_lr,
                 threshold=g_threshold,
+                validation=False,
             )
             print(f'[*] Test set results - Precision: {percision}, Recall: {recall}, F1-score: {f1}')
         else:

@@ -547,7 +547,7 @@ def sheet3_task1():
         print(f"[*] Using n-gram size: {n}")
     else:
         # print a hint how to call it in command line
-        raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
+        raise ValueError("Please provide n-gram size as a command line argument. Example: python task3_sheet4_ngrams_modifications.py 3")
         # n = 3  # default n-gram size
 
     #! I modified the code to be able to work on different values of p for re data. 
