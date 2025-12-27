@@ -27,7 +27,7 @@ def task2_sheet4_main():
     epochs=[5,10,20]
     batch_size=[32,64,128]
     lr_D=[1e-4, 1e-5]
-    lr_G=[3e-4, 3e-4,]
+    lr_G=[3e-4, 3e-5,]
     D_threshold = [0.1,0.3]
     G_threshold = [0.9,0.7]
     K = [128,256]
@@ -38,7 +38,7 @@ def task2_sheet4_main():
     # epochs=[5,10,15,20,25]
     # batch_size=[32,64,128]
     # lr_D=[1e-4, 1e-5, 5e-5]
-    # lr_G=[3e-4, 3e-4,5e-4]
+    # lr_G=[3e-4, 3e-5,5e-4]
     # D_threshold = [0.1,0.3,0.5]
     # G_threshold = [0.1,0.3,0.5]
     # K = [128,256,512]
@@ -243,7 +243,7 @@ def task2_sheet4_main():
             print("[*] Mode: INFERENCE (Discriminator-based) on test set")
             percision, recall, f1 = phase6_discriminator_mode(
                 D=D,
-                p= p,   
+                p_value= p,   
                 data=testing_data,
                 labels=test_labels,
                 device=device, # because GPU 0 is occupied 
