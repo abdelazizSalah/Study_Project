@@ -55,12 +55,12 @@ def task2_sheet4_main():
     
     # define best parameters
     best_config = {}
-    best_f1 = 0
-    best_percision = 0
-    best_recall = 0
-    highest_f1 = 0
-    highest_percision = 0
-    highest_recall = 0
+    best_f1 = -1
+    best_percision = -1
+    best_recall = -1
+    highest_f1 = -1
+    highest_percision = -1
+    highest_recall = -1
     # #! Todo: phase 7: perfomring hyperparameter tuning using validation set to get best results on test set.
     for p in p_vals: # for each value of p, perform the fine tuning
         print(f'current p value: {p}')
