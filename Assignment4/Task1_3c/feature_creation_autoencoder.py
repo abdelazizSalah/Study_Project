@@ -1,10 +1,6 @@
 import time
 from pathlib import Path
 import os
-
-
-
-
 import tensorflow as tf
 from tensorflow import keras
 
