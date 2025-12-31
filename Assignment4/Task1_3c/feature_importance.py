@@ -71,8 +71,8 @@ def run_scenarios_for_feature_importance(
     param: int = 0,
 ):
     scenario_models = {
-        1: ["ocsvm", "lof", "ee"],
-        2: ["rf", "knn", "bsvm"],
+        #1: ["ocsvm", "lof", "ee"], #todo change back!
+        #2: ["rf", "knn", "bsvm"],
         3: ["rf", "knn", "bsvm"],
     }
 
@@ -139,27 +139,12 @@ def all_feature_importance(k: int, global_label_encoder):
 
     # ---------------- PLOTS ----------------
     scenario_models = {
-        #1: ["ocsvm", "lof", "ee"],
-        #2: ["rf", "knn", "bsvm"], #todo change back
-        3: ["rf", "knn", "bsvm"],
-    }
-
-    for prefix in ["raw"]:
-        for scenario, models in scenario_models.items():
-            plot_compare_3_classifiers(
-                prefix=prefix,
-                scenario=scenario,
-                classifiers=models,
-                top_n=32,  # plot all features
-                out_dir="results/plots"
-            )
-    # todo change back and remove
-    scenario_models = {
         1: ["ocsvm", "lof", "ee"],
         2: ["rf", "knn", "bsvm"],
         3: ["rf", "knn", "bsvm"],
     }
-    for prefix in [ "re15"]:
+
+    for prefix in ["raw", "re15"]:
         for scenario, models in scenario_models.items():
             plot_compare_3_classifiers(
                 prefix=prefix,
@@ -168,6 +153,7 @@ def all_feature_importance(k: int, global_label_encoder):
                 top_n=32,  # plot all features
                 out_dir="results/plots"
             )
+
 
     return
 
