@@ -302,8 +302,8 @@ def run_experiment_ae_classifier(global_label_encoder):
     """
     Runs AE classifier on multiple prefixes.
     """
-    #prefixes = ["raw", "re5", "re10", "re15"]
-    prefixes = [ "re10", "re15"] #todo
+    prefixes = ["raw", "re5", "re10", "re15"]
+    #prefixes = [ "re10", "re15"] #todo change back!
 
     params=[0,5,10,15]
     results = {}

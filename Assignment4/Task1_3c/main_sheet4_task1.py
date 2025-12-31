@@ -349,7 +349,6 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
-        print(f"k:{k}")
         measure_all(k, global_label_encoder)
     elif args.mode == "error_overlap":
         #execute measure runtime to generate feature files for raw and re15
