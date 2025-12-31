@@ -153,10 +153,10 @@ def all_feature_importance(k: int, global_label_encoder):
                 top_n=32,  # plot all features
                 out_dir="results/plots"
             )
-
+    # todo change back and remove
     scenario_models = {
         1: ["ocsvm", "lof", "ee"],
-        2: ["rf", "knn", "bsvm"], #todo change back
+        2: ["rf", "knn", "bsvm"],
         3: ["rf", "knn", "bsvm"],
     }
     for prefix in [ "re15"]:
