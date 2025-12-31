@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from experiment_ae_classifier import run_experiment_ae_classifier
+import numpy as np
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
@@ -338,7 +339,7 @@ def release_main_new():
     args = parse_args()
 
     if args.mode == "dataset_preprocessing":
-        run_dataset_preprocessing(args.attack_dir, args.control_dir)
+        #run_dataset_preprocessing(args.attack_dir, args.control_dir)
         create_preprocessed_re_files()
     elif args.mode == "k_fold":
         run_k_fold(args.k)
@@ -372,4 +373,3 @@ def release_main_new():
 if __name__ == "__main__":
     release_main_new()
 
-    #release_main_new()

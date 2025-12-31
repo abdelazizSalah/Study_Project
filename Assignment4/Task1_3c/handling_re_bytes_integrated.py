@@ -85,7 +85,7 @@ def save_npy_file(data, file_path, p,  remainder):
         stopIdx= len(data)
     print('Saving processed data to .npy file...')
     expanded_data = []
-    for i in range(len(data)-1 - remainder):
+    for i in range(stopIdx):
         for _ in range(p):
             expanded_data.append(data[i])
     # handle the last item
