@@ -87,8 +87,8 @@ def run_scenarios_for_feature_type(
 ):
     # scenario mapping
     scenario_models = {
-        1: ["ocsvm", "lof", "ee"],
-        2: ["rf", "knn", "bsvm"],
+        #1: ["ocsvm", "lof", "ee"],
+        #2: ["rf", "knn", "bsvm"], #todo change back!
         3: ["rf", "knn", "bsvm"],
     }
 
