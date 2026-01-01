@@ -24,6 +24,8 @@ def elliptic_envelope_train(X_train, contamination=0.05):
         )
     )
 
+    X_train = np.nan_to_num(X_train, nan=0.0, posinf=0.0, neginf=0.0)
+
     ee_clf.fit(X_train)
     print("Elliptic Envelope training done")
 
@@ -44,6 +46,8 @@ def elliptic_envelope_evaluate(X_test, y_test):
 
     # binary labels: +1 normal, -1 attack
     y_test_binary = np.where(y_test == 0, 1, -1)
+
+    X_test = np.nan_to_num(X_test, nan=0.0, posinf=0.0, neginf=0.0)
 
     # --- 1) Scores für ROC-AUC ---
     scores = ee_clf.decision_function(X_test)
