@@ -71,9 +71,9 @@ def run_scenarios_for_feature_importance(
     param: int = 0,
 ):
     scenario_models = {
-        #1: ["ocsvm", "lof", "ee"], #todo change back!
-        #2: ["rf", "knn", "bsvm"],
-        3: ["rf", "knn", "bsvm"],
+        1: ["ocsvm", "lof", "ee"], #todo change back!
+        2: ["rf", "knn", "bsvm"],
+        #3: ["rf", "knn", "bsvm"],
     }
 
     fn_prefix = f"re{param}" if prefix == "re" else "raw"
@@ -119,13 +119,13 @@ def all_feature_importance(k: int, global_label_encoder):
     Path("results").mkdir(exist_ok=True)
 
     # ---------------- RAW ----------------
-    run_scenarios_for_feature_importance(
-        k=k,
-        global_label_encoder=global_label_encoder,
-        prefix="raw",
-        keep_indices=0,
-        param=0,
-    )
+    #run_scenarios_for_feature_importance( #todo change back
+    #    k=k,
+    #    global_label_encoder=global_label_encoder,
+    #    prefix="raw",
+    #    keep_indices=0,
+    #    param=0,
+    #)
 
     # ---------------- RE15 ----------------
     keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
