@@ -51,8 +51,12 @@ def elliptic_envelope_evaluate(X_test, y_test):
 
     # --- 1) Scores für ROC-AUC ---
     scores = ee_clf.decision_function(X_test)
+    mask = np.isfinite(scores) #filter invalid scores (e.g. NaN)
+    if mask.sum() < 2:
+        # not enough valid samples for ROC
+        return np.nan
 
-    roc_auc = roc_auc_score(y_test_binary, scores)
+    roc_auc = roc_auc_score(y_test_binary[mask], scores[mask])
     print(f"[EllipticEnvelope] ROC-AUC: {roc_auc:.4f}")
 
     # normal classification
