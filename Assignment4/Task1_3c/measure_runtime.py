@@ -115,9 +115,9 @@ def _log_classifiers_for_feature_type(
 
     # scenario mapping
     scenario_models = {
-        #1: ["ocsvm", "lof", "ee"],
-        #2: ["rf", "knn", "bsvm"], #todo change back!
-        3: ["rf", "knn", "bsvm"],
+        1: ["ocsvm", "lof", "ee"],
+        2: ["rf", "knn", "bsvm"], #todo change back!
+        #3: ["rf", "knn", "bsvm"],
     }
 
     for scenario, models in scenario_models.items():
@@ -170,15 +170,15 @@ def measure_all(k: int, global_label_encoder) -> None:
     #_log_ae_training(feature_label="RAW feature type", out_file=raw_file, prefix_for_training="raw")
     #_log_ae_feature_extraction(k=k, feature_label="RAW feature type", out_file=raw_file, prefix_for_features="raw")
 
-    _log_classifiers_for_feature_type(
-        k=k,
-        global_label_encoder=global_label_encoder,
-        prefix="raw",
-        feature_label="RAW feature type",
-        out_file=raw_file,
-        keep_indices=0,
-        param=0,
-    )
+    #_log_classifiers_for_feature_type(
+    #    k=k,
+    #    global_label_encoder=global_label_encoder,
+    #    prefix="raw",
+    #    feature_label="RAW feature type",
+    #    out_file=raw_file,
+    #    keep_indices=0,
+    #    param=0,
+    #)
 
     ## ---------------- RE15 ----------------
     re_file = "results/runtime_re15.txt"
