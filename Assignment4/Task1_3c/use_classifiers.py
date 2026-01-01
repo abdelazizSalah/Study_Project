@@ -407,6 +407,8 @@ def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, 
 
     prediction_errors_all_folds=[]
     for fold_idx in range(k):
+        if fold_idx==2:
+            continue #todo remove
         if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
             continue
             
