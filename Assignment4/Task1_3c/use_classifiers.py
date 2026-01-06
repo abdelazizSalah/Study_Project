@@ -23,8 +23,7 @@ from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict
     binary_rf_train_and_get_importance, rf_permutation_importance
 from labels_helper import encode_labels
 from svm import one_class_svm_evaluate, binary_svm_train, binary_svm_evaluate, one_class_svm_predict_error_overlap, \
-    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, get_bsvm_feature_importance, \
-    bsvm_permutation_importance
+    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, bsvm_permutation_importance
 import numpy as np
 
 #indices not restored
