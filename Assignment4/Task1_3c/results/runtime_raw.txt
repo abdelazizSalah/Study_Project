@@ -1,0 +1,101 @@
+=== Autoencoder Training Results (RAW feature type) ===
+  • Averaged over all folds:
+  • Average runtime : 531.73 s
+  • Peak RAM (max)  : 15590.4 MB
+-----------------------------------------------
+
+=== Autoencoder Feature Extraction Results (RAW feature type) ===
+  • Averaged over all folds:
+  • Average runtime : 36.97 s
+  • Peak RAM (max)  : 39049.5 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 1
+  • Classifier: ocsvm
+  • Averaged over all folds:
+  • Train avg runtime : 1730.00 s
+  • Train peak RAM    : 3388.4 MB
+  • Test  avg runtime : 427.59 s
+  • Test  peak RAM    : 3103.6 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 1
+  • Classifier: lof
+  • Averaged over all folds:
+  • Train avg runtime : 50.47 s
+  • Train peak RAM    : 3083.2 MB
+  • Test  avg runtime : 104.18 s
+  • Test  peak RAM    : 3150.3 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 1
+  • Classifier: ee
+  • Averaged over all folds:
+  • Train avg runtime : 3010.66 s
+  • Train peak RAM    : 4142.2 MB
+  • Test  avg runtime : 1.25 s
+  • Test  peak RAM    : 3980.8 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 2
+  • Classifier: rf
+  • Averaged over all folds:
+  • Train avg runtime : 73.21 s
+  • Train peak RAM    : 5270.4 MB
+  • Test  avg runtime : 0.44 s
+  • Test  peak RAM    : 5256.3 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 2
+  • Classifier: knn
+  • Averaged over all folds:
+  • Train avg runtime : 0.21 s
+  • Train peak RAM    : 4898.7 MB
+  • Test  avg runtime : 664.79 s
+  • Test  peak RAM    : 5255.4 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 2
+  • Classifier: bsvm
+  • Averaged over all folds:
+  • Train avg runtime : 25668.30 s
+  • Train peak RAM    : 9132.3 MB
+  • Test  avg runtime : 6014.90 s
+  • Test  peak RAM    : 9090.5 MB
+-----------------------------------------------
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 3
+  • Classifier: rf
+  • Averaged over all folds:
+  • Train avg runtime : 8.29 s
+  • Train peak RAM    : 6086.3 MB
+  • Test  avg runtime : 0.36 s
+  • Test  peak RAM    : 6084.8 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 3
+  • Classifier: knn
+  • Averaged over all folds:
+  • Train avg runtime : 0.20 s
+  • Train peak RAM    : 5901.1 MB
+  • Test  avg runtime : 223.08 s
+  • Test  peak RAM    : 6017.3 MB
+-----------------------------------------------
+
+=== Classifier Results (RAW feature type) ===
+  • Scenario: 3
+  • Classifier: bsvm
+  • Averaged over all folds:
+  • Train avg runtime : 2729.79 s
+  • Train peak RAM    : 6453.2 MB
+  • Test  avg runtime : 79.43 s
+  • Test  peak RAM    : 6270.9 MB
+-----------------------------------------------
+

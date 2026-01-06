@@ -1,8 +1,10 @@
 import csv
+from matplotlib.patches import Patch
+
 from pathlib import Path
 import os
 import matplotlib.pyplot as plt
-from matplotlib_venn import venn3
+from matplotlib_venn import venn3, venn3_circles
 
 from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from use_classifiers import execute_scenario_error_overlap
@@ -87,9 +89,9 @@ def run_scenarios_for_feature_type(
 ):
     # scenario mapping
     scenario_models = {
-        #1: ["ocsvm", "lof", "ee"], #todo change back
+        1: ["ocsvm", "lof", "ee"],
         2: ["rf", "knn", "bsvm"],
-        #3: ["rf", "knn", "bsvm"],
+        3: ["rf", "knn", "bsvm"],
     }
 
     if prefix=="re":
@@ -115,7 +117,7 @@ def run_scenarios_for_feature_type(
         inter_1_2_3, inter_1_2, inter_2_3, inter_1_3, only_1, only_2, only_3=create_venn_diagram_data_optimized(prediction_errors_scenario)
 
         #store one csv file for prefix (raw/15) and scenario:
-        # Write CSV for this (prefix, scenario)
+        #Write CSV for this (prefix, scenario)
 
         csv_path = f"results/error_overlaps_{fn_prefix}_s{scenario}.csv"
 
@@ -143,14 +145,13 @@ def run_scenarios_for_feature_type(
 
     return
 
+
 def plot_venn_from_csv(prefix: str, scenario: int):
     csv_path = f"results/error_overlaps_{prefix}_s{scenario}.csv"
 
     with open(csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        row = next(reader)
+        row = next(csv.DictReader(f))
 
-    # Extract values (convert from str → int)
     triple = int(row["triple_1_2_3"])
     pair_12 = int(row["pair_1_2"])
     pair_23 = int(row["pair_2_3"])
@@ -159,36 +160,43 @@ def plot_venn_from_csv(prefix: str, scenario: int):
     only_2 = int(row["only_2"])
     only_3 = int(row["only_3"])
 
-    # Order required by venn3:
-    # (only A, only B, A∩B, only C, A∩C, B∩C, A∩B∩C)
-    subsets = (
-        only_1,
-        only_2,
-        pair_12,
-        only_3,
-        pair_13,
-        pair_23,
-        triple,
+    subsets = (only_1, only_2, pair_12, only_3, pair_13, pair_23, triple)
+
+    labels = ("OCSVM", "LOF", "EE") if scenario == 1 else ("RF", "KNN", "BSVM")
+
+    # hardcoded "classic venn" colors (matches the look you showed)
+    colors = ("r", "g", "b")
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    v = venn3(subsets=subsets, set_labels=labels, set_colors=colors, alpha=0.4, ax=ax)
+
+    # smaller text
+    for t in v.set_labels:
+        if t is not None:
+            t.set_fontsize(14)
+    for t in v.subset_labels:
+        if t is not None:
+            t.set_fontsize(9)
+
+    # legend with the same hardcoded colors
+    handles = [Patch(facecolor=c, edgecolor="black", label=lab, alpha=0.4)
+               for c, lab in zip(colors, labels)]
+    ax.legend(
+        handles=handles,
+        title="Classifier",
+        loc="lower left",  # anchor point on the legend box
+        bbox_to_anchor=(1.02, 0.0),  # <-- bottom-right outside (x right, y bottom)
+        bbox_transform=ax.transAxes,
+        borderaxespad=0.0
     )
 
-    # Model labels depend on scenario
-    if scenario == 1:
-        labels = ("OCSVM", "LOF", "EE")
-    else:
-        labels = ("RF", "KNN", "BSVM")
+    ax.set_title(f"Venn Diagram – {prefix.upper()} – Scenario {scenario}")
 
-    plt.figure(figsize=(6, 6))
-    venn3(subsets=subsets, set_labels=labels)
+    out_path = f"results/plots/venn_{prefix}_s{scenario}.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
-    plt.title(f"Venn Diagram – {prefix.upper()} – Scenario {scenario}")
-    plt.tight_layout()
-
-    out_path = f"results/venn_{prefix}_s{scenario}.png"
-    plt.savefig(out_path, dpi=300)
-    plt.close()
-
-    print(f"[OK] saved {out_path}")
-    return
+    print(f"saved {out_path}")
 
 
 def all_error_overlaps(k: int, global_label_encoder):
@@ -197,7 +205,7 @@ def all_error_overlaps(k: int, global_label_encoder):
       - Scenario 1: ocsvm, lof, ee
       - Scenario 2 & 3: rf, knn, bsvm
     """
-    scenarios=[1,2,3]
+
     Path("results").mkdir(exist_ok=True)
 
     # ---------------- RAW ----------------
@@ -212,16 +220,21 @@ def all_error_overlaps(k: int, global_label_encoder):
     # ---------------- RE15 ----------------
     keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
 
-    #run_scenarios_for_feature_type(
-    #    k=k,
-    #    global_label_encoder=global_label_encoder,
-    #    prefix="re",
-    #    keep_indices=keep_indices,
-    #    param=15,
-    #)
+    run_scenarios_for_feature_type(
+        k=k,
+        global_label_encoder=global_label_encoder,
+        prefix="re",
+        keep_indices=keep_indices,
+        param=15,
+    )
 
-    #create plots from csv files
+
+    return
+
+def plot_all_error_overlaps():
+    scenarios = [1, 2, 3]
+    # create plots from csv files
     for scen in scenarios:
-        plot_venn_from_csv("raw",scen)
+        plot_venn_from_csv("raw", scen)
         plot_venn_from_csv("re15", scen)
     return

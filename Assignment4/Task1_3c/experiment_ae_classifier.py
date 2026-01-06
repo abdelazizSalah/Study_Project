@@ -13,7 +13,6 @@ import numpy as np
 
 
 ####plots
-
 def read_ae_summary(csv_path="results/ae_summary.csv"):
     csv_path = Path(csv_path)
     if not csv_path.exists():
@@ -24,7 +23,7 @@ def read_ae_summary(csv_path="results/ae_summary.csv"):
         reader = csv.DictReader(f)
         for row in reader:
             rep = row["representation"].strip()
-            # if the file was appended multiple times, keep the LAST entry per rep
+
             data[rep] = (
                 float(row["avg_precision"]),
                 float(row["avg_recall"]),
@@ -33,21 +32,22 @@ def read_ae_summary(csv_path="results/ae_summary.csv"):
     return data
 
 def save_barplot(order, values, title, ylabel, out_path):
-    plt.figure()
-    plt.bar(order, values)
-    plt.ylim(0.0, 1.0)
-    plt.title(title)
-    plt.xlabel("Representation")
-    plt.ylabel(ylabel)
+    fig, ax = plt.subplots()
+
+    bars = ax.bar(order, values)
+    ax.set_ylim(0.0, 1.08)              # <-- give room above 1.0
+    ax.set_title(title, pad=12)         # <-- push title up a bit
+    ax.set_xlabel("Dataset Type")
+    ax.set_ylabel(ylabel)
 
     # value labels
-    for i, v in enumerate(values):
-        plt.text(i, v + 0.01, f"{v:.3f}", ha="center", va="bottom")
+    for bar, v in zip(bars, values):
+        ax.text(bar.get_x() + bar.get_width()/2, v + 0.01, f"{v:.3f}",
+                ha="center", va="bottom")
 
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=200)
-    plt.close()
-    return
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=200)
+    plt.close(fig)
 
 def make_ae_metric_plots(summary_csv="results/ae_summary.csv", out_dir="results"):
     out_dir = Path(out_dir)
@@ -303,7 +303,6 @@ def run_experiment_ae_classifier(global_label_encoder):
     Runs AE classifier on multiple prefixes.
     """
     prefixes = ["raw", "re5", "re10", "re15"]
-    #prefixes = [ "re10", "re15"] #todo change back!
 
     params=[0,5,10,15]
     results = {}

@@ -20,10 +20,11 @@ from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluat
     elliptic_envelope_predict_error_overlap, ee_permutation_importance
 from file_helper_t3 import load_k_fold_results
 from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict_error_overlap, \
-    binary_rf_train_and_get_importance
+    binary_rf_train_and_get_importance, rf_permutation_importance
 from labels_helper import encode_labels
 from svm import one_class_svm_evaluate, binary_svm_train, binary_svm_evaluate, one_class_svm_predict_error_overlap, \
-    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, get_bsvm_feature_importance
+    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, get_bsvm_feature_importance, \
+    bsvm_permutation_importance
 import numpy as np
 
 #indices not restored
@@ -72,7 +73,7 @@ def execute_fold_feature_importance(
     elif classifier == "bsvm":
         binary_svm_train(X_train, y_train)
         print("Calculating Importance Score BSVM")
-        importance_score=get_bsvm_feature_importance()
+        importance_score=bsvm_permutation_importance(X_test, y_test)
 
     elif classifier == "ee":
         elliptic_envelope_train(X_train)
@@ -82,8 +83,9 @@ def execute_fold_feature_importance(
 
     elif classifier == "rf":
         print("Training and calculating Importance Score EE")
-        importance_score=binary_rf_train_and_get_importance(X_train, y_train)
-
+        importance_score=binary_rf_train(X_train, y_train)
+        print("Calculating Importance Score RF")
+        importance_score = rf_permutation_importance(X_train, y_train)
 
     elif classifier == "knn":
         binary_knn_train(X_train, y_train)

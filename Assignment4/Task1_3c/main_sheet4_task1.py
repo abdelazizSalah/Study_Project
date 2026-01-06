@@ -1,25 +1,22 @@
 import argparse
 import os
 import sys
-import time
-from experiment_ae_classifier import run_experiment_ae_classifier
-import numpy as np
+
+from plot_runtime import plot_all_runtimes
+from experiment_ae_classifier import run_experiment_ae_classifier, make_ae_metric_plots
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 from sklearn.preprocessing import LabelEncoder
-from error_overlap import all_error_overlaps
+from error_overlap import all_error_overlaps, plot_all_error_overlaps
 from measure_runtime import measure_all
-from use_classifiers import execute_experiments_def, execute_experiments_abc
 from handling_re_bytes_integrated import create_preprocessed_re_files
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
-from file_helper_t3 import verify_amount_feature_files, load_k_fold_results
+from file_helper_t3 import load_k_fold_results
 from constants import ALL_POSSIBLE_LABELS
-from feature_creation_autoencoder import train_and_save_models, create_features_for_ds_task3def
-from feature_creation_autoencoder import create_features_for_ds
 from preprocessing_s3t2 import pcaps_byte_and_metadata_extraction
-from feature_importance import all_feature_importance
+from feature_importance import all_feature_importance, plot_all_feature_importance
 
 
 def require_file(path: str):
@@ -58,40 +55,6 @@ def check_requirements_ae_classifier():
     require_file("datasets/re_bytes_5.npy")
     require_file("datasets/re_bytes_15.npy")
     require_file("datasets/re_bytes_10.npy")
-    return k
-
-
-
-
-
-def check_requirements_classifier_modes():
-    require_file(f"k_fold_results/k_fold_s1_raw.json")
-    training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
-    k = len(training_indices_raw)
-
-    # check that k fold files for all scenarios exist
-    for s_idx in range(1, 4):
-        require_file(f"k_fold_results/k_fold_s{s_idx}_raw.json")
-        require_file(f"k_fold_results/k_fold_s{s_idx}_re.json")
-
-        # check the amount of folds that was used when the training and test files were created
-        training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s{s_idx}_raw.json")
-        training_indices_re, test_indices_re = load_k_fold_results(f"k_fold_results/k_fold_s{s_idx}_re.json")
-
-        # feature files exist for all folds and number of folds should always be the same
-        if len(training_indices_raw) != k or len(training_indices_re) != k:
-            print(
-                "Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
-            sys.exit(1)
-
-    if not verify_amount_feature_files(k):
-        print(
-            "Run the k_fold mode with the same number for k first! Then run the extract_features mode with the same number of k.")
-        sys.exit(1)
-
-    # check that label and timestamp files exist
-    require_file("datasets/raw_labels.npy")
-    require_file("datasets/re_labels.npy")
     return k
 
 
@@ -260,86 +223,12 @@ def run_k_fold(k: int):
     print(f"[k_fold] Created and saved {k}-fold splits for all scenarios.")
 
 
-def run_extract_features():
-    """
-    MODE: extract_features
-
-    Trains autoencoders (for Scenario 1 control data) and extracts latent
-    features for RAW and RE datasets using k folds training data .
-    """
-    k = check_requirements_feature_extraction_mode()
-    os.makedirs("models", exist_ok=True)
-
-    # Train k autoencoders
-    train_and_save_models()
-
-    # Use k when generating per-fold feature files
-    create_features_for_ds(k)
-
-    print("[extract_features] Trained autoencoders and extracted features.")
-
-
-
-# -------------------------------------------------------------------
-# Main entry point
-# -------------------------------------------------------------------
-
-
-# from previous (sheet 3)
-def release_main():
-    args = parse_args()
-    start = time.time()
-
-    if args.mode == "dataset_preprocessing":
-        run_dataset_preprocessing(args.attack_dir, args.control_dir)
-
-    elif args.mode == "k_fold":
-        run_k_fold(args.k)
-        print_k_fold_pretty()
-    elif args.mode == "extract_features":
-        run_extract_features()  # needs server for RAM
-    elif args.mode == "run_experiments_abc":
-        # runs experiments a, b and c with grid search and saves results for precision and recall in files
-        global_label_encoder = LabelEncoder()
-        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        os.makedirs("results", exist_ok=True)
-        os.makedirs("models", exist_ok=True)
-        k = check_requirements_classifier_modes()
-        execute_experiments_abc(global_label_encoder, k)
-    elif args.mode == "run_experiments_def":
-        global_label_encoder = LabelEncoder()
-        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        os.makedirs("results", exist_ok=True)
-        os.makedirs("models", exist_ok=True)
-        # only re_bytes required, re_bytes5 etc will be created on the way
-        require_file("datasets/re_bytes.npy")  # additional requirement
-        k = check_requirements_classifier_modes()
-        create_preprocessed_re_files()  # creates re_bytes_5, re_bytes_10, re_bytes_15
-
-        # features are created yb re_byte5, re_byte10, re_byte15 etc...
-        # with existing autoencoder (per fold)
-        create_features_for_ds_task3def(k)  # needs server for RAM
-
-        execute_experiments_def(global_label_encoder, k, "5")
-        execute_experiments_def(global_label_encoder, k, "10")
-        execute_experiments_def(global_label_encoder, k, "15")
-
-
-
-    else:
-        raise ValueError(f"Unknown mode: {args.mode!r}")
-
-    end = time.time()
-    elapsed = end - start
-    print(f"⏱️ release_main() executed in {elapsed:.2f} seconds")
-
-
 # for sheet 4 task1
 def release_main_new():
     args = parse_args()
 
     if args.mode == "dataset_preprocessing":
-        #run_dataset_preprocessing(args.attack_dir, args.control_dir)
+        run_dataset_preprocessing(args.attack_dir, args.control_dir)
         create_preprocessed_re_files()
     elif args.mode == "k_fold":
         run_k_fold(args.k)
@@ -349,24 +238,28 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
-        measure_all(k, global_label_encoder)
+        #measure_all(k, global_label_encoder)
+        plot_all_runtimes()
     elif args.mode == "error_overlap":
         #execute measure runtime to generate feature files for raw and re15
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
-        all_error_overlaps(k, global_label_encoder)
+        #all_error_overlaps(k, global_label_encoder)
+        plot_all_error_overlaps()
     elif args.mode == "feature_importance":
         #execute measure runtime to generate feature files for raw and re15
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         all_feature_importance(k, global_label_encoder)
+        #plot_all_feature_importance()
     elif args.mode == "experiment_ae_classifier":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         check_requirements_ae_classifier()
-        run_experiment_ae_classifier(global_label_encoder)
+        #run_experiment_ae_classifier(global_label_encoder)
+        make_ae_metric_plots()
 
 
 if __name__ == "__main__":

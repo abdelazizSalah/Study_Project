@@ -1,8 +1,6 @@
 import csv
 from pathlib import Path
-
 from matplotlib import pyplot as plt
-
 from use_classifiers import execute_scenario_feature_importance
 from handling_re_bytes_integrated import get_keep_indices_from_fold0
 import numpy as np
@@ -14,53 +12,96 @@ def load_importance_csv(path: str) -> pd.Series:
     return df.iloc[0]
 
 
-def plot_compare_3_classifiers(
-    prefix: str,              # "raw" or "re15" (matches your fn_prefix)
-    scenario: int,            # 1, 2, 3
-    classifiers: list[str],   # exactly 3 names in the order you want to show
-    top_n: int = 12,
-    out_dir: str = "results/plots"
+def normalize_pos_neg_to_unit(series):
+    s = series.astype(float).copy()
+
+    pos_max = s[s > 0].max() if (s > 0).any() else 1.0
+    neg_max = abs(s[s < 0].min()) if (s < 0).any() else 1.0
+
+    if pos_max == 0: pos_max = 1.0
+    if neg_max == 0: neg_max = 1.0
+
+    s.loc[s > 0] = s.loc[s > 0] / pos_max      # (0, 1]
+    s.loc[s < 0] = s.loc[s < 0] / neg_max      # [-1, 0)
+
+    return s
+
+
+def plot_3_classifiers_sorted_by_helpfulness(
+    prefix: str,
+    scenario: int,
+    classifiers: list[str],
+    out_dir: str = "results/plots",
+    top_n: int | None = None,      # None -> all features
+    figsize_per_feature: float = 0.28,
+    normalize: bool = True,        # <-- added
 ):
+    assert len(classifiers) == 3, "Need exactly 3 classifiers."
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-    # load the 3 vectors
+    # load series
     vecs = []
     for clf in classifiers:
         csv_path = f"results/feature_importance_{prefix}_s{scenario}_{clf}.csv"
         s = load_importance_csv(csv_path).astype(float)
         vecs.append(s)
 
-    # Align by columns (feature names)
-    features = vecs[0].index.tolist()
-    M = np.vstack([v.values for v in vecs])  # shape: (3, n_features)
+    # align by common features (intersection)
+    common = vecs[0].index
+    for s in vecs[1:]:
+        common = common.intersection(s.index)
 
-    # pick top N features by mean importance across classifiers
-    mean_imp = M.mean(axis=0)
-    top_idx = np.argsort(mean_imp)[::-1][:top_n]
+    if len(common) == 0:
+        raise ValueError(f"No common features across {classifiers} for {prefix} scenario {scenario}")
 
-    top_features = [features[i] for i in top_idx]
-    M_top = M[:, top_idx]  # shape: (3, top_n)
+    vecs = [s.loc[common] for s in vecs]
 
-    # grouped bars
-    x = np.arange(top_n)
-    width = 0.25
+    n_features = len(common)
+    n_show = n_features if top_n is None else min(top_n, n_features)
 
-    plt.figure()
-    plt.bar(x - width, M_top[0], width, label=classifiers[0])
-    plt.bar(x,         M_top[1], width, label=classifiers[1])
-    plt.bar(x + width, M_top[2], width, label=classifiers[2])
+    fig_h = max(4.0, figsize_per_feature * n_show)
+    fig_w = 18.0
+    fig, axes = plt.subplots(1, 3, figsize=(fig_w, fig_h), constrained_layout=True)
 
-    plt.xticks(x, top_features, rotation=45, ha="right")
-    plt.ylabel("Feature importance")
-    plt.title(f"Feature importance comparison — {prefix}, scenario {scenario}")
-    plt.legend()
-    plt.tight_layout()
+    for ax, clf, s in zip(axes, classifiers, vecs):
+        # normalize to [-1, 1] with separate scaling for pos/neg
+        if normalize:
+            s = normalize_pos_neg_to_unit(s)
 
-    out_path = f"{out_dir}/fi_compare_{prefix}_s{scenario}.png"
-    plt.savefig(out_path, dpi=200)
-    plt.close()
+        # sort by helpfulness: highest -> lowest (positives first, negatives last)
+        s_sorted = s.sort_values(ascending=False).iloc[:n_show]
 
+        feats_sorted = s_sorted.index.tolist()
+        vals_sorted = s_sorted.values
+
+        y = range(len(feats_sorted))
+        ax.barh(y, vals_sorted)
+        ax.set_yticks(list(y))
+        ax.set_yticklabels(feats_sorted, fontsize=9)
+        ax.invert_yaxis()
+
+        ax.axvline(0, linewidth=1)
+        ax.grid(True, axis="x", alpha=0.25)
+        ax.set_title(clf)
+
+        if normalize:
+            ax.set_xlim(-1.0, 1.0)  # enforce shared comparable scale
+
+    title = f"Feature helpfulness (sorted) — {prefix}, scenario {scenario} (top={n_show})"
+    if normalize:
+        title += " [normalized ± to 1]"
+    fig.suptitle(title, fontsize=14)
+
+    xlabel = "Importance score (positive = helpful, negative = harmful)"
+    if normalize:
+        xlabel += " — normalized per classifier (pos/max_pos, neg/|min_neg|)"
+    fig.supxlabel(xlabel)
+
+    out_path = f"{out_dir}/fi_helpful_panels_{prefix}_s{scenario}.png"
+    fig.savefig(out_path, dpi=200)
+    plt.close(fig)
     return out_path
+
 
 
 def run_scenarios_for_feature_importance(
@@ -71,11 +112,20 @@ def run_scenarios_for_feature_importance(
     param: int = 0,
 ):
     scenario_models = {
-        #1: ["ocsvm", "lof", "ee"], #todo change back!
-        #2: ["rf", "knn", "bsvm"],
-        2: ["bsvm"],
-        #3: ["rf", "knn", "bsvm"],
+        1: ["ocsvm", "lof", "ee"],
+        2: ["rf", "knn", "bsvm"],
+        3: ["rf", "knn", "bsvm"],
     }
+    if prefix =="raw":
+        scenario_models = { #todo remove
+            2: ["rf"],
+            3: ["rf", "bsvm"],
+        }
+    else:
+        scenario_models = {  # todo remove
+            2: ["rf", "bsvm"],
+            3: ["rf", "bsvm"],
+        }
 
     fn_prefix = f"re{param}" if prefix == "re" else "raw"
     Path("results").mkdir(exist_ok=True)
@@ -116,7 +166,7 @@ def run_scenarios_for_feature_importance(
 
 
 def all_feature_importance(k: int, global_label_encoder):
-    scenarios = [1, 2, 3]
+
     Path("results").mkdir(exist_ok=True)
 
     # ---------------- RAW ----------------
@@ -129,16 +179,18 @@ def all_feature_importance(k: int, global_label_encoder):
     )
 
     # ---------------- RE15 ----------------
-    #keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
-    #run_scenarios_for_feature_importance( #todo change back
-    #    k=k,
-    #    global_label_encoder=global_label_encoder,
-    #    prefix="re",
-    #    keep_indices=keep_indices,
-    #    param=15,
-    #)
+    keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
+    run_scenarios_for_feature_importance(
+        k=k,
+        global_label_encoder=global_label_encoder,
+        prefix="re",
+        keep_indices=keep_indices,
+        param=15,
+    )
+    return
 
-    # ---------------- PLOTS ----------------
+
+def plot_all_feature_importance(out_dir="results/plots"):
     scenario_models = {
         1: ["ocsvm", "lof", "ee"],
         2: ["rf", "knn", "bsvm"],
@@ -147,15 +199,10 @@ def all_feature_importance(k: int, global_label_encoder):
 
     for prefix in ["raw", "re15"]:
         for scenario, models in scenario_models.items():
-            plot_compare_3_classifiers(
+            plot_3_classifiers_sorted_by_helpfulness(
                 prefix=prefix,
                 scenario=scenario,
                 classifiers=models,
-                top_n=32,  # plot all features
-                out_dir="results/plots"
+                out_dir=out_dir,
+                top_n=None
             )
-
-
-    return
-
-    return

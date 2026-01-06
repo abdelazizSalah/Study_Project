@@ -1,4 +1,5 @@
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
 from sklearn.metrics import (
     classification_report,
     precision_score,
@@ -6,7 +7,7 @@ from sklearn.metrics import (
     f1_score
 )
 import joblib
-
+import numpy as np
 
 
 def binary_rf_train(X_train, y_train,
@@ -29,6 +30,49 @@ def binary_rf_train(X_train, y_train,
 
     print("Random Forest training done")
     return rf_clf
+
+def rf_permutation_importance(
+    X_test,
+    y_test,
+    n_samples=3000,
+    n_repeats=1,
+    random_state=0,
+    model_path="models/brf.joblib",
+    scoring="f1"
+):
+    """
+    Permutation feature importance for supervised binary Random Forest.
+    Uses a subsampled test set for efficiency.
+    Returns: result.importances_mean (can include small negatives).
+    """
+    rf_model = joblib.load(model_path)
+    rng = np.random.default_rng(random_state)
+
+    # ---------------------------
+    # Subsample test data
+    # ---------------------------
+    if len(X_test) > n_samples:
+        idx = rng.choice(len(X_test), size=n_samples, replace=False)
+        X_sub = X_test[idx]
+        y_sub = y_test[idx]
+    else:
+        X_sub = X_test
+        y_sub = y_test
+
+    # ---------------------------
+    # Permutation importance
+    # ---------------------------
+    result = permutation_importance(
+        rf_model,
+        X_sub,
+        y_sub,
+        scoring=scoring,          # keep consistent with KNN (you used "f1")
+        n_repeats=n_repeats,
+        random_state=random_state,
+        n_jobs=-1
+    )
+
+    return result.importances_mean
 
 
 def binary_rf_train_and_get_importance(X_train, y_train):
