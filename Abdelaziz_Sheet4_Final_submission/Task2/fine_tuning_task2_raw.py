@@ -34,7 +34,6 @@ def task2_sheet4_main():
     # K is the number of latent/noise samples (or reconstructions) used to compute an anomaly score.
     K = [128,256]
 
-
     # a lower bound on acceptable discriminator loss to avoid D dominating G
     # if d_loss < D_LOSS_TOO_LOW: skip D update
     D_LOSS_TOO_LOW = [0.1, 0.05]   # D dominating
