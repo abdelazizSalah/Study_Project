@@ -1,0 +1,6 @@
+AE classifier performance across dataset types: For RAW, RE5, and RE10 the AE classifier shows F1 values close to 1.0 (RAW: 0.991, RE5: 0.993, RE10: 0.993).
+Precision and recall are also high in these settings (precision: RAW 0.984, RE5 0.991, RE10 0.991; recall: RAW 0.998, RE5 0.994, RE10 0.996).
+Compared to RAW, RE5 and RE10 have slightly higher F1 and precision.
+
+For RE15 the performance drops significantly (F1: 0.081, precision: 0.217, recall: 0.056).
+The low recall indicates many false negatives, and the low precision indicates a high proportion of false positives among the predicted positives.

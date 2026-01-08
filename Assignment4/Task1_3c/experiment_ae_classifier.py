@@ -35,8 +35,8 @@ def save_barplot(order, values, title, ylabel, out_path):
     fig, ax = plt.subplots()
 
     bars = ax.bar(order, values)
-    ax.set_ylim(0.0, 1.08)              # <-- give room above 1.0
-    ax.set_title(title, pad=12)         # <-- push title up a bit
+    ax.set_ylim(0.0, 1.08)
+    ax.set_title(title, pad=12)
     ax.set_xlabel("Dataset Type")
     ax.set_ylabel(ylabel)
 
@@ -82,18 +82,21 @@ def mse_per_sample(model, X, batch_size=512):
     """
     X = np.asarray(X, dtype=np.float32)
     X_rec = model.predict(X, batch_size=batch_size, verbose=0)
-    return np.mean((X - X_rec) ** 2, axis=1)
+    return np.mean((X - X_rec) ** 2, axis=1)    #average mse over all bytes per datapoint
 
 def threshold_from_train_normal(model, X_train, y_train, percentile=95, batch_size=512):
     """
     Compute gamma ONLY from normal/control samples in training fold.
     y_train: 0=normal/control, 1=attack
     """
-    X_norm = X_train[y_train == 0]
+    X_norm = X_train[y_train == 0]  #select only control training samples
+
+    #sanity check
     if X_norm.shape[0] == 0:
         raise ValueError("No normal samples in training fold -> cannot compute gamma.")
+
     errors = mse_per_sample(model, X_norm, batch_size=batch_size)
-    gamma = float(np.percentile(errors, percentile))
+    gamma = float(np.percentile(errors, percentile)) #95% of the normal errors are ≤ gamma, sorts and sets threshold below top 5 highest
     return gamma
 
 def ae_predict_labels(model, X, gamma, batch_size=512):
@@ -102,7 +105,7 @@ def ae_predict_labels(model, X, gamma, batch_size=512):
     returns: y_pred (0/1), errors (per sample)
     """
     errors = mse_per_sample(model, X, batch_size=batch_size)
-    y_pred = (errors > gamma).astype(int)
+    y_pred = (errors > gamma).astype(int) #attack (1), if higher than threshold
     return y_pred, errors
 
 def precision_recall_f1(y_true, y_pred):
@@ -119,9 +122,7 @@ def precision_recall_f1(y_true, y_pred):
     return precision, recall, f1
 
 
-#indices not restored
-#splits ds based on indices!
-#timeestamps should be a list of all timestamps fot the dataset
+
 def split_training_and_test(ds, labels, train_indices_fold, test_indices_fold):
 
     # separate features
@@ -142,8 +143,8 @@ def execute_fold_ae(
     fold_idx,
     binary_numeric_labels,
     param,
-    train_idx,  #for fold
-    test_idx,   #for fold
+    train_idx,
+    test_idx,
     percentile=95,
     batch_size=512
 ):
@@ -170,11 +171,6 @@ def execute_fold_ae(
     X_train, X_test, y_train, y_test = split_training_and_test(
         ds, binary_numeric_labels, train_idx, test_idx)
 
-
-    # IMPORTANT: model must correspond to this fold (trained on that fold's train normals)
-
-
-    # gamma from TRAIN NORMAL ONLY
     gamma = threshold_from_train_normal(
         model, X_train, y_train, percentile=percentile, batch_size=batch_size
     )
@@ -215,12 +211,6 @@ def run_ae_for_scenario(
         if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
             continue
 
-        tr_idx = np.array(train_indices[fold_idx], dtype=int)
-        te_idx = np.array(test_indices[fold_idx], dtype=int)
-        if tr_idx.size == 0 or te_idx.size == 0:
-            continue
-
-
         try:
             p, r, f1, gamma = execute_fold_ae(
                 fold_idx=fold_idx,
@@ -232,8 +222,7 @@ def run_ae_for_scenario(
                 batch_size=batch_size
             )
         except ValueError as e:
-            # Most common: no normal samples in train fold -> can't compute gamma
-            # Skip fold rather than crash
+
             print(f"[Fold {fold_idx}] skipped: {e}")
             continue
 
@@ -258,10 +247,9 @@ def run_ae_classifier_on_dataset(prefix, param, global_label_encoder):
     Returns avg_p, avg_r, avg_f1.
     """
 
-    # 1) train models for this representation (saves per-fold .keras)
     train_and_save_models_classifier(prefix)
 
-    # 2) handle RE bookkeeping
+
     if param != 0:
         # make sure the path includes .npy
         keep_indices = get_keep_indices_from_fold0_ae(f"datasets/re_bytes_{param}.npy")
@@ -270,7 +258,6 @@ def run_ae_classifier_on_dataset(prefix, param, global_label_encoder):
         keep_indices = []
         prefix_for_files = "raw"
 
-    # 3) run scenario (your function currently prints per fold; see note below)
     avg_p, avg_r, avg_f1 = run_ae_for_scenario(
         prefix=prefix_for_files,
         global_label_encoder=global_label_encoder,
@@ -279,11 +266,9 @@ def run_ae_classifier_on_dataset(prefix, param, global_label_encoder):
         percentile=95
     )
 
-    # 4) write dataset-level summary to CSV
     out_dir = Path("results")
     out_dir.mkdir(exist_ok=True)
 
-    # one summary file for all runs (append)
     summary_path = out_dir / "ae_summary.csv"
     write_header = not summary_path.exists()
 

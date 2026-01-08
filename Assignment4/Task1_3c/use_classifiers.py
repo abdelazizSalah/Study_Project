@@ -1,29 +1,18 @@
 ###############################################################
-import csv
-import os
-import time
 
-import joblib
-from sklearn.covariance import EllipticEnvelope
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
-from sklearn.svm import SVC, OneClassSVM
-import pandas as pd
+import time
 from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, \
     local_outlier_factor_predict_error_overlap, lof_permutation_importance
-from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds
-from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
-    grid_search_random_forest, grid_search_knn, grid_search_lof_parallel
 from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict_error_overlap, knn_permutation_importance
 from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluate, \
     elliptic_envelope_predict_error_overlap, ee_permutation_importance
 from file_helper_t3 import load_k_fold_results
 from random_forest import binary_rf_train, binary_rf_evaluate, binary_rf_predict_error_overlap, \
-    binary_rf_train_and_get_importance, rf_permutation_importance
+    binary_rf_train_and_get_importance
 from labels_helper import encode_labels
 from svm import one_class_svm_evaluate, binary_svm_train, binary_svm_evaluate, one_class_svm_predict_error_overlap, \
-    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, bsvm_permutation_importance
+    one_class_svm_train, binary_svm_predict_error_overlap, ocsvm_permutation_importance, get_bsvm_feature_importance
 import numpy as np
 
 #indices not restored
@@ -72,7 +61,7 @@ def execute_fold_feature_importance(
     elif classifier == "bsvm":
         binary_svm_train(X_train, y_train)
         print("Calculating Importance Score BSVM")
-        importance_score=bsvm_permutation_importance(X_test, y_test)
+        importance_score = get_bsvm_feature_importance()
 
     elif classifier == "ee":
         elliptic_envelope_train(X_train)
@@ -81,10 +70,8 @@ def execute_fold_feature_importance(
             X_test, y_test)
 
     elif classifier == "rf":
-        print("Training and calculating Importance Score EE")
-        importance_score=binary_rf_train(X_train, y_train)
-        print("Calculating Importance Score RF")
-        importance_score = rf_permutation_importance(X_train, y_train)
+        print("Training and calculating Importance Score RF")
+        importance_score = binary_rf_train_and_get_importance(X_train, y_train)
 
     elif classifier == "knn":
         binary_knn_train(X_train, y_train)
@@ -123,11 +110,6 @@ def execute_scenario_feature_importance(
     for fold_idx in range(k):
         if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
             continue
-
-        if scenario in (2, 3):
-            y_tr = binary_numeric_labels[train_indices[fold_idx]]
-            if np.unique(y_tr).size < 2:
-                continue
 
         imp = execute_fold_feature_importance(
             fold_idx,
@@ -338,7 +320,7 @@ def execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps,
                                  train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
 
 
-    if param!=0:
+    if param!=0:    #re15
         ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
         print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RE{param}.")
     else:
@@ -408,15 +390,7 @@ def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, 
 
     prediction_errors_all_folds=[]
     for fold_idx in range(k):
-        if fold_idx==2:
-            continue #todo remove
-        if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
-            continue
-            
-        if scenario in (2, 3):
-            y_tr = binary_numeric_labels[train_indices[fold_idx]]
-            if np.unique(y_tr).size < 2:
-                continue
+
         prediction_errors_fold = execute_fold_error_overlap(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_indices, param=param)
 
         #summarize prediction_errors for all folds for whole dataset
@@ -429,222 +403,3 @@ def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, 
     return prediction_errors_all_folds ##returns list [0,1,0,1,1,0,0,...] for testing for all folds -> 1 for error, 0 for no error
 
 
-def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
-                                 train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
-    """Train with grid search, save best model, then use *_evaluate for metrics."""
-
-    if param!=0:
-        ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
-        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RE{param}.")
-    else:
-        ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")
-        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RAW.")
-
-    #for task d - f
-    X_train, X_test, y_train, y_test, t_train, t_test = split_training_and_test(
-        ds, binary_numeric_labels, timestamps, train_indices, test_indices
-    )
-
-    if classifier == "ocsvm":
-        base = OneClassSVM()
-        best_model = grid_search_one_class_svm(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
-        # overwrite the model file used by one_class_svm_evaluate
-        joblib.dump(best_model, "models/ocsvm.joblib")
-        roc_auc, precision, recall = one_class_svm_evaluate(X_test, y_test)
-
-    elif classifier == "bsvm":
-        base = SVC(probability=True, random_state=42)
-        best_model = grid_search_svm(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
-        joblib.dump(best_model, "models/bsvm.joblib")  # adjust name if different in your code
-        precision, recall, f1 = binary_svm_evaluate(X_test, y_test)
-
-    elif classifier == "ee":
-        base = EllipticEnvelope()
-        best_model = grid_search_elliptic_envelope(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
-        joblib.dump(best_model, "models/ee.joblib")    # adjust filename to match your evaluate()
-        roc_auc, precision, recall = elliptic_envelope_evaluate(X_test, y_test)
-
-    elif classifier == "rf":
-        base = RandomForestClassifier(random_state=42, n_jobs=1)
-        best_model = grid_search_random_forest(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
-        joblib.dump(best_model, "models/brf.joblib")   # whatever binary_rf_train uses
-        precision, recall, f1 = binary_rf_evaluate(X_test, y_test)
-
-    elif classifier == "knn":
-        base = KNeighborsClassifier(n_jobs=1)
-        best_model = grid_search_knn(base, X_train, y_train, X_test, y_test, scoring_metric="f1_macro")
-        joblib.dump(best_model, "models/bknn.joblib")  # adjust to your filename
-        precision, recall, f1 = binary_knn_evaluate(X_test, y_test)
-    elif classifier == "lof":
-        base = LocalOutlierFactor(novelty=True, n_jobs=1)  #without novelty=True, LOF cannot score unseen samples
-        best_model = grid_search_lof_parallel(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
-        joblib.dump(best_model, "models/lof.joblib")  # adjust to your filename
-        roc_auc, precision, recall = local_outlier_factor_evaluate(X_test, y_test)
-    else:
-        print("wrong classifier choice")
-        return 0.0, 0.0, 0.0, 0.0
-
-    return precision, recall
-
-
-#train and test indices for each fold ([[][],...]
-def execute_scenario_for_experiments(global_label_encoder, classifier, k, prefix, scenario, keep_inidces=0, param=0):
-
-    labels=np.load(f"datasets/{prefix}_labels.npy")
-    timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
-
-
-    #load train_indices and test_indices for specific scenario
-    #contain indices for all of the k folds
-    train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
-
-
-    #for task d - f:
-    if param!=0:
-        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_inidces)
-        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_inidces)
-
-
-
-    numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
-    binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
-
-    precision_all_folds=[]
-    recall_all_folds=[]
-    for fold_idx in range(k):
-        precision, recall  = execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_inidces, param=param)
-        precision_all_folds.append(precision)
-        recall_all_folds.append(recall)
-
-    return precision_all_folds, recall_all_folds
-
-
-
-def execute_experiments_abc(global_label_encoder, k):
-    """
-    Run all classifiers on all appropriate scenarios, collect per-fold
-    precision/recall, and save them as CSV files in ./results.
-    Runs on dataset RAW, suitable for task a to c.
-    """
-
-
-    #small helper returns the valid scenarios per model
-    def valid_scenarios_for(clf_name: str):
-        # OCSVM & EE are only defined for Scenario 1
-        if clf_name in ("ocsvm", "ee", "lof"):
-            return [1]
-        # BSVM, RF, kNN are defined for Scenarios 2 & 3
-        elif clf_name in ("bsvm", "rf", "knn"):
-            return [2, 3]
-        else:
-            return []
-
-    #run one scenario for a specific model
-    def run_one(clf_name, scen):
-        print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RAW)\n")
-
-        precisions, recalls = execute_scenario_for_experiments(
-            global_label_encoder,
-            classifier=clf_name,
-            k=k,
-            prefix="raw",  # RAW features as required here
-            scenario=scen,
-        )
-
-
-        precisions = list(precisions)
-        recalls = list(recalls)
-
-        # One file per classifier+scenario (RAW explicitly in the filename)
-        out_path = os.path.join("results", f"{clf_name}_scenario{scen}_raw.csv")
-
-        with open(out_path, "w", newline="") as f:
-            writer = csv.writer(f)
-
-            writer.writerow(["fold", "precision", "recall"])    #header
-
-            for fold_idx, (p, r) in enumerate(zip(precisions, recalls)):
-                writer.writerow([fold_idx, p, r])
-
-        print(f"[classifiers] Saved results to {out_path}")
-
-    # Always run all classifiers with all their valid scenarios
-    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn", "lof"]
-
-    for clf_name in classifiers_to_run:
-        scenarios_for_clf = valid_scenarios_for(clf_name)
-        for scen in scenarios_for_clf:
-            run_one(clf_name, scen)
-
-
-    return
-
-
-
-
-#1. compute keep_indices for re_bytes_{param}
-#2. when using labels, timestamps or k folds -> deduplicate based on keep_indices
-#3. use remaining logic as it is
-# execute this for param: 5,10,15
-def execute_experiments_def(global_label_encoder, k, param=5):
-    """
-    Run all classifiers on all appropriate scenarios, collect per-fold
-    precision/recall, and save them as CSV files in ./results.
-    Runs on dataset /re_bytes_{param}/re_features_fold{param}, suitable for task d to f.
-    """
-
-    #calculate keep_indices for file!
-
-    keep_indices=get_keep_indices_from_fold0(f"datasets/re_bytes_{param}/re_features_fold{param}", f"re{param}")
-    print(f"For RE{param} - {len(keep_indices)} datapoints are used.")
-
-    #only run the valid scenarios
-    def valid_scenarios_for(clf_name: str):
-        # OCSVM & EE are only defined for Scenario 1
-        if clf_name in ("ocsvm", "ee", "lof"):
-            return [1]
-        # BSVM, RF, kNN are defined for Scenarios 2 & 3
-        elif clf_name in ("bsvm", "rf", "knn"):
-            return [2, 3]
-        else:
-            return []
-
-    def run_one(clf_name, scen, param):
-        print(f"\n[classifiers] Running {clf_name} on Scenario {scen} (RE{param})\n")
-
-        precisions, recalls = execute_scenario_for_experiments(
-            global_label_encoder,
-            classifier=clf_name,
-            k=k,
-            prefix="re",  # RAW features as required here
-            scenario=scen,
-            keep_inidces=keep_indices,
-            param=param
-        )
-
-        # Convert to plain lists in case they are NumPy arrays
-        precisions = list(precisions)
-        recalls = list(recalls)
-
-        # One file per classifier+scenario (RAW explicitly in the filename)
-        out_path = os.path.join("results", f"{clf_name}_scenario{scen}_re{param}.csv")
-
-        with open(out_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["fold", "precision", "recall"])
-
-            for fold_idx, (p, r) in enumerate(zip(precisions, recalls)):
-                writer.writerow([fold_idx, p, r])
-
-        print(f"[classifiers] Saved results to {out_path}")
-
-    # Always run all classifiers with all their valid scenarios
-    classifiers_to_run = ["ocsvm", "bsvm", "ee", "rf", "knn", "lof"]
-
-    for clf_name in classifiers_to_run:
-        scenarios_for_clf = valid_scenarios_for(clf_name)
-        for scen in scenarios_for_clf:
-            run_one(clf_name, scen, param)
-
-
-    return

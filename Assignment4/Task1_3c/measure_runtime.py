@@ -13,30 +13,31 @@ from feature_creation_autoencoder import train_and_save_models_rt, create_featur
 def bytes_to_mb(num_bytes):
     return num_bytes / (1024 ** 2)
 
-
-def start_ram_monitor(interval=0.1):
+#start a RAM monitor thread
+def start_ram_monitor(interval=0.1):                    # take RAM sample every `interval` seconds
     """
-    Starts a background thread that tracks peak RSS of process.
+    Starts a background thread that tracks peak RSS (Resident Set Size) (physical RAM process is currently using) of process.
     Returns a handle (dict) that must be passed to stop_ram_monitor().
     """
-    proc = psutil.Process(os.getpid())
-    stop_event = threading.Event()
-    peak_holder = {"peak": 0}
+    proc = psutil.Process(os.getpid())                 # psutil Process object for the current Python process
+    stop_event = threading.Event()                   # event flag used to tell the monitor thread to stop
+    peak_holder = {"peak": 0}                          # stores peak RAM
 
-    def _monitor():
-        while not stop_event.is_set():
-            rss = proc.memory_info().rss
-            if rss > peak_holder["peak"]:
-                peak_holder["peak"] = rss
-            time.sleep(interval)
+    def _monitor():                               # function that runs in the background thread
+        while not stop_event.is_set():           # keep sampling until stop_event is set
+            rss = proc.memory_info().rss     # read current RSS (resident set size) in bytes
+            if rss > peak_holder["peak"]:      # check if this sample is a new maximum
+                peak_holder["peak"] = rss              # store new peak RSS
+            time.sleep(interval)                       # waits for <interval> seconds (to not add overhead which would distort the memory measurement)
 
         # final read
-        rss = proc.memory_info().rss
-        peak_holder["peak"] = max(peak_holder["peak"], rss)
+        rss = proc.memory_info().rss                   # read RSS one final time
+        peak_holder["peak"] = max(peak_holder["peak"], rss)  # keep larger value: existing peak or final sample
 
-    thread = threading.Thread(target=_monitor, daemon=True)
-    thread.start()
+    thread = threading.Thread(target=_monitor, daemon=True)  # create a daemon thread that runs _monitor()
+    thread.start()                                     # start the background monitoring thread
 
+    # return a handle so the caller can stop the thread and read peak
     return {
         "stop_event": stop_event,
         "thread": thread,
@@ -48,9 +49,9 @@ def stop_ram_monitor(handle):
     """
     Stops the RAM monitor and returns peak RSS in bytes.
     """
-    handle["stop_event"].set()
-    handle["thread"].join(timeout=2.0)
-    return handle["peak_holder"]["peak"]
+    handle["stop_event"].set()                         # set stop flag
+    handle["thread"].join(timeout=2.0)                 # wait up to 2 seconds for the thread to finish cleanly (join blocks target thread until current thread exits)
+    return handle["peak_holder"]["peak"]               # return the recorded peak RSS
 
 
 
@@ -70,8 +71,9 @@ def _block(title: str, feature_label: str, lines: list[str]) -> str:
 
 
 def _log_ae_training(feature_label: str, out_file: str, prefix_for_training: str) -> None:
-    avg_runtime, avg_peak_ram = train_and_save_models_rt(prefix_for_training)
+    avg_runtime, avg_peak_ram = train_and_save_models_rt(prefix_for_training) #for RAW or RE15
 
+    #appends results to output file
     _append(
         out_file,
         _block(
@@ -191,7 +193,7 @@ def measure_all(k: int, global_label_encoder) -> None:
     _log_classifiers_for_feature_type(
         k=k,
         global_label_encoder=global_label_encoder,
-        prefix="re",  # IMPORTANT: was wrongly "raw" in your old code
+        prefix="re",
         feature_label="RE15 feature type",
         out_file=re_file,
         keep_indices=keep_indices,

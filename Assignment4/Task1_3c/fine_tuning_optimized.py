@@ -12,9 +12,6 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.neighbors import KNeighborsClassifier
 
 
-# -------------------------------------------------------------------
-# Helper functions (shared by all grid searches)
-# -------------------------------------------------------------------
 
 def _iter_param_grid(param_grid: dict):
     """Yield all combinations of a param grid as dicts."""
@@ -76,13 +73,7 @@ def grid_search_random_forest(
     if n_jobs is None:
         n_jobs = N_JOBLIB
 
-    # You can shrink/enlarge this grid if needed
-    # param_grid = {
-    #     "n_estimators": [100, 200],
-    #     "max_depth": [None, 10, 20],
-    #     "min_samples_split": [2, 5],
-    #     "min_samples_leaf": [1, 2],
-    # }
+
     param_grid = {
         "n_estimators": [50],
         "max_depth": [None],

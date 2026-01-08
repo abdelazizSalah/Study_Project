@@ -1,7 +1,6 @@
 from sklearn.inspection import permutation_importance
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import (
-    roc_auc_score,
     classification_report,
     precision_score,
     recall_score,
@@ -9,7 +8,6 @@ from sklearn.metrics import (
 )
 import joblib
 import numpy as np
-import pandas as pd
 
 
 def binary_knn_train(
@@ -77,9 +75,6 @@ def binary_knn_predict_error_overlap(X_test, y_test):
     y_pred_binary = knn_clf.predict(X_test).astype(int)
     prediction_errors = (y_pred_binary != y_test).astype(int)
     return prediction_errors
-
-
-
 
 
 def knn_permutation_importance(

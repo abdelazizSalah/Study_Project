@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 
+from measure_runtime import measure_all
 from plot_runtime import plot_all_runtimes
 from experiment_ae_classifier import run_experiment_ae_classifier, make_ae_metric_plots
 
@@ -10,7 +11,6 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 from sklearn.preprocessing import LabelEncoder
 from error_overlap import all_error_overlaps, plot_all_error_overlaps
-from measure_runtime import measure_all
 from handling_re_bytes_integrated import create_preprocessed_re_files
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
 from file_helper_t3 import load_k_fold_results
@@ -133,8 +133,22 @@ MODE DETAILS
         across folds are not.
 
   measure_runtime
+     Measures average runtime and peak RAM for all classifiers using the datatypes RAW and RE15 over all folds.
+     Creates plots.
      Prerequisites: 'dataset_preprocessing' and 'k_fold' was executed.
+  
+  error_overlap
+    Measures error overlaps for all classifiers using the datatypes RAW and RE15 over all folds.
+    Creates plots.
+    Prerequisites: 'dataset_preprocessing', 'k_fold' and 'measure_runtime' was executed.
 
+  feature_importance
+    Measures feature importance for all classifiers using the datatypes RAW and RE15 over all folds. Creates plots.
+    Prerequisites: 'dataset_preprocessing', 'k_fold' and 'measure_runtime' was executed.
+    
+  experiment_ae_classifier
+    Exceutes experiments on all datatypes and folds, using the autoencoder as a classifier. Evaluates results and creates plots.
+    Prerequisites: 'dataset_preprocessing' and 'k_fold' was executed. Autoencoder base models for RAW and RE15 in the 'models' path.
 """
 
     parser = argparse.ArgumentParser(
@@ -238,14 +252,14 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         os.makedirs("results", exist_ok=True)
-        #measure_all(k, global_label_encoder)
+        measure_all(k, global_label_encoder)
         plot_all_runtimes()
     elif args.mode == "error_overlap":
         #execute measure runtime to generate feature files for raw and re15
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
-        #all_error_overlaps(k, global_label_encoder)
+        all_error_overlaps(k, global_label_encoder)
         plot_all_error_overlaps()
     elif args.mode == "feature_importance":
         #execute measure runtime to generate feature files for raw and re15
@@ -253,12 +267,12 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_feature_extraction_mode()
         all_feature_importance(k, global_label_encoder)
-        #plot_all_feature_importance()
+        plot_all_feature_importance()
     elif args.mode == "experiment_ae_classifier":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         check_requirements_ae_classifier()
-        #run_experiment_ae_classifier(global_label_encoder)
+        run_experiment_ae_classifier(global_label_encoder)
         make_ae_metric_plots()
 
 

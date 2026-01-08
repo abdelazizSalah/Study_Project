@@ -71,10 +71,10 @@ def one_class_svm_predict_error_overlap(X_test, y_test):
         raise FileNotFoundError("models/ocsvm.joblib not found. Please train first.")
 
     y_pred_numeric = ocsvm.predict(X_test)  # +1 normal, -1 attack
-    y_pred_binary = np.where(y_pred_numeric == -1, 1, 0).astype(int)
+    y_pred_binary = np.where(y_pred_numeric == -1, 1, 0).astype(int) #convert -1 to 1, 1 to 0
 
-    prediction_errors = (y_pred_binary != y_test).astype(int)
-    return prediction_errors
+    prediction_errors = (y_pred_binary != y_test).astype(int) #prediction != label -> error
+    return prediction_errors    #returns binary list -> 1 if error at that dp index, else 0
 
 
 def ocsvm_f1_scorer(estimator, X, y_true):
@@ -99,15 +99,13 @@ def ocsvm_permutation_importance(X_test, y_test, n_samples=2000, n_repeats=3,ran
         y_sub = y_test
 
 
-    # ---------------------------
-    # Permutation importance
-    # ---------------------------
+    #calculates base score,removes feature, calculates new score (improvement/harm)
     result = permutation_importance(
         ocsvm_model,
         X_sub,
         y_sub,
         scoring=ocsvm_f1_scorer,
-        n_repeats=n_repeats,
+        n_repeats=n_repeats, #overall it is repeated n times nd averaged
         random_state=random_state,
         n_jobs=-1
     )
@@ -172,46 +170,28 @@ def binary_svm_predict_error_overlap(X_test, y_test):
     return prediction_errors
 
 
-def bsvm_permutation_importance(
-    X_test,
-    y_test,
-    n_samples=3000,
-    n_repeats=1,
-    random_state=0,
-    model_path="models/bsvm.joblib",
-    scoring="f1"
-):
+def get_bsvm_feature_importance():
     """
-    Permutation feature importance for supervised binary SVM (or pipeline).
-    Uses a subsampled test set for efficiency.
-    Returns: result.importances_mean (can be negative).
+    importance : np.ndarray of shape (n_features,)
+        Absolute value of the learned weight vector.
     """
-    bsvm_model = joblib.load(model_path)
-    rng = np.random.default_rng(random_state)
-
-    # ---------------------------
-    # Subsample test data
-    # ---------------------------
-    if len(X_test) > n_samples:
-        idx = rng.choice(len(X_test), size=n_samples, replace=False)
-        X_sub = X_test[idx]
-        y_sub = y_test[idx]
+    bsvm_model = joblib.load("models/bsvm.joblib")
+    # If this is a pipeline, extract the final SVM step
+    if hasattr(bsvm_model, "named_steps"):
+        svm = bsvm_model[-1]
     else:
-        X_sub = X_test
-        y_sub = y_test
+        svm = bsvm_model
 
-    # ---------------------------
-    # Permutation importance
-    # ---------------------------
-    result = permutation_importance(
-        bsvm_model,     # pipeline or estimator is fine
-        X_sub,
-        y_sub,
-        scoring=scoring,          # keep consistent with your other PI runs
-        n_repeats=n_repeats,
-        random_state=random_state,
-        n_jobs=-1
-    )
+    if not hasattr(svm, "coef_"):
+        raise ValueError(
+            "The provided SVM model does not expose coef_. "
+            "Make sure kernel='linear' was used."
+        )
 
-    return result.importances_mean
+    # coef_ shape: (1, n_features) for binary classification
+    weights = svm.coef_.ravel()
 
+    # importance = absolute contribution
+    importance = np.abs(weights)
+
+    return importance

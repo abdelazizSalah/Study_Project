@@ -9,7 +9,6 @@ from sklearn.metrics import (
     recall_score, f1_score
 )
 import numpy as np
-import pandas as pd
 import joblib
 
 

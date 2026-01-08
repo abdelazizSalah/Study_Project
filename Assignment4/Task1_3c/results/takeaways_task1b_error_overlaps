@@ -1,0 +1,11 @@
+For RE15, the overlap increases strongly from scenario 1 to scenarios 2 and 3.
+In scenario 1, there are still many classifier-specific errors (each model has a large “only” region), and the triple overlap is present but not dominant,
+meaning the classifiers behave differently and disagree on a substantial portion of misclassifications.
+In scenario 2, the gray triple intersection becomes the dominant region (1304), while the unique regions are comparatively small (161 for RF, 181 for kNN, 35 for bSVM).
+This indicates that under RE15 in scenario 2, most errors are shared across all classifiers and only a small fraction depends on the classifier choice.
+In scenario 3, the gray region is effectively the entire diagram (636), meaning all three classifiers misclassify exactly the same instances.
+This is the strongest possible agreement and implies that, for RE15 scenario 3, changing the classifier does not change the error set at all.
+
+For RAW, the total number of errors is massively larger, and in scenarios 1 and 2 the diagrams are dominated by very large pairwise overlaps (especially OCSVM with EE in scenario 1, and RF with bSVM in scenario 2).
+This suggests that some classifier pairs behave very similarly on RAW features, while the third classifier adds relatively little additional unique error mass.
+In scenario 3 (RAW), the triple overlap is again extremely dominant, meaning that even with RAW, most errors in scenario 3 are shared across all classifiers and therefore reflect a common set of difficult instances rather than model-specific weaknesses.

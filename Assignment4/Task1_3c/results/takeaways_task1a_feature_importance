@@ -1,0 +1,67 @@
+For Feature Importance each classifier is normalized seperately to [-1,1].
+
+RAW
+
+Scenario 1
+Across all three models, f27 is consistently among the top three most helpful features,
+while f14 and f8 are consistently among the top four most harmful features.
+Both OCSVM and EE show only a small number of positively contributing features, and each is dominated by a single standout feature (OCSVM: f13, EE: f26).
+In contrast, LOF spreads its positive importance across several features (notably f27, f0, f29, f9, f26) and differs more strongly in which features it relies on.
+There are also clear model-specific disagreements in sign: some features are harmful in one model but helpful in another (e.g., f29 is strongly helpful for LOF but harmful for EE).
+Overall, f0 and f29 matter a lot for LOF but not for OCSVM/EE, and f26 is the key feature for EE (and also positive for LOF) but not a top feature for OCSVM. Within-model rankings are:
+OCSVM—most helpful f13, f27, f6, f12, f25; most harmful f14, f8, f24, f21. LOF—most helpful f27, f0, f29, f9, f26; most harmful f8 followed by a second tier (e.g., f25/f18/f14).
+EE—most helpful f26, f21, f27, f22; most harmful f24, f14, f8, f18.
+
+Scenario 2:
+RF is dominated by a few features, with f27 clearly the top one, followed by f8, f16, f29, f9 (then a mid-tier like f5, f1, f23, f13, f0).
+Most remaining features are small. KNN shows strong positive and strong negative features.
+The most helpful are f4 and f8, then f23, f16, f19 (plus f7/f30/f6 as the next group).
+The most harmful are f25 and f13 (very large negatives), then f3 (and a smaller negative group like f18/f10/f14).
+BSVM concentrates on a different top set than RF/KNN. The largest weights are f28 and f18, then f10, f14, followed by f31, f30, f15.
+After that, many features are relatively small.
+f8 and f23/f16 are high for both RF and KNN, suggesting they matter for multiple decision rules.
+BSVM’s top features (f28, f18) don’t appear as top features in RF/KNN, which suggests the linear separator is relying on a different subset than the non-linear / neighbor-based approaches.
+
+Scenario 3:
+RF: importance is fairly spread out, but the top features are clearly f23 (highest), then f6, f27, f13, f10. After that there’s a long mid-tier (e.g., f8, f5, f9, f0, f7, f14, f26, f1, f21…).
+KNN: has strong positives and strong negatives. Most helpful: f8 (clear #1), then f15, then f5, followed by f9, f0, f21, f27.
+Most harmful: f18 (dominant negative), then f22, then f2; next negative tier includes f10 and f14.
+BSVM dominated by a small set of large weights: f18 and f28 are the top two, then f10 and f14, followed by f30, f31, f15. Many remaining features are comparatively small.
+f27 shows up as important across all three models (high in RF, clearly positive in KNN, mid/high in BSVM).
+f8 is consistently “relevant”: it’s top positive for KNN and also relatively high for RF (and mid-tier for BSVM).
+Strong disagreement around f18 across the classifiers.
+
+
+RE15:
+
+Scenario 1:
+For RE15 / Scenario 1, all three classifiers show the same overall pattern:
+all features are considered harmful (all importance values are negative),
+and most features have similarly high negative scores, i.e., there is no clear subset of features that helps the models.
+F1, stands out as one of the least harmful features across the classifiers.
+For OCSVM features are harmful, with many having very similar negative scores.
+The least harmful features are at the top (notably f27, f28, f1, f5, f19).
+The most harmful features are at the bottom, with f16 being the most harmful, followed by f2, f3, f29, f26.
+LOF shows an even more uniform pattern: almost all features have similarly strong negative values.
+f1 is the least harmful feature (closest to 0), followed by f10, f25, f5, f27.
+The most harmful features are at the bottom, with f30 as the most harmful, followed by f13, f2, f11 (and then a very similar cluster).
+EE also assigns negative importance to essentially all features, but with a slightly clearer gradient at the top.
+The least harmful features are f20 (top), then f5 and f6.
+The most harmful features are at the bottom, with f29 as the most harmful, followed by f12, f24, f3 (then f14 close behind).
+
+Scenario 2:
+For RE15, Scenario 2, the feature-importance patterns differ across classifiers and should be interpreted mainly within each model due to separate normalization and differing importance definitions.
+Random Forest assigns non-negative importance values that are relatively broadly distributed, with the highest-ranked features being f15, f2, f10, f23, and f0, followed by a mid-tier including f14, f21, f19, and f9.
+KNN shows a clear split between helpful and harmful features: the most helpful features are f10 (dominant), followed by f6, f27, f25, and f4, whereas the most harmful features are f20 (dominant negative),
+followed by f31, f0, f12, and f30. BSVM again produces only non-negative values by design and is dominated by a small subset of large weights, led by f29, then f3, f25, and f17, followed by f6, f14, and f8, while several features (e.g., f12 and f20) have comparatively small weights.
+Cross-model overlap is limited, but f10 stands out as highly relevant for both RF (top-ranked) and KNN (strongest positive), and f6 appears among the higher-ranked features for both KNN and BSVM.
+
+Scenario 3:
+For RE15, Scenario 3, the three classifiers show markedly different feature-importance patterns.
+KNN assigns essentially identical importance to all features, indicating that no single feature
+stands out under this importance definition and that the measured signal is effectively uniform across the feature set.
+Random Forest (Gini importance) produces a comparatively even distribution of non-negative importances, with many features receiving moderate to high scores rather than a small dominating subset;
+the highest-ranked features include f23, f26, f25, and f10, followed by a broad mid-tier.
+BSVM (|coef| importance) is more concentrated and heterogeneous, with a small number of features receiving clearly larger weights than the rest;
+the top-weighted features are f31, f6, f21, f12, and f17, with importance dropping more noticeably toward the lower-ranked features.
+Overall, RF shows a more even reliance across features, while BSVM emphasizes a more selective subset, and KNN does not differentiate between features in this scenario.

@@ -15,8 +15,8 @@ def load_importance_csv(path: str) -> pd.Series:
 def normalize_pos_neg_to_unit(series):
     s = series.astype(float).copy()
 
-    pos_max = s[s > 0].max() if (s > 0).any() else 1.0
-    neg_max = abs(s[s < 0].min()) if (s < 0).any() else 1.0
+    pos_max = s[s > 0].max() if (s > 0).any() else 1.0  #finds largest positive
+    neg_max = abs(s[s < 0].min()) if (s < 0).any() else 1.0 #finds largest negative
 
     if pos_max == 0: pos_max = 1.0
     if neg_max == 0: neg_max = 1.0
@@ -26,81 +26,71 @@ def normalize_pos_neg_to_unit(series):
 
     return s
 
-
-def plot_3_classifiers_sorted_by_helpfulness(
+#per scenario -datatype combination
+def plot_3_classifiers_sorted_by_helpfulness(                       # plot 3 side-by-side feature-importance bar charts
     prefix: str,
     scenario: int,
     classifiers: list[str],
     out_dir: str = "results/plots",
-    top_n: int | None = None,      # None -> all features
+    top_n: int | None = None,
     figsize_per_feature: float = 0.28,
-    normalize: bool = True,        # <-- added
+    normalize: bool = True,
 ):
     assert len(classifiers) == 3, "Need exactly 3 classifiers."
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-    # load series
+    # load series                                                      # read feature-importance vectors from CSV files
     vecs = []
-    for clf in classifiers:
-        csv_path = f"results/feature_importance_{prefix}_s{scenario}_{clf}.csv"
-        s = load_importance_csv(csv_path).astype(float)
-        vecs.append(s)
+    for clf in classifiers:                                         # loop over each classifier name
+        csv_path = f"results/feature_importance_{prefix}_s{scenario}_{clf}.csv"  # build the CSV path for this classifier
+        s = load_importance_csv(csv_path).astype(float)             # load 1-row CSV into a Series and convert values to float
+        vecs.append(s)                                              # store the Series
 
-    # align by common features (intersection)
-    common = vecs[0].index
-    for s in vecs[1:]:
-        common = common.intersection(s.index)
+    n_features = len(vecs)                                        # total number of features available after alignment
+    n_show = n_features if top_n is None else min(top_n, n_features) # decide how many features to actually display
 
-    if len(common) == 0:
-        raise ValueError(f"No common features across {classifiers} for {prefix} scenario {scenario}")
+    fig_h = max(4.0, figsize_per_feature * n_show)                  # figure height
+    fig_w = 18.0                                                    # fixed figure width
+    fig, axes = plt.subplots(1, 3, figsize=(fig_w, fig_h), constrained_layout=True)  # create a 1x3 subplot figure
 
-    vecs = [s.loc[common] for s in vecs]
-
-    n_features = len(common)
-    n_show = n_features if top_n is None else min(top_n, n_features)
-
-    fig_h = max(4.0, figsize_per_feature * n_show)
-    fig_w = 18.0
-    fig, axes = plt.subplots(1, 3, figsize=(fig_w, fig_h), constrained_layout=True)
-
-    for ax, clf, s in zip(axes, classifiers, vecs):
+    for ax, clf, s in zip(axes, classifiers, vecs):                 # iterate over axes, classifier names, and their Series together
         # normalize to [-1, 1] with separate scaling for pos/neg
         if normalize:
             s = normalize_pos_neg_to_unit(s)
 
         # sort by helpfulness: highest -> lowest (positives first, negatives last)
-        s_sorted = s.sort_values(ascending=False).iloc[:n_show]
+        s_sorted = s.sort_values(ascending=False)                   #sort descending
 
-        feats_sorted = s_sorted.index.tolist()
-        vals_sorted = s_sorted.values
+        feats_sorted = s_sorted.index.tolist()                      # list of feature names in sorted order
+        vals_sorted = s_sorted.values                               # numpy array of corresponding importance values
 
-        y = range(len(feats_sorted))
-        ax.barh(y, vals_sorted)
-        ax.set_yticks(list(y))
-        ax.set_yticklabels(feats_sorted, fontsize=9)
-        ax.invert_yaxis()
+        y = range(len(feats_sorted))                                # y positions for the horizontal bars (0..n_show-1)
+        ax.barh(y, vals_sorted)                                     # draw horizontal bars for importance values
+        ax.set_yticks(list(y))                                      # place y ticks at each bar position
+        ax.set_yticklabels(feats_sorted, fontsize=9)                # label each bar with the feature name
+        ax.invert_yaxis()                                           # put the highest-ranked feature at the top of the plot
 
-        ax.axvline(0, linewidth=1)
-        ax.grid(True, axis="x", alpha=0.25)
-        ax.set_title(clf)
+        ax.axvline(0, linewidth=1)                                  # draw a vertical line at x=0 (separates + and -)
+        ax.grid(True, axis="x", alpha=0.25)                         # add a light grid for the x-axis to help reading values
+        ax.set_title(clf)                                           # title the panel with the classifier name
 
-        if normalize:
-            ax.set_xlim(-1.0, 1.0)  # enforce shared comparable scale
+        if normalize:                                               # if normalization is enabled...
+            ax.set_xlim(-1.0, 1.0)                                  # ...fix x-limits so all three panels share the same scale
 
-    title = f"Feature helpfulness (sorted) — {prefix}, scenario {scenario} (top={n_show})"
-    if normalize:
-        title += " [normalized ± to 1]"
-    fig.suptitle(title, fontsize=14)
+    if prefix == "raw":                                             # choose a nicer title based on dataset type
+        title = f"Feature Importance - RAW - Scenario {scenario}"    # title string for RAW
+    else:
+        title = f"Feature Importance - RE15 - Scenario {scenario}"   # title string for RE15 (or any non-raw prefix)
+    fig.suptitle(title, fontsize=14)                                # set the overall (figure-level) title
 
-    xlabel = "Importance score (positive = helpful, negative = harmful)"
-    if normalize:
-        xlabel += " — normalized per classifier (pos/max_pos, neg/|min_neg|)"
-    fig.supxlabel(xlabel)
+    xlabel = "Importance score"                                     # x-axis label text for the whole figure
+    fig.supxlabel(xlabel)                                           # set a shared x-axis label for all subplots
 
-    out_path = f"{out_dir}/fi_helpful_panels_{prefix}_s{scenario}.png"
-    fig.savefig(out_path, dpi=200)
-    plt.close(fig)
-    return out_path
+    out_path = f"{out_dir}/fi_helpful_panels_{prefix}_s{scenario}.png"  # output image path
+    fig.savefig(out_path, dpi=200)                                  # save the figure as a PNG at 200 DPI
+    plt.close(fig)                                                  # close the figure to free memory/resources
+    return out_path                                                 # return the saved file path
+
 
 
 
@@ -116,28 +106,16 @@ def run_scenarios_for_feature_importance(
         2: ["rf", "knn", "bsvm"],
         3: ["rf", "knn", "bsvm"],
     }
-    if prefix =="raw":
-        scenario_models = { #todo remove
-            2: ["rf"],
-            3: ["rf", "bsvm"],
-        }
-    else:
-        scenario_models = {  # todo remove
-            2: ["rf", "bsvm"],
-            3: ["rf", "bsvm"],
-        }
 
     fn_prefix = f"re{param}" if prefix == "re" else "raw"
     Path("results").mkdir(exist_ok=True)
 
-    # if you have real feature names, pass them in instead of f0..f31
     feature_names = [f"f{i}" for i in range(32)]
 
     for scenario, models in scenario_models.items():
         scenario_importances = []
 
         for clf in models:
-            # IMPORTANT: this function should return a (32,) vector
             imp = execute_scenario_feature_importance(
                 global_label_encoder=global_label_encoder,
                 classifier=clf,
@@ -148,7 +126,7 @@ def run_scenarios_for_feature_importance(
                 param=param
             )
 
-            imp = np.asarray(imp).ravel()
+            imp = np.asarray(imp).ravel() #collapses multi dimensional array into one dimensional
             if imp.shape[0] != 32:
                 raise ValueError(f"{fn_prefix} s{scenario} {clf}: expected 32 features, got {imp.shape}")
 

@@ -31,10 +31,7 @@ def get_attack_idx_by_type(labels):
         if lab != "CONTROL":
             attack_idx_by_type[lab].append(i)
 
-    return attack_idx_by_type               #{
-                                            #   "ReactorOn": [idx1, idx2, idx3, ...],
-                                            #   "WaterTankOff": [idx7, idx8, ...],
-                                            #}
+    return attack_idx_by_type
 
 
 

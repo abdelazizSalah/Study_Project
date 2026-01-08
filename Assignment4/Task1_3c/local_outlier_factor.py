@@ -57,8 +57,7 @@ def local_outlier_factor_evaluate(X_test, y_test):
     roc_auc = roc_auc_score(y_test_binary, scores)
     print(f"[LocalOutlierFactor] ROC-AUC: {roc_auc:.4f}")
 
-    # --- 2) Normale Klassifikation ---
-    # LOF: +1 = inlier/normal, -1 = outlier/anomaly
+
     y_pred_numeric = lof_clf.predict(X_test)
 
     print("\n[LocalOutlierFactor] --- Classification Report ---")

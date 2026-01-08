@@ -85,7 +85,8 @@ def binary_rf_train_and_get_importance(X_train, y_train):
     rf.fit(X_train, y_train)
 
     # built-in RF importances (one value per input column)
-    importances = rf.feature_importances_
+    #measures each feature’s average total reduction in node impurity (e.g., Gini) from splits using that feature across all trees
+    importances = rf.feature_importances_ #how much rf relied onneach feature to make a split decision and how much that split improved the trees
 
     joblib.dump(rf, "models/brf.joblib")
 

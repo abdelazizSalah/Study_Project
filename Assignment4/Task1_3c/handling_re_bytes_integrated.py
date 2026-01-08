@@ -64,6 +64,7 @@ def determine_max_length(concatenated_data):
     print('Determining maximum length of concatenated packets...')
     max_length = max(len(packet) for packet in concatenated_data)
     return max_length
+
 # 5.append zeros to the right of the concatenated packets to make them of equal length.
 def pad_packets(concatenated_data, max_length):
     """Append zeros to the right of the concatenated packets to make them of equal length."""
@@ -130,7 +131,7 @@ def process_npy_file(input_source, output_file_path, p):
     concatenated_data, remainder = concatenate_packets(data_no_zeros, p)
 
     # Step 4: Determine the maximum length of the concatenated packets
-    max_length = 386    # sadsagsafvfzqfevfdsldhvodsvbdsi
+    max_length = 386
 
     # Step 5: Pad or truncate to exactly 386
     padded_data = pad_or_truncate_packets(concatenated_data, max_length)

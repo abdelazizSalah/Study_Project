@@ -1,0 +1,20 @@
+Task1 a.) Runtime and RAM measurement:
+
+Autoencoder stage: The autoencoder training is consistently expensive and takes minutes per run (RAW: 531.73 s, RE15: 436.49 s).
+Feature extraction is much faster than training (RAW: 36.97 s, RE15: 29.72 s), but it is the most memory-demanding stage in the whole pipeline, reaching the highest peak RAM values (RAW: 39.05 GB, RE15: 35.42 GB).
+Autoencoder training itself also shows a clear memory difference between feature types: peak RAM during training is higher for RE15 (28.51 GB) than for RAW (15.59 GB), while extraction is very memory-intensive for both.
+
+Classifier RAM: Peak RAM usage is generally very similar between training and testing for a given classifier (differences are small compared to the overall level).
+For RAW features, memory consumption depends strongly on the scenario: scenario 1 has comparatively low peak RAM (roughly 3–4 GB across the tested classifiers), whereas scenarios 2 and 3 show clearly higher peak RAM values (roughly 5–9 GB),
+with the overall maximum occurring for bSVM in scenario 2 (about 9.1 GB). For RE15 features, peak RAM is significantly lower in scenarios 1 and 2 (around 1.2–1.5 GB),
+but scenario 3 stands out with substantially higher peak RAM (around 4.8 GB for the measured classifiers). Overall, RAW shows “low RAM in scenario 1, high RAM in scenarios 2 and 3”,
+while RE15 shows “low RAM in scenarios 1 and 2, but a clear increase in scenario 3”.
+
+Classifier runtime: For most classifiers, training takes longer than testing; however, there are important exceptions.
+kNN has an almost zero training time but a much larger testing time because prediction requires distance computations to many stored training points, which is especially visible for RAW features.
+In addition, LOF in the RAW setting (scenario 1) shows a longer testing time than training (train: 50.47 s vs. test: 104.18 s). For RAW features, runtimes vary by several orders of magnitude: the longest training time occurs for bSVM
+in scenario 2 (25668.30 s), and bSVM also has very large testing time there (6014.90 s). EE and OCSVM also have very high training costs in scenario 1 (EE: 3010.66 s, OCSVM: 1730.00 s), while kNN has by far the smallest training time (≈0.20 s).
+The smallest testing times are achieved by Random Forest (sub-second testing in scenarios 2 and 3: 0.44 s and 0.36 s). The largest train–test gaps in RAW occur for bSVM, EE, RF, and kNN (either due to expensive training with cheap testing,
+or vice versa for kNN). For RE15 features, classifier runtimes drop dramatically and become very small overall: EE training remains the slowest (43.52 s), but all other training times are in the sub-second to ~1 second range,
+and testing times are consistently sub-second and relatively similar across classifiers (roughly 0.01–0.27 s). This indicates that with RE15 the classifier stage is no longer the bottleneck,
+while with RAW the classifier choice can dominate runtime (especially for bSVM and kNN).

@@ -27,7 +27,6 @@ def create_venn_diagram_data(prediction_errors_scenario):
         m2 = prediction_errors_scenario[1][i]
         m3 = prediction_errors_scenario[2][i]
 
-        # Fix 2: Order matters! Check the most complex overlap first.
         # Use == 1 to check if it's an error
 
         if m1 == 1 and m2 == 1 and m3 == 1:
@@ -57,20 +56,20 @@ def create_venn_diagram_data_optimized(prediction_errors_scenario):
     #sanity checks
     assert len(prediction_errors_scenario) == 3
     L = len(prediction_errors_scenario[0])
-    assert all(len(x) == L for x in prediction_errors_scenario)
-    # Convert list of 0/1s into sets of indices where error == 1
-    # Example: {0, 5, 9} means errors occurred at these positions
+    assert all(len(x) == L for x in prediction_errors_scenario) #length of each sublist (prediction error list) should be similar across scenarios
+
+    #create sets of all indices with prediction error
     s1 = {i for i, val in enumerate(prediction_errors_scenario[0]) if val == 1}
     s2 = {i for i, val in enumerate(prediction_errors_scenario[1]) if val == 1}
     s3 = {i for i, val in enumerate(prediction_errors_scenario[2]) if val == 1}
 
-    # Use Set Intersections to find overlaps
-    inter_1_2_3 = len(s1 & s2 & s3)
-    inter_1_2 = len(s1 & s2) - inter_1_2_3
+    #set operations
+    inter_1_2_3 = len(s1 & s2 & s3) #indices that are part of all sets
+    inter_1_2 = len(s1 & s2) - inter_1_2_3 #overlaps of 1 and 2 without indices that are part of all sets
     inter_2_3 = len(s2 & s3) - inter_1_2_3
     inter_1_3 = len(s1 & s3) - inter_1_2_3
 
-    # Purely only in one model
+
     only_1 = len(s1 - s2 - s3)
     only_2 = len(s2 - s1 - s3)
     only_3 = len(s3 - s1 - s2)
@@ -164,39 +163,40 @@ def plot_venn_from_csv(prefix: str, scenario: int):
 
     labels = ("OCSVM", "LOF", "EE") if scenario == 1 else ("RF", "KNN", "BSVM")
 
-    # hardcoded "classic venn" colors (matches the look you showed)
     colors = ("r", "g", "b")
 
-    fig, ax = plt.subplots(figsize=(6, 6))
-    v = venn3(subsets=subsets, set_labels=labels, set_colors=colors, alpha=0.4, ax=ax)
+    fig, ax = plt.subplots(figsize=(6, 6))  # create a new figure and one axes, 6x6 inches
+    v = venn3(subsets=subsets, set_labels=labels, set_colors=colors,  # draw a 3-set Venn diagram with the given counts
+              alpha=0.4, ax=ax)  # set transparency and draw it on this axes
 
-    # smaller text
-    for t in v.set_labels:
-        if t is not None:
-            t.set_fontsize(14)
-    for t in v.subset_labels:
-        if t is not None:
-            t.set_fontsize(9)
+    for t in v.set_labels:  # loop over the three set-name text labels
+        if t is not None:  # some labels can be None depending on venn output
+            t.set_fontsize(14)  # make set-name labels larger
 
-    # legend with the same hardcoded colors
-    handles = [Patch(facecolor=c, edgecolor="black", label=lab, alpha=0.4)
-               for c, lab in zip(colors, labels)]
-    ax.legend(
-        handles=handles,
-        title="Classifier",
-        loc="lower left",  # anchor point on the legend box
-        bbox_to_anchor=(1.02, 0.0),  # <-- bottom-right outside (x right, y bottom)
-        bbox_transform=ax.transAxes,
-        borderaxespad=0.0
+    for t in v.subset_labels:  # loop over the region-count text labels
+        if t is not None:  # a region label can be None if that region doesn't exist
+            t.set_fontsize(9)  # make region-count labels smaller for readability
+
+    handles = [Patch(facecolor=c, edgecolor="black", label=lab,  # build a legend entry (colored box + label)
+                     alpha=0.4)  # match the same transparency as the Venn fills
+               for c, lab in zip(colors, labels)]  # one entry per (color, label) pair
+
+    ax.legend(  # add a legend to the axes
+        handles=handles,  # use the custom Patch handles created above
+        title="Classifier",  # legend title text
+        loc="lower left",  # anchor legend using its lower-left corner
+        bbox_to_anchor=(1.02, 0.0),  # place legend just outside the plot (to the right)
+        bbox_transform=ax.transAxes,  # interpret bbox_to_anchor in axes coordinates (0..1)
+        borderaxespad=0.0  # no extra padding between axes and legend
     )
 
-    ax.set_title(f"Venn Diagram – {prefix.upper()} – Scenario {scenario}")
+    ax.set_title(f"Venn Diagram – {prefix.upper()} – Scenario {scenario}")  # set the plot title using prefix/scenario
 
-    out_path = f"results/plots/venn_{prefix}_s{scenario}.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+    out_path = f"results/plots/venn_{prefix}_s{scenario}.png"  # output filename for the saved figure
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")  # save at 300 DPI and crop to include the legend
+    plt.close(fig)  # close the figure to free memory/resources
 
-    print(f"saved {out_path}")
+    print(f"saved {out_path}")  # print a confirmation message with the file path
 
 
 def all_error_overlaps(k: int, global_label_encoder):
@@ -227,7 +227,6 @@ def all_error_overlaps(k: int, global_label_encoder):
         keep_indices=keep_indices,
         param=15,
     )
-
 
     return
 
