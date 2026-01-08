@@ -17,16 +17,15 @@ from sklearn.metrics import precision_recall_fscore_support
 
 # Phase 1: Data Prepration
 
-def load_phase1_saved_data():
+def load_phase1_saved_data(training_data_path, validation_data_path, testing_data_path, training_labels_path, validation_labels_path, testing_labels_path):
     # load training, validation, testing data from .npy
-    training_data = torch.from_numpy(np.load('./data/training_data.npy'))
-    validation_data = torch.from_numpy(np.load('./data/validation_data.npy'))
-    testing_data = torch.from_numpy(np.load('./data/testing_data.npy'))
-
+    training_data = torch.from_numpy(np.load(training_data_path))
+    validation_data = torch.from_numpy(np.load(validation_data_path))
+    testing_data = torch.from_numpy(np.load(testing_data_path))
     # load training, validation, testing labels from .npy
-    training_labels = np.load('./data/training_labels.npy', allow_pickle=True)
-    validation_labels = np.load('./data/validation_labels.npy', allow_pickle=True)
-    test_labels = np.load('./data/testing_labels.npy', allow_pickle=True)
+    training_labels = np.load(training_labels_path, allow_pickle=True)
+    validation_labels = np.load(validation_labels_path, allow_pickle=True)
+    test_labels = np.load(testing_labels_path, allow_pickle=True)
     return training_data, validation_data, testing_data, training_labels, validation_labels, test_labels
 
 
@@ -67,11 +66,18 @@ def phase1_getting_data(n,m):
           f'\n - Validation data: {validation_input_path}'
           f'\n - Testing data: {testing_input_path}'
           )
-    Data_Files_Exist = os.path.exists(f'./data/training_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_data_n_{n}_m_{m}.npy') and os.path.exists(f'./data/training_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_labels_n_{n}_m_{m}.npy')
+    Data_Files_Exist = os.path.exists(training_input_path) and os.path.exists(validation_input_path) and os.path.exists(testing_input_path) and os.path.exists(f'./data/training_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/validation_labels_n_{n}_m_{m}.npy') and os.path.exists(f'./data/testing_labels_n_{n}_m_{m}.npy')
     if Data_Files_Exist:
         # load them
         print('[*] Phase 1: Data files found. Loading...')
-        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data()
+        training_data, validation_data, testing_data, training_labels, validation_labels, test_labels = load_phase1_saved_data(
+            training_input_path,
+            validation_input_path,
+            testing_input_path,
+            f'./data/training_labels_n_{n}_m_{m}.npy',
+            f'./data/validation_labels_n_{n}_m_{m}.npy',
+            f'./data/testing_labels_n_{n}_m_{m}.npy',
+        )
         # print unique labels for training, validation, and testing
         print(f"[*] Training labels unique values: {np.unique(training_labels)}")
         print(f"[*] Validation labels unique values: {np.unique(validation_labels)}")
@@ -103,9 +109,9 @@ def phase1_getting_data(n,m):
         # make data folders if not exist
         if not os.path.exists('./data'):
             os.makedirs('./data')
-        np.save(f'./data/training_data_n_{n}_m_{m}.npy', training_data.numpy())
-        np.save(f'./data/validation_data_n_{n}_m_{m}.npy', validation_data.numpy())
-        np.save(f'./data/testing_data_n_{n}_m_{m}.npy', testing_data.numpy())
+        np.save(training_input_path, training_data.numpy())
+        np.save(validation_input_path, validation_data.numpy())
+        np.save(testing_input_path, testing_data.numpy())
         print('Saved training, validation, testing data into .npy files.')
 
         # Save training, validation, testing labels into .npy
@@ -135,14 +141,14 @@ def phase1_dataset_splitting(normal_data, attack_data):
         - 15% normal + 15% attack
     """
     # converting labels into tensors for compatability
-    normalLabels = torch.zeros(len(normal_data), dtype=torch.long)
-    attackLabels = torch.ones(len(attack_data), dtype=torch.long)
+    normalLabels = torch.zeros(len(normal_data), dtype=torch.long) # normal is 0
+    attackLabels = torch.ones(len(attack_data), dtype=torch.long) # attack is 1
 
 
     # --------------------------------------------------
     # Shuffle NORMAL data
     # --------------------------------------------------
-    normal_perm = torch.randperm(len(normal_data))
+    normal_perm = torch.randperm(len(normal_data)) # return indicies
     normal_data = normal_data[normal_perm]
     normalLabels = normalLabels[normal_perm]
 
@@ -228,7 +234,7 @@ def phase1_data_prepration(n):
         if len(packet) > n:
             return packet[:n]
         elif len(packet) < n:
-            return packet + bytes(n - len(packet))
+            return packet + bytes(n - len(packet)) # padding with zeros. 
         else:
             return packet
 
@@ -288,13 +294,13 @@ def prepare_tensors(data, n, m):
     print(f'shape of first packet: {len(data[0][0])} , label: {data[0][1]}')
     num_samples = len(data) // m
     data_tensor = torch.zeros((num_samples, 1, m, n), dtype=torch.float32)
-    for i in range(num_samples):
-        for j in range(m):
-            packet, _ = data[i * m + j]
+    for i in range(num_samples): # sample index
+        for j in range(m): # packet position in the window
+            packet, _ = data[i * m + j] # sample index * number of packets gets the correct row, then j gets the correct column, because data is flatten array. 
             data_tensor[i, 0, j, :] = torch.tensor(
-                np.frombuffer(packet, dtype=np.uint8),
+                np.frombuffer(packet, dtype=np.uint8), # interpret raw bytes as integers [0-255]
                 dtype=torch.float32
-            ) / 255.0
+            ) / 255.0 # normalizing data
     return data_tensor
 
 
@@ -603,7 +609,7 @@ def train_gan_on_training_data(
         training_data,
         batch_size=batch_size,
         shuffle=True,
-        drop_last=True
+        drop_last=True # drop last batch if smaller than batch_size
     )
 
     # -----------------------------
@@ -612,6 +618,7 @@ def train_gan_on_training_data(
     optimizer_D = optim.Adam(D.parameters(), lr=lr_D)
     optimizer_G = optim.Adam(G.parameters(), lr=lr_G)
 
+    # move to GPU. 
     D.to(device)
     G.to(device)
 
@@ -633,6 +640,7 @@ def train_gan_on_training_data(
 
         progress_bar = tqdm(train_loader, leave=False)
 
+        # batch loop
         for x_real in progress_bar:
             x_real = x_real.to(device)
             bs = x_real.size(0)
@@ -640,10 +648,12 @@ def train_gan_on_training_data(
             # =========================
             # 1. Discriminator forward
             # =========================
+            # sample noise vector
             z = torch.randn(bs, m * n, device=device)
             with torch.no_grad():
                 x_fake = G(z)
 
+            # create labels. 
             y_real = torch.ones(bs, 1, device=device)
             y_fake = torch.zeros(bs, 1, device=device)
 
@@ -660,6 +670,7 @@ def train_gan_on_training_data(
             update_D = True
             update_G = True
 
+            # since it is zero-sum game, so I tried to balance the power between D and G.
             if loss_D.item() < D_LOSS_TOO_LOW:
                 # D too strong → freeze D
                 update_D = False
@@ -673,18 +684,23 @@ def train_gan_on_training_data(
             # 2. Update Discriminator
             # =========================
             if update_D:
-                optimizer_D.zero_grad()
-                loss_D.backward()
-                optimizer_D.step()
+                optimizer_D.zero_grad() # clear old gradients.
+                loss_D.backward() # perform backPropagation.
+                optimizer_D.step() # applies parameter updates.
 
             # =========================
             # 3. Update Generator
             # =========================
             if update_G:
+                # freeze Discriminator weights (get the features only).
                 for p in D.parameters():
                     p.requires_grad = False
 
+                # perform multiple G updates. 
                 for _ in range(G_UPDATES):
+
+                    # clear previous gradients
+                    # because the loss here doesn't depend on the previous step, but on the output from D, so we should start a new gradient each time. 
                     optimizer_G.zero_grad()
 
                     z = torch.randn(bs, m * n, device=device)
@@ -694,14 +710,19 @@ def train_gan_on_training_data(
                     f_real = D.extract_features(x_real)
                     f_fake = D.extract_features(x_fake)
 
+                    # compute the mean, because generator tries to make fake samples 
+                    # statistically similar to real samples, not exactly similar. 
                     mean_real = f_real.mean(dim=0)
                     mean_fake = f_fake.mean(dim=0)
 
+
+                    # I use the L2 loss function here to have higher punishment for larger differences.
                     loss_G = torch.mean((mean_real - mean_fake) ** 2)
 
                     loss_G.backward()
                     optimizer_G.step()
 
+                # unfreeze D
                 for p in D.parameters():
                     p.requires_grad = True
             else:
@@ -978,13 +999,23 @@ def phase6_discriminator_mode(
         drop_last=False
     )
 
+    # do not compute the gradients during evaluation
     with torch.no_grad():
+        # for each batch
         for batch in loader:
+            # send to the gpu
             batch = batch.to(device)                 # (B,1,m,n)
+            
+            # compute logits
             logits = D(batch)                        # (B,1)
+            
+            # use the sigmoid
             probs = torch.sigmoid(logits).squeeze()  # (B,)
+            
+            # move back to cpu, and convert to numpy, and append the batch results to the scores list.
             scores.extend(probs.cpu().numpy())
 
+    # convert the scores to numpy array, to save it
     scores = np.array(scores)
     print(f"[*] Collected {len(scores)} test scores")
 

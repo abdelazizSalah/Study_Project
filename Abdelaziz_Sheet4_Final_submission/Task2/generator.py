@@ -81,6 +81,10 @@ class Generator(nn.Module):
             # Conv (8) – output layer
             nn.Conv2d(16, 1, kernel_size=kernel_size, padding=1),
             nn.Sigmoid()
+
+            '''
+            While here I kept the sigmoid, because the generator must always keep its output in range [0,1] as it output data not decision. 
+            '''
         )
 
     def forward(self, z):
@@ -91,6 +95,6 @@ class Generator(nn.Module):
             generated packet tensor of shape (batch_size, 1, m, n)
         """
         x = self.fc(z)
-        x = x.view(z.size(0), 256, self.m, self.n)
+        x = x.view(z.size(0), 256, self.m, self.n) # flatten
         x = self.conv_layers(x)
         return x

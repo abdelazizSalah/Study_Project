@@ -154,6 +154,8 @@
         - Architecture:
             - 9 convolutional layers (ReLU)
             - Dropout after every conv layer except first and last
+              - Randomly sets a portion of neurons output to zero during training step with certain rate, and is applied only during training.
+              - It is usually used to avoid memorizing of training samples
             - 4 fully connected layers (ReLU)
             - Final sigmoid output
         - Feature extractor separation:

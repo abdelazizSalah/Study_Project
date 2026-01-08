@@ -32,7 +32,7 @@ class DiscriminatorFeatures(nn.Module):
             # This learns Byte primitives: 
             # e.g. byte boundaries, small byte value changes, noise vs structure
             nn.Conv2d(1, 16, kernel_size=kernel_size, padding=1), # 1 input channel -> 16 output channels (learning 16 different filters)
-            nn.ReLU(),
+            nn.ReLU(), # padding is usually used to get the same input size after performing the convolution, based on the kernal size used.
 
             # Conv 2
             # Here it tries to learn local packet patterns
@@ -74,12 +74,7 @@ class DiscriminatorFeatures(nn.Module):
             # Conv 8
             nn.Conv2d(256, 256, kernel_size=kernel_size, padding=1),
             nn.ReLU(),
-            nn.Dropout2d(dropout_p),
-
-            # Conv 9 (NO dropout)
-            nn.Conv2d(256, 256, kernel_size=kernel_size, padding=1),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool2d((4,4))
+            nn.Dropout2d(dropout_p), # I made them 8 as Generator, because when they were 9, and generator 8, the results was always zeros.
         )
 
     def forward(self, x):
@@ -93,5 +88,7 @@ class DiscriminatorFeatures(nn.Module):
             - Flatten the output to create a feature vector
         '''
         x = self.conv_layers(x)
-        x = x.view(x.size(0), -1)  # Flatten
+
+        # x.size(0) keeps the batch dimension
+        x = x.view(x.size(0), -1)  # Reorders the data from spatial layout into a 1D feature vector per sample, this is the flattening step. 
         return x

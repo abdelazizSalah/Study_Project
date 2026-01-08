@@ -35,6 +35,12 @@ class DiscriminatorClassifier(nn.Module):
 
             nn.Linear(128, 1),
             # nn.Sigmoid() # output probability of being real (1) or fake (0)
+            '''
+                I removed the sigmoid here, because I read that during the training of GAN, the 
+                D should output the raw logits not the probabilities, while the sigmoid should be used only during inference. 
+                and this is because the logits are numerically more stable and easier to optimize. 
+
+            '''
         )
 
     def forward(self, features):

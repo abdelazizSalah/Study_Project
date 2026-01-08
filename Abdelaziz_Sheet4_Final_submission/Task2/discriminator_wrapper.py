@@ -19,12 +19,27 @@ class Discriminator(nn.Module):
         - And we can call D(x) to get the final real/fake score.
     '''
     def __init__(self, input_shape):
+        '''
+            Input shape convention is: (channels, height, width)
+                - channels = 1 for bytes vector
+                - height = # of packets -> m = 10
+                - width = # of bytes per packet -> n (varying)
+        '''
+        
         super().__init__()
 
+        # extract the falttened feature vector per sample (batch_size, feature_dim)
         self.feature_extractor = DiscriminatorFeatures()
 
         # Compute feature dimension dynamically
         with torch.no_grad(): # disable gradient calculation because this step is not part of training
+            '''
+            The main goal here is to probe the network and determine 
+            the size of the output feature vector after passing an input through the feature extractor.
+            
+            *input_shape means to unpack the tuple, which mean that if the input_shape was (1,m,n)
+            it is converted to (1,1,m,n) to be compatible with the pytourch shape. 
+            '''
 
             # create fake input tensor filled with zeros
             dummy = torch.zeros(1, *input_shape) # 1 is batch size, *input_shape unpacks the input shape tuple

@@ -29,9 +29,21 @@ def task2_sheet4_main():
     lr_G=[3e-4, 3e-4,]
     D_threshold = [0.1,0.3]
     G_threshold = [0.9,0.7]
+
+    # used in the inference phase for generator-based anomaly detection mode = G
+    # K is the number of latent/noise samples (or reconstructions) used to compute an anomaly score.
     K = [128,256]
+
+
+    # a lower bound on acceptable discriminator loss to avoid D dominating G
+    # if d_loss < D_LOSS_TOO_LOW: skip D update
     D_LOSS_TOO_LOW = [0.1, 0.05]   # D dominating
+
+    # an upper bound on acceptable discriminator loss to avoid D being too weak
+    # if d_loss > D_LOSS_TOO_HIGH: skip G update
     D_LOSS_TOO_HIGH = [0.8, 0.9] # D too weak
+
+    # defines how many time the generator is updated per discriminator update
     G_UPDATES = [2,3]
 
 
