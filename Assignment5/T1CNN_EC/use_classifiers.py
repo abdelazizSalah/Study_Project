@@ -8,7 +8,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
 from sklearn.metrics import precision_score, recall_score, f1_score
-from ensemble_classifier import get_ec_prediction
 from fine_tuning_optimized import grid_search_elliptic_envelope, grid_search_svm, grid_search_lof_parallel
 from fine_tuning_optimized import grid_search_one_class_svm
 from fine_tuning_optimized import grid_search_random_forest, grid_search_knn
@@ -500,7 +499,7 @@ def execute_fold_for_ensemble_classifier(method,multiclass, fold_idx, binary_num
                                  train_indices, test_indices, prefix, scenario, param=0):
     """Train with grid search, save best model, then use *_evaluate for metrics."""
 
-
+    from ensemble_classifier import get_ec_prediction
 
     if param!=0:
         ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
