@@ -67,11 +67,11 @@ def verify_amount_feature_files(k: int, dataset_dir: str = "datasets") -> int:
     """
     missing = []
 
-    for prefix in ("raw"):
-        for fold_idx in range(k):
-            expected_file = os.path.join(dataset_dir, f"{prefix}_features_fold{fold_idx}.npy")
-            if not os.path.exists(expected_file):
-                missing.append(expected_file)
+    prefix="raw"
+    for fold_idx in range(k):
+        expected_file = os.path.join(dataset_dir, f"{prefix}_features_fold{fold_idx}.npy")
+        if not os.path.exists(expected_file):
+            missing.append(expected_file)
 
     if missing:
         print("\n[ERROR] Missing feature files:")
