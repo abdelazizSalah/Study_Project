@@ -47,7 +47,7 @@ def run_ec_classifier_on_dataset(method, param, global_label_encoder, k):
     # determine representation + correct prefix/keep_indices
     if param != 0:
         keep_indices = get_keep_indices_from_fold0(
-            f"datasets/re_bytes_{param}/re_features_fold{param}",
+            f"datasets/re_bytes_{param}/",
             f"re{param}"
         )
         print(f"For RE{param} - {len(keep_indices)} datapoints are used.")
