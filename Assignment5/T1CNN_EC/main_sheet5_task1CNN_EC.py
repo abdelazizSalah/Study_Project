@@ -368,7 +368,7 @@ MODE DETAILS
     parser.add_argument(
         "--method",
         type=str,
-        choices=["random", "majority", "all"],
+        choices=["random", "majority", "all", "all_methods"], #all methods runs the previous 3
         help="Mode to run for ensemble classifier..",
     )
 
@@ -507,16 +507,11 @@ def release_main_new():
         run_experiment_ae_classifier(global_label_encoder)
         make_ae_metric_plots()
     elif args.mode == "ensemble_classifier":
-        if not args.method:
-            print("ERROR: --method required for mode=ensemble_classifier")
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_classifier_modes()
-    elif args.mode == "ec_experiment_fg":
-        global_label_encoder = LabelEncoder()
-        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
-        k = check_requirements_classifier_modes()
-        run_experiment_ec("all_methods",global_label_encoder, k)
+        method=args.method
+        run_experiment_ec(method,global_label_encoder, k)
 
 
 def test_main():
