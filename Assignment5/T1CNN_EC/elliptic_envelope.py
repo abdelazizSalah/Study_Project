@@ -141,7 +141,7 @@ def ee_permutation_importance(
     return result.importances_mean
 
 
-def elliptic_envelope_predict(X_test, t_test):
+def elliptic_envelope_predict(X_test, t_test, return_binary_only: bool = False):
     """
     For each set of measurements at a given time step in the testing set,
     print/return whether this set of measurements contains any attack or not.
@@ -166,5 +166,11 @@ def elliptic_envelope_predict(X_test, t_test):
         'Timestamp (Unix)': t_test,
         'Predicted_Label': y_pred_attack
     })
+
+    # for the ensemble classifier task
+    attack_binary = (y_pred_numeric == -1).astype(int)  # binary vector: 1=attack, 0=normal
+
+    if return_binary_only:
+        return attack_binary
 
     return prediction_report

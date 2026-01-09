@@ -117,7 +117,7 @@ def one_class_svm_evaluate(X_test, y_test):
 
     """Make sure that for each classifier you identify and use the optimal grid
     parameters and compute the precision and recall for each of the experiments."""
-    #todo: grid search
+
 
     try:
         ocsvm_clf = joblib.load("models/ocsvm.joblib")
@@ -148,7 +148,7 @@ def one_class_svm_evaluate(X_test, y_test):
     return roc_auc, precision, recall
 
 
-def one_class_svm_predict(X_test, t_test):
+def one_class_svm_predict(X_test, t_test, return_binary_only: bool = False):
     """For each set of measurements at a given time step in the
     testing set, your piece of code should print out whether this set of measurements contains
     any attack or not."""
@@ -172,7 +172,15 @@ def one_class_svm_predict(X_test, t_test):
         'Predicted_Label': y_pred_attack
     })
 
+    #for the ensemble classifier task
+    attack_binary = (y_pred_numeric == -1).astype(int) # binary vector: 1=attack, 0=normal
+
+    if return_binary_only:
+        return attack_binary
+
     return prediction_report
+
+
 ##############################################################BSVM
 #x - data, y - labels
 def binary_svm_train(X_train, y_train):
@@ -290,7 +298,7 @@ def binary_svm_evaluate(X_test, y_test):
     return roc_auc, precision, recall, f1
 
 
-def binary_svm_predict(X_test, t_test):
+def binary_svm_predict(X_test, t_test, return_binary_only: bool = False):
     try:
         svm_clf = joblib.load("models/bsvm.joblib")
     except FileNotFoundError:
@@ -300,8 +308,10 @@ def binary_svm_predict(X_test, t_test):
             'Predicted_Label': []
         })
 
-    # The predict method returns +1 for Normal and -1 for Anomaly
     y_pred_numeric = svm_clf.predict(X_test)
+
+    if return_binary_only:
+        return y_pred_numeric
 
     y_pred_attack = np.where(y_pred_numeric == 1, 'Attack', 'Normal')  # 1=attack, 0=no attack
     prediction_report = pd.DataFrame({

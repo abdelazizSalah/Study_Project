@@ -134,7 +134,7 @@ def binary_rf_predict_error_overlap(X_test, y_test):
 
 
 
-def binary_rf_predict(X_test, t_test):
+def binary_rf_predict(X_test, t_test, return_binary_only: bool = False):
     """
     For each measurement set at time t_test[i], predict Attack/Normal.
     Returns a DataFrame with timestamps and predicted labels.
@@ -151,6 +151,8 @@ def binary_rf_predict(X_test, t_test):
 
     y_pred_numeric = rf_clf.predict(X_test)  # 0/1
 
+    if return_binary_only:
+        return y_pred_numeric
     y_pred_attack = np.where(y_pred_numeric == 1, 'Attack', 'Normal')  # 1=attack, 0=no attack
 
     prediction_report = pd.DataFrame({

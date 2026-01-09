@@ -3,7 +3,6 @@ import os
 import sys
 import time
 
-import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 from use_classifiers import execute_experiments_def, execute_experiments_abc

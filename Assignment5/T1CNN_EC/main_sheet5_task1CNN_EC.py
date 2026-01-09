@@ -2,7 +2,8 @@ import argparse
 import os
 import sys
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
-from feature_creation_autoencoder import train_and_save_models, create_features_for_ds, create_features_for_ds_task3def
+from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
+    train_and_save_models_classifier
 from measure_runtime import measure_all
 from experiment_ae_classifier import run_experiment_ae_classifier, make_ae_metric_plots
 
@@ -30,11 +31,13 @@ def run_extract_features():
     os.makedirs("models", exist_ok=True)
 
     # Train k autoencoders
-    train_and_save_models()
+    prefixes=["raw","re5","re10","re15"]
+    for prefix in prefixes:
+        train_and_save_models_classifier(prefix)
 
     # Use k when generating per-fold feature files
-    create_features_for_ds(k)
-
+    create_features_for_ds_raw(k)
+    create_features_for_ds_re(k)
     print("[extract_features] Trained autoencoders and extracted features.")
 
 
@@ -327,7 +330,7 @@ MODE DETAILS
         "--mode",
         required=True,
         choices=["dataset_preprocessing_sheet345", "k_fold", "measure_runtime", "error_overlap", "feature_importance",
-                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def" ],
+                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def", "ensemble_classifier" ],
         help="Which pipeline step to run.",
     )
 
@@ -357,6 +360,14 @@ MODE DETAILS
         type=str,
         choices=["ocsvm", "bsvm", "ee", "rf", "knn", "lof"],
         help="Classifier to run when mode=classifiers.",
+    )
+
+    # Used in classifiers mode
+    parser.add_argument(
+        "--method",
+        type=str,
+        choices=["random", "majority", "all"],
+        help="Mode to run for ensemble classifier..",
     )
 
     parser.add_argument(
@@ -436,11 +447,14 @@ def release_main_new():
         run_extract_features()  # needs server for RAM
     #Assignment 3
     elif args.mode == "use_classifiers":
+        if not args.classifier:
+            print("ERROR: --classifier required for mode=use_classifiers")
         # Build global label encoder once
         # LabelEncoder from the Scikit-learn -> set up a way to convert text labels (categories) into numerical values for ML
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         os.makedirs("models", exist_ok=True)
+        k = check_requirements_classifier_modes()
         run_classifiers(args.classifier, args.scenario, global_label_encoder)
     elif args.mode == "sheet3_run_experiments_abc":
         # runs experiments a, b and c with grid search and saves results for precision and recall in files
@@ -458,11 +472,6 @@ def release_main_new():
         # only re_bytes required, re_bytes5 etc will be created on the way
         require_file("datasets/re_bytes.npy")  # additional requirement
         k = check_requirements_classifier_modes()
-        create_preprocessed_re_files()  # creates re_bytes_5, re_bytes_10, re_bytes_15
-
-        # features are created yb re_byte5, re_byte10, re_byte15 etc...
-        # with existing autoencoder (per fold)
-        create_features_for_ds_task3def(k)  # needs server for RAM
 
         execute_experiments_def(global_label_encoder, k, "5")
         execute_experiments_def(global_label_encoder, k, "10")
@@ -495,7 +504,18 @@ def release_main_new():
         check_requirements_ae_classifier()
         run_experiment_ae_classifier(global_label_encoder)
         make_ae_metric_plots()
+    elif args.mode == "ensemble_classifier":
+        if not args.method:
+            print("ERROR: --method required for mode=ensemble_classifier")
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_classifier_modes()
+    elif args.mode == "ec_experiment_fg":
 
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_classifier_modes()
+        run_experiments_ec(global_label_encoder, k)
 
 if __name__ == "__main__":
     release_main_new()

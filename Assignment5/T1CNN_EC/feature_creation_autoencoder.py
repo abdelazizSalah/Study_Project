@@ -141,7 +141,7 @@ def train_and_save_models_classifier(prefix):
             model_prefix="raw",
         )
     elif prefix=="re5":
-        print("\nTraining Models on RE15:\n")
+        print("\nTraining Models on RE5:\n")
 
         train_ae_for_representation(
             base_model_path=base_dir / "models" / "ae_untrained_386.keras",
@@ -151,7 +151,7 @@ def train_and_save_models_classifier(prefix):
             model_prefix="re5",
         )
     elif prefix=="re10":
-        print("\nTraining Models on RE15:\n")
+        print("\nTraining Models on RE10:\n")
 
         train_ae_for_representation(
             base_model_path=base_dir / "models" / "ae_untrained_386.keras",
@@ -170,32 +170,6 @@ def train_and_save_models_classifier(prefix):
             bytes_path=base_dir / "datasets" / "re_bytes_15.npy",
             model_prefix="re15",
         )
-
-    return
-
-
-#gets k by checking length of training indices by fold!
-def train_and_save_models():
-
-    print("Training Models on RAW:\n")
-    # RAW
-    train_ae_for_representation(
-        base_model_path="models/ae_untrained_466.keras",
-        kfold_json_path="k_fold_results/k_fold_s1_raw.json",
-        labels_path="datasets/raw_labels.npy",
-        bytes_path="datasets/raw_bytes.npy",
-        model_prefix="raw",
-    )
-
-    print("\nTraining Models on RE:\n")
-    # RE
-    train_ae_for_representation(
-        base_model_path="models/ae_untrained_386.keras",
-        kfold_json_path="k_fold_results/k_fold_s1_re.json",
-        labels_path="datasets/re_labels.npy",
-        bytes_path="datasets/re_bytes.npy",
-        model_prefix="re",
-    )
 
     return
 
@@ -248,12 +222,9 @@ def extract_features_for_all_folds(
 
     fold_runtimes=[]
     fold_peak_ram=[]
-    if model_prefix == "raw":
-        model_prefix_ae="raw"
-    else:
-        model_prefix_ae="re"    #for rt measurements, re autoencoders will be trained on re15!
+
     for fold_idx in range(num_folds):
-        model_path = f"models/ae_fold{fold_idx}_{model_prefix_ae}.keras"   #model trained for the specific fold (0 to k-1)
+        model_path = f"models/ae_fold{fold_idx}_{model_prefix}.keras"   #model trained for the specific fold (0 to k-1)
         out_path = f"{out_dir}/{model_prefix}_features_fold{fold_idx}.npy"
 
         ram_handle = start_ram_monitor(interval=0.1)
@@ -315,11 +286,10 @@ def create_features_for_ds_rt(num_folds: int = 5, prefix="raw"):
 
 
 #creae features for RAW and RE
-def create_features_for_ds(num_folds: int = 5):
+def create_features_for_ds_raw(num_folds: int = 5):
     raw_path = Path("datasets/raw_bytes.npy")
-    re_path = Path("datasets/re_bytes.npy")
 
-    if not raw_path.exists() or not re_path.exists():
+    if not raw_path.exists() :
         raise FileNotFoundError(
             f"Dataset files not found ({raw_path} or {re_path}). Make sure to extract them first."
         )
@@ -333,20 +303,12 @@ def create_features_for_ds(num_folds: int = 5):
     )
     print("Feature extraction for RAW done!")
 
-    print("\nUsing Autoencoder to create features for RE bytes dataset\n")
-    extract_features_for_all_folds(
-        model_prefix="re",
-        bytes_path=str(re_path),
-        num_folds=num_folds,
-        out_dir="datasets",
-    )
-    print("Feature extraction for RE done!")
 
     return avg_runtime, avg_peak_ram
 
 
-#creae features for RAW and RE
-def create_features_for_ds_task3def(num_folds: int = 5):
+#creae features for  RE
+def create_features_for_ds_re(num_folds: int = 5):
 
     p=[5,10,15]
     for i in p:

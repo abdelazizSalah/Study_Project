@@ -118,7 +118,7 @@ def knn_permutation_importance(
     return result.importances_mean
 
 
-def binary_knn_predict(X_test, t_test):
+def binary_knn_predict(X_test, t_test, return_binary_only: bool = False):
     """
     Predict Attack/Normal labels for each sample in X_test.
     Returns a DataFrame with timestamps and predicted labels.
@@ -135,6 +135,8 @@ def binary_knn_predict(X_test, t_test):
 
     # Numeric predictions: 0 = Control, 1 = Attack
     y_pred_numeric = knn_clf.predict(X_test)
+    if return_binary_only:
+        return y_pred_numeric
 
     # Convert to textual labels
     y_pred_text = np.where(y_pred_numeric == 1, "Attack", "Normal")
