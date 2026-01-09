@@ -7,7 +7,7 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.svm import SVC, OneClassSVM
-from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import precision_score, recall_score, f1_score
 from ensemble_classifier import get_ec_prediction
 from fine_tuning_optimized import grid_search_elliptic_envelope, grid_search_svm, grid_search_lof_parallel
 from fine_tuning_optimized import grid_search_one_class_svm
@@ -496,18 +496,18 @@ def execute_scenario(global_label_encoder, classifier, k, prefix, scenario):
 
 ##########################################################################################################
 
-#todo add "method" in caller
-#todo skip folds
 def execute_fold_for_ensemble_classifier(method,multiclass, fold_idx, binary_numeric_labels, timestamps,
-                                 train_indices, test_indices, classifier, prefix, scenario, keep_indices=0, param=0):
+                                 train_indices, test_indices, prefix, scenario, param=0):
     """Train with grid search, save best model, then use *_evaluate for metrics."""
+
+
 
     if param!=0:
         ds = np.load(f"datasets/re_bytes_{param}/re{param}_features_fold{fold_idx}.npy")
-        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RE{param}.")
+        print(f"Executing {multiclass} for fold {fold_idx} in Scenario {scenario} for RE{param}.")
     else:
         ds = np.load(f"datasets/{prefix}_features_fold{fold_idx}.npy")
-        print(f"Executing {classifier} for fold {fold_idx} in Scenario {scenario} for RAW.")
+        print(f"Executing {multiclass} for fold {fold_idx} in Scenario {scenario} for RAW.")
     #for task d - f
 
 
@@ -515,56 +515,88 @@ def execute_fold_for_ensemble_classifier(method,multiclass, fold_idx, binary_num
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
+
+    # run on small portion of dataset, for demonstration:
+    first_indices = np.arange(0, 1000)
+    last_indices = np.arange(len(X_train) - 1000, len(X_train))
+    selected_indices = np.concatenate((first_indices, last_indices))
+    X_train = X_train[selected_indices]
+    y_train = y_train[selected_indices]
+
     if not multiclass:
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Training One-Class SVM...")
         one_class_svm_train(X_train)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Predicting One-Class SVM...")
         p1 = one_class_svm_predict(X_test, t_test, return_binary_only=True)
 
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Training Elliptic Envelope...")
         elliptic_envelope_train(X_train)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Predicting Elliptic Envelope...")
         p2 = elliptic_envelope_predict(X_test, t_test, return_binary_only=True)
 
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Training LOF...")
         local_outlier_factor_train(X_train)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Predicting LOF...")
         p3 = local_outlier_factor_predict(X_test, t_test, return_binary_only=True)
+
     else:
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Training Binary RF (model 1)...")
         binary_rf_train(X_train, y_train)
-        p1=binary_svm_predict(X_test, t_test,return_binary_only=True)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Predicting Binary RF (model 1)...")
+        p1 = binary_rf_predict(X_test, t_test, return_binary_only=True)
 
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Training Binary KNN (model 2)...")
         binary_knn_train(X_train, y_train)
-        p2= binary_knn_predict(X_test, t_test)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Predicting Binary KNN (model 2)...")
+        p2 = binary_knn_predict(X_test, t_test, return_binary_only=True)
 
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Training Binary RF (model 3)...")
         binary_rf_train(X_train, y_train)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Evaluating Binary RF (model 3)...")
         binary_rf_evaluate(X_test, y_test)
-        p3 = binary_rf_predict(X_test, t_test)
+        print(f"[fold {fold_idx} | scen {scenario} | {prefix}] Predicting Binary RF (model 3)...")
+        p3 = binary_rf_predict(X_test, t_test, return_binary_only=True)
 
 
-    p = get_ec_prediction(p1, p2, p3, method)
-    precision=float(precision_score(y_test, p, zero_division=0))
-    recall=float(recall_score(y_test, p, zero_division=0))
-    return precision, recall
+    #if method is all (for experiments)
+    methods = ["random", "majority", "all"] if method == "all_methods" else [method]
+
+    precision = {}
+    recall = {}
+    f1={}
+    for m in methods:   #dictinary
+        p = get_ec_prediction(p1, p2, p3, m)
+        precision[m] = float(precision_score(y_test, p, zero_division=0))
+        recall[m] = float(recall_score(y_test, p, zero_division=0))
+        f1[m] = float(f1_score(y_test, p, zero_division=0))
+
+    return precision, recall, f1
+
 
 #train and test indices for each fold ([[][],...]
-def execute_scenario_for_ensemble_classifier(method, multiclass,global_label_encoder, classifier, k, prefix, scenario, keep_inidces=0, param=0):
-
-    labels=np.load(f"datasets/{prefix}_labels.npy")
-    timestamps = np.load(f"datasets/{prefix}_timestamps.npy", allow_pickle=True)
-
-
-    #load train_indices and test_indices for specific scenario
-    #contain indices for all of the k folds
-    train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
+def execute_scenario_for_ensemble_classifier(method,multiclass,global_label_encoder, k, prefix, scenario, keep_indices=0, param=0):
 
 
     #for task d - f:
     if param!=0:
-        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_inidces)
-        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_inidces)
-
-
-
+        # load train_indices and test_indices for specific scenario
+        # contain indices for all of the k folds
+        train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_re.json")
+        labels = np.load(f"datasets/re_labels.npy")
+        timestamps = np.load(f"datasets/re_timestamps.npy", allow_pickle=True)
+        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
+        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
+    else:
+        train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_raw.json")
+        labels = np.load(f"datasets/raw_labels.npy")
+        timestamps = np.load(f"datasets/raw_timestamps.npy", allow_pickle=True)
     numeric_labels = encode_labels(global_label_encoder, labels) #make labels numeric
     binary_numeric_labels=np.where(numeric_labels == 0, 0, 1) #convert from multiclass to binary labels 0 for control, 1 for attack
 
     precision_all_folds=[]
     recall_all_folds=[]
+    f1_all_folds = []
+
     for fold_idx in range(k):
         if len(train_indices[fold_idx])==0 or len(test_indices[fold_idx])==0:
             continue
@@ -574,12 +606,47 @@ def execute_scenario_for_ensemble_classifier(method, multiclass,global_label_enc
             if np.unique(y_tr).size < 2:
                 continue
 
+        # dict which contains value for each method in case of "all_methods"
+        prec_dict, rec_dict, f1_dict = execute_fold_for_ensemble_classifier(
+            method, multiclass, fold_idx, binary_numeric_labels, timestamps,
+            train_indices[fold_idx], test_indices[fold_idx],
+            prefix=prefix, scenario=scenario, param=param
+        )
 
-        precision, recall  = execute_fold_for_experiments(method, multiclass, fold_idx, binary_numeric_labels, timestamps, train_indices[fold_idx], test_indices[fold_idx],classifier=classifier, prefix=prefix, scenario=scenario,keep_indices=keep_inidces, param=param)
-        precision_all_folds.append(precision)
-        recall_all_folds.append(recall)
+        precision_all_folds.append(prec_dict)
+        recall_all_folds.append(rec_dict)
+        f1_all_folds.append(f1_dict)
 
-    return precision_all_folds, recall_all_folds
+    # compute mean over folds per method
+    methods = list(precision_all_folds[0].keys())  # preserves insertion order
+
+    avg_precision = {}
+    avg_recall = {}
+    avg_f1 = {}
+
+    for m in methods:
+        precisions_for_m = []
+        recalls_for_m = []
+        f1s_for_m = []
+
+        for fold_dict in precision_all_folds:
+            precisions_for_m.append(fold_dict[m])
+
+        for fold_dict in recall_all_folds:
+            recalls_for_m.append(fold_dict[m])
+
+        for fold_dict in f1_all_folds:
+            f1s_for_m.append(fold_dict[m])
+        avg_precision[m] = float(sum(precisions_for_m) / len(precisions_for_m))
+        avg_recall[m] = float(sum(recalls_for_m) / len(recalls_for_m))
+        avg_f1[m] = float(sum(f1s_for_m) / len(f1s_for_m))
+
+    # return lists in the same method order
+    return (
+        [avg_precision[m] for m in methods], #list [pr_method1,pr_method2,pr_method3]
+        [avg_recall[m] for m in methods],   #[re_method1,re_method2,re_method3]
+        [avg_f1[m] for m in methods],
+    )
 ######################################################################
 
 

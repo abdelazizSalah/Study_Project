@@ -115,7 +115,6 @@ def pad_or_truncate_packets(packets, target_length):
 def process_npy_file(input_source, output_file_path, p):
     """Process the .npy file as per the defined steps."""
 
-    # 🔹 NEU: entweder direkt ein Array verwenden ODER Datei laden
     if isinstance(input_source, np.ndarray):
         data = input_source
     else:
@@ -130,7 +129,7 @@ def process_npy_file(input_source, output_file_path, p):
     concatenated_data, remainder = concatenate_packets(data_no_zeros, p)
 
     # Step 4: Determine the maximum length of the concatenated packets
-    max_length = 386    # sadsagsafvfzqfevfdsldhvodsvbdsi
+    max_length = 386
 
     # Step 5: Pad or truncate to exactly 386
     padded_data = pad_or_truncate_packets(concatenated_data, max_length)

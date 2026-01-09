@@ -1,6 +1,8 @@
 import argparse
 import os
 import sys
+
+from Assignment5.T1CNN_EC.ensemble_classifier import run_experiment_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
 from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
     train_and_save_models_classifier
@@ -12,7 +14,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 from sklearn.preprocessing import LabelEncoder
 from error_overlap import all_error_overlaps, plot_all_error_overlaps
-from handling_re_bytes_integrated import create_preprocessed_re_files
+from handling_re_bytes_integrated import create_preprocessed_re_files, get_keep_indices_from_fold0
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
 from file_helper_t3 import load_k_fold_results, verify_amount_feature_files
 from constants import ALL_POSSIBLE_LABELS
@@ -511,12 +513,20 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_classifier_modes()
     elif args.mode == "ec_experiment_fg":
-
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_classifier_modes()
-        run_experiments_ec(global_label_encoder, k)
+        run_experiment_ec("all_methods",global_label_encoder, k)
+
+
+def test_main():
+    # keep_indices=get_keep_indices_from_fold0()
+    param = 5
+    keep_indices = get_keep_indices_from_fold0(f"datasets/re_bytes_{param}/", f"re{param}")
+
+
 
 if __name__ == "__main__":
     release_main_new()
+    #test_main()
 

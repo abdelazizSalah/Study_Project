@@ -291,7 +291,7 @@ def create_features_for_ds_raw(num_folds: int = 5):
 
     if not raw_path.exists() :
         raise FileNotFoundError(
-            f"Dataset files not found ({raw_path} or {re_path}). Make sure to extract them first."
+            f"Dataset files not found ({raw_path}). Make sure to extract them first."
         )
 
     print("Using Autoencoder to create features for RAW bytes dataset\n")
