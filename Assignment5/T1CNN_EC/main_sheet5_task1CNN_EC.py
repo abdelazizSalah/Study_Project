@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from Assignment5.T1CNN_EC.ensemble_classifier import run_experiment_ec
+from ensemble_classifier import run_experiment_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
 from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
     train_and_save_models_classifier
