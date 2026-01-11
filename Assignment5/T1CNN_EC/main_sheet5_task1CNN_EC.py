@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 
+from cnn import run_experiment_cnn_classifier
 from ensemble_classifier import run_experiment_ec, plot_all_representations_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
 from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
@@ -10,7 +11,7 @@ from measure_runtime import measure_all
 from experiment_ae_classifier import run_experiment_ae_classifier, make_ae_metric_plots
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 from sklearn.preprocessing import LabelEncoder
 from error_overlap import all_error_overlaps, plot_all_error_overlaps
@@ -537,7 +538,7 @@ def release_main_new():
     elif args.mode == "cnn":
 
         if not args.M:
-            print("ERROR: --M required for mode=cnn. Continuing with default values (M is length of longest packet in each dataset..")
+            print("ERROR: --M required for mode=cnn. Continuing with default values (M is length of longest packet in each dataset..)")
             M_raw = 466
             M_re = 386
         else:
@@ -545,13 +546,14 @@ def release_main_new():
             M_re = args.M
 
 
-        #cnn requires dataset preprocessing again, since the value for M changed^^
-        run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
+        #cnn requires dataset preprocessing again, since the value for M changed
+        #run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
+        #create_preprocessed_re_files()
 
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_ae_classifier()
-
+        run_experiment_cnn_classifier(global_label_encoder,M_raw,M_re)
 
 
 if __name__ == "__main__":

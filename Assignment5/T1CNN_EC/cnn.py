@@ -2,6 +2,7 @@ import csv
 from pathlib import Path
 
 import numpy as np
+from h5py.h5fd import MEM_DRAW
 from tensorflow import keras
 from tensorflow.keras import layers
 from file_helper_t3 import load_k_fold_results
@@ -185,8 +186,14 @@ def execute_fold_cnn(
     X_train, X_test, y_train, y_test = split_training_and_test_cnn(
         ds, binary_numeric_labels, np.array(train_idx), np.array(test_idx)
     )
+    # run on small portion of dataset, for demonstration:
+    first_indices = np.arange(0, 1000)
+    last_indices = np.arange(len(X_train) - 1000, len(X_train))
+    selected_indices = np.concatenate((first_indices, last_indices))
+    X_train = X_train[selected_indices]
+    y_train = y_train[selected_indices]
 
-    # build fresh model per fold (important!)
+
     model = build_cnn_classifier(
         M=M,
         dropout=dropout,
@@ -236,7 +243,6 @@ def run_cnn_for_scenario(
     """
 
     labels = np.load(f"datasets/{prefix_for_files}_labels.npy")
-    timestamps = np.load(f"datasets/{prefix_for_files}_timestamps.npy", allow_pickle=True)
 
     train_indices, test_indices = load_k_fold_results(
         f"k_fold_results/k_fold_s{scenario}_{prefix_for_files}.json"
@@ -327,7 +333,7 @@ def run_cnn_classifier_on_dataset(
     return avg_p, avg_r, avg_f1
 
 
-def run_experiment_cnn_classifier(global_label_encoder, M: int):
+def run_experiment_cnn_classifier(global_label_encoder, M_raw,M_re):
     """
     Runs CNN classifier:
       - scenarios 2 and 3
@@ -341,6 +347,10 @@ def run_experiment_cnn_classifier(global_label_encoder, M: int):
     for scenario in (2, 3):
         results[scenario] = {}
         for prefix, param in zip(prefixes, params):
+            if param==0:
+                M=M_raw
+            else:
+                M=M_re
             results[scenario][prefix] = run_cnn_classifier_on_dataset(
                 scenario=scenario,
                 prefix=prefix,
