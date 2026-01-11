@@ -555,17 +555,8 @@ def release_main_new():
         k = check_requirements_ae_classifier()
 
 
-def test_main():
-    keep_indices=get_keep_indices_from_fold0_ae("datasets/re_bytes_5.npy")
-    train_indices, test_indices = load_k_fold_results(
-        f"k_fold_results/k_fold_s1_re.json"
-    )
-    train_indices, test_indices=filter_all_folds_by_keep_indices(train_indices,test_indices, keep_indices)
-    print(train_indices[0])
-    print(train_indices[1])
-
 
 if __name__ == "__main__":
-    test_main()
-    #release_main_new()
+    #test_main()
+    release_main_new()
 
