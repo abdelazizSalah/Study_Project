@@ -2,7 +2,8 @@ import argparse
 import os
 import sys
 
-from ensemble_classifier import run_experiment_ec
+from labels_helper import  filter_all_folds_by_keep_indices
+from ensemble_classifier import run_experiment_ec, plot_all_representations_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
 from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
     train_and_save_models_classifier
@@ -14,7 +15,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 from sklearn.preprocessing import LabelEncoder
 from error_overlap import all_error_overlaps, plot_all_error_overlaps
-from handling_re_bytes_integrated import create_preprocessed_re_files, get_keep_indices_from_fold0
+from handling_re_bytes_integrated import create_preprocessed_re_files, get_keep_indices_from_fold0, \
+    get_keep_indices_from_fold0_ae
 from k_fold import create_and_save_all_folds, print_k_fold_pretty
 from file_helper_t3 import load_k_fold_results, verify_amount_feature_files
 from constants import ALL_POSSIBLE_LABELS
@@ -217,7 +219,9 @@ From Sheet 3 the 2 steps are always required:
 
     epilog = """\
 MODE DETAILS
-
+  Note: Modes have to be run in separate directories if they are being run simultaneously,
+  since files are created in different steps that can overwrite each other.   
+  
   dataset_preprocessing_sheet345
     This preprocessing mode only can be used for sheets 3,4 and 5.
     All operations are performed twice: once in RAW mode and once in RE mode.
@@ -320,6 +324,16 @@ MODE DETAILS
   experiment_ae_classifier
     Executes experiments on all datatypes and folds, using the autoencoder as a classifier. Evaluates results and creates plots.
     Prerequisites: 'dataset_preprocessing' and 'k_fold' was executed. Autoencoder base models for RAW and RE15 in the 'models' path.
+    
+  ASSIGNMENT 5:
+  ensemble_classifier
+    Exeecutes the ensemble classifier with the specified method. Choose 'all_methods' to run with all methods. Evaluates and Creates plots.
+    Prerequisites: 'dataset_preprocessing', 'k_fold' and 'extract_features' was executed. Autoencoder base models for RAW and RE15 in the 'models' path.  
+
+  cnn
+    Executes the CNN classifier. Evaluates and creates plots.
+    Prerequisites: 'k_fold' was executed.
+    Note: this mode doesnt require dataset preprocessing, it's executed internally since it has a different value for 'M'.
 """
 
     parser = argparse.ArgumentParser(
@@ -332,7 +346,7 @@ MODE DETAILS
         "--mode",
         required=True,
         choices=["dataset_preprocessing_sheet345", "k_fold", "measure_runtime", "error_overlap", "feature_importance",
-                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def", "ensemble_classifier" ],
+                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def", "ensemble_classifier", "cnn" ],
         help="Which pipeline step to run.",
     )
 
@@ -382,6 +396,14 @@ MODE DETAILS
         ),
     )
 
+    parser.add_argument(
+        "--M",
+        type=int,
+        help=(
+            "Number of bytes in a single packet that the CNN runs with."
+        ),
+    )
+
     return parser.parse_args()
 
 
@@ -389,7 +411,7 @@ MODE DETAILS
 # Mode implementations
 # -------------------------------------------------------------------
 
-def run_dataset_preprocessing(attack_dir: str, control_dir: str):
+def run_dataset_preprocessing(attack_dir: str, control_dir: str, M_raw=466, M_re=386):
     if not attack_dir or not control_dir:
         print("ERROR: --attack-dir and --control-dir are required for mode=dataset_preprocessing.")
         sys.exit(1)
@@ -398,8 +420,8 @@ def run_dataset_preprocessing(attack_dir: str, control_dir: str):
     # M_raw, M_re= find_M(attack_dir, control_dir)
 
     # to reduce runtime use fixed M, which was previously computed using the find_M function
-    M_raw = 466
-    M_re = 386
+    #M_raw = 466
+    #M_re = 386
 
     os.makedirs("datasets", exist_ok=True)
 
@@ -451,6 +473,7 @@ def release_main_new():
     elif args.mode == "use_classifiers":
         if not args.classifier:
             print("ERROR: --classifier required for mode=use_classifiers")
+            sys.exit(1)
         # Build global label encoder once
         # LabelEncoder from the Scikit-learn -> set up a way to convert text labels (categories) into numerical values for ML
         global_label_encoder = LabelEncoder()
@@ -512,16 +535,37 @@ def release_main_new():
         k = check_requirements_classifier_modes()
         method=args.method
         run_experiment_ec(method,global_label_encoder, k)
+        plot_all_representations_ec()
+    elif args.mode == "cnn":
+
+        if not args.M:
+            print("ERROR: --M required for mode=cnn. Continuing with default values (M is length of longest packet in each dataset..")
+            M_raw = 466
+            M_re = 386
+        else:
+            M_raw = args.M
+            M_re = args.M
+
+
+        #cnn requires dataset preprocessing again, since the value for M changed^^
+        run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
+
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_ae_classifier()
 
 
 def test_main():
-    # keep_indices=get_keep_indices_from_fold0()
-    param = 5
-    keep_indices = get_keep_indices_from_fold0(f"datasets/re_bytes_{param}/", f"re{param}")
-
+    keep_indices=get_keep_indices_from_fold0_ae("datasets/re_bytes_5.npy")
+    train_indices, test_indices = load_k_fold_results(
+        f"k_fold_results/k_fold_s1_re.json"
+    )
+    train_indices, test_indices=filter_all_folds_by_keep_indices(train_indices,test_indices, keep_indices)
+    print(train_indices[0])
+    print(train_indices[1])
 
 
 if __name__ == "__main__":
-    release_main_new()
-    #test_main()
+    test_main()
+    #release_main_new()
 

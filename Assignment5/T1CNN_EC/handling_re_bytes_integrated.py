@@ -197,6 +197,7 @@ def get_keep_indices_from_fold0(feature_dir: str, model_prefix: str) -> np.ndarr
 
 #the feature_file in this case is a bytes file, because the autoencoder takes the bytes as input
 #seperate function to get duplicates from bytes file!
+#"fold0" in the name is misleading, keep indices are calculated for whole feature file
 def get_keep_indices_from_fold0_ae(feature_file) -> np.ndarray:
     """
     Load fold 0 features and compute indices to keep so that all duplicate

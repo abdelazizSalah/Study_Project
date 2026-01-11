@@ -88,50 +88,27 @@ def deduplicate_features(ds):
     return ds_new
 
 
-def deduplicate_labels_and_timestamps(labels, timestamps, keep_indices):
-    """
-    Applies deduplication to labels and timestamps using `keep_indices`
-    obtained from deduplicating features.
-    """
-    labels = np.asarray(labels)
-    timestamps = np.asarray(timestamps)
-    keep_indices = np.asarray(keep_indices)
-
-    labels_new = labels[keep_indices]
-    timestamps_new = timestamps[keep_indices]
-
-    print(f"[deduplicate_labels_and_timestamps] new length: {len(labels_new)}")
-
-    return labels_new, timestamps_new
 
 
 def deduplicate_folds(train_folds, test_folds, keep_indices):
     """
-    Maps old fold indices (from the original dataset) into the new index
-    space created after deduplication.
+    train_folds, test_folds: list of folds (each fold is a list of sample indices)
+    keep_indices: list/array of sample indices to keep (original index space)
 
-    Example:
-        Old dataset has N samples.
-        After deduplication only M samples remain.
-        We need to map old indices -> new indices.
+    Returns:
+        new_train_folds, new_test_folds
+        (same structure as input: list of folds, each fold is a list of indices)
     """
-    keep_indices = np.asarray(keep_indices)
-
-    # Old index → new index mapping
-    index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(keep_indices)}
-    #keep indices= [10,22,50]
-    ## Resulting dictionary:
-    # {10: 0, 22: 1, 50: 2}
+    keep = set(map(int, keep_indices))
 
     new_train_folds = []
     new_test_folds = []
 
     for tr, te in zip(train_folds, test_folds):
-        tr_new = [index_map[i] for i in tr if i in index_map]
-        te_new = [index_map[i] for i in te if i in index_map]
-
+        tr_new = [i for i in tr if i in keep]
+        te_new = [i for i in te if i in keep]
         new_train_folds.append(tr_new)
         new_test_folds.append(te_new)
 
-    print("[deduplicate_folds] Fold remapping complete.")
     return new_train_folds, new_test_folds
+

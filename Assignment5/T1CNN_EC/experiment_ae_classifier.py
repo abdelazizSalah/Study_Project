@@ -7,7 +7,7 @@ from tensorflow import keras
 from feature_creation_autoencoder import train_and_save_models_classifier
 from handling_re_bytes_integrated import  get_keep_indices_from_fold0_ae
 from labels_helper import deduplicate_folds
-from labels_helper import deduplicate_labels_and_timestamps, encode_labels
+from labels_helper import  encode_labels
 from file_helper_t3 import load_k_fold_results
 import numpy as np
 
@@ -198,7 +198,6 @@ def run_ae_for_scenario(
     train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s1_{prefix}.json")
 
     if param == 15:
-        labels, timestamps = deduplicate_labels_and_timestamps(labels, timestamps, keep_indices)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
 
     numeric_labels = encode_labels(global_label_encoder, labels)

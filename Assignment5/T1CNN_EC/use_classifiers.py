@@ -14,7 +14,7 @@ from fine_tuning_optimized import grid_search_random_forest, grid_search_knn
 from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from local_outlier_factor import local_outlier_factor_evaluate, local_outlier_factor_train, \
     local_outlier_factor_predict_error_overlap, lof_permutation_importance, local_outlier_factor_predict
-from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds
+from labels_helper import deduplicate_folds
 from knn import binary_knn_evaluate, binary_knn_train, binary_knn_predict_error_overlap, knn_permutation_importance, \
     binary_knn_predict
 from elliptic_envelope import elliptic_envelope_train, elliptic_envelope_evaluate, \
@@ -114,7 +114,6 @@ def execute_scenario_feature_importance(
     train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_{prefix}.json")
 
     if param == 15:
-        labels, timestamps = deduplicate_labels_and_timestamps(labels, timestamps, keep_indices)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
 
     numeric_labels = encode_labels(global_label_encoder, labels)
@@ -159,7 +158,6 @@ def execute_scenario_rt(global_label_encoder, classifier, k, prefix, scenario, k
 
     #for re15:
     if param==15:
-        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
 
 
@@ -396,7 +394,6 @@ def execute_scenario_error_overlap(global_label_encoder, classifier, k, prefix, 
 
     #for re15:
     if param==15:
-        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices) #[[32432, 23, 334, ...][][][]]
 
 
@@ -583,7 +580,6 @@ def execute_scenario_for_ensemble_classifier(method,multiclass,global_label_enco
         train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_re.json")
         labels = np.load(f"datasets/re_labels.npy")
         timestamps = np.load(f"datasets/re_timestamps.npy", allow_pickle=True)
-        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_indices)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
     else:
         train_indices, test_indices = load_k_fold_results(f"k_fold_results/k_fold_s{scenario}_raw.json")
@@ -723,7 +719,6 @@ def execute_scenario_for_experiments(global_label_encoder, classifier, k, prefix
 
     #for task d - f:
     if param!=0:
-        labels,timestamps=deduplicate_labels_and_timestamps(labels,timestamps, keep_inidces)
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_inidces)
 
 
