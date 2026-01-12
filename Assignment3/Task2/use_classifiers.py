@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC, OneClassSVM
 
-from handling_re_bytes_integrated_modifed import get_keep_indices_from_fold0
+from handling_re_bytes_integrated import get_keep_indices_from_fold0
 from labels_helper import deduplicate_labels_and_timestamps, deduplicate_folds, deduplicate_features
 from fine_tuning_optimized import grid_search_one_class_svm, grid_search_svm, grid_search_elliptic_envelope, \
     grid_search_random_forest, grid_search_knn
