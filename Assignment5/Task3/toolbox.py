@@ -364,7 +364,7 @@ def main():
     from fine_tuning_task2_raw import task2_sheet4_main
     from task3_sheet4_ngrams_modifications import sheet4_task3_ngrams
     from fine_tuning_task2_re import task2_sheet4_main_finetuned_re
-    
+
 
 
     ########################## Finish loading #####################
@@ -416,7 +416,7 @@ def main():
         elif args.s == 'GAN_re':
             print("Executing functionality for reverse 2...")
             parser = argparse.ArgumentParser()
-            args = sheet4_task2_raw_args(parser, remaining_args)
+            args = sheet4_task2_raw_args(parser, remaining_args) # same args as raw
             task2_sheet4_main_finetuned_re(args.n, args.mode)
         elif args.s == 'ngram_detection':
             print("Executing functionality for reverse 2...")
