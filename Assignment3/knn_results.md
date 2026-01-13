@@ -1,0 +1,3 @@
+- KNN first fold result: 
+  - ![alt text](image.png)
+- We need to know the complexity of running each model, and the size of our dataset, to be able to defend in front of Asya, why is it difficult to run all these data. 

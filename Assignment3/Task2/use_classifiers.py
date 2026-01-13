@@ -135,13 +135,12 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
         ds, binary_numeric_labels, timestamps, train_indices, test_indices
     )
 
-
     if classifier == "ocsvm":
         base = OneClassSVM()
         best_model = grid_search_one_class_svm(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
         # overwrite the model file used by one_class_svm_evaluate
-        joblib.dump(best_model, "models/ocsvm.joblib")
-        roc_auc, precision, recall = one_class_svm_evaluate(X_test, y_test)
+        joblib.dump(best_model, "models/ocsvm.joblib") # save the best model
+        roc_auc, precision, recall = one_class_svm_evaluate(X_test, y_test) # the model will be loaded inside this function.
 
     elif classifier == "bsvm":
         base = SVC(probability=True, random_state=42)
@@ -151,7 +150,12 @@ def execute_fold_for_experiments(fold_idx, binary_numeric_labels, timestamps,
 
     elif classifier == "ee":
         base = EllipticEnvelope()
-        best_model = grid_search_elliptic_envelope(base, X_train, y_train, X_test, y_test, scoring_metric="accuracy")
+        # select first 100 samples, and last 100 samples from X_trains for testing only
+        X_train_subset = np.concatenate([X_train[:100], X_train[-100:]])
+        y_train_subset = np.concatenate([y_train[:100], y_train[-100:]])
+        X_test_subset = np.concatenate([X_test[:100], X_test[-100:]])
+        y_test_subset = np.concatenate([y_test[:100], y_test[-100:]])
+        best_model = grid_search_elliptic_envelope(base, X_train_subset, y_train_subset, X_test_subset, y_test_subset, scoring_metric="accuracy")
         joblib.dump(best_model, "models/ee.joblib")    # adjust filename to match your evaluate()
         roc_auc, precision, recall = elliptic_envelope_evaluate(X_test, y_test)
 

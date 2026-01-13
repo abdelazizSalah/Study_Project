@@ -53,7 +53,51 @@ Finding optimal threshold:
     - calculate detection rate (true positive rate) and false positive rate for the current threshold.
     - store the threshold that gives the best trade-off between detection rate and false positive rate.
 '''
-TESTING = True
+
+'''
+Example on how Bloom filter work: 
+- First we need to determine its parameters: 
+    - number of bits. => 10 bits
+    - number of hash functions => 3 hash functions
+- Then we should have some elements to insert, lets assume {cat, dog}
+- then for each of the hash functions we have, we compute the hash for each element,
+    - h1(cat) = 3
+    - h2(cat) = 5
+    - h3(cat) = 7
+    - then now we go and set bits with these indicies in the bloom filter as 1. 
+- then we repeat for the other element:
+    - h1(dog) = 1
+    - h2(dog) = 5
+    - h3(dog) = 9
+    - then now we go and set bits with these indicies in the bloom filter as 1.
+    - now our bloom filter looks like this:
+        - Index: 0 1 2 3 4 5 6 7 8 9
+        - Bits:  0 1 0 1 0 1 0 1 0 1
+- Now for testing
+- if we have this test set {cat, cow, car, carpet}
+    - for cat:
+        - h1(cat) = 3
+        - h2(cat) = 5
+        - h3(cat) = 7
+        - we check bits at these indices, all are 1, so cat is probably in the set.
+    - for cow:
+        - h1(cow) = 0
+        - h2(cow) = 4
+        - h3(cow) = 6
+        - we check bits at these indices, all bits are not set, so cow is definitely not in the set.
+    - for car:
+        - h1(car) = 2
+        - h2(car) = 5
+        - h3(car) = 8
+        - we check bits at these indices, bit at index 2 and 8 are not set, so car is definitely not in the set.
+    - for carpet:
+        - h1(carpet) = 1
+        - h2(carpet) = 3
+        - h3(carpet) = 7
+        - we check bits at these indices, by incident all are set, so we will consider carpet as in the set => (false-positive)
+'''
+
+TESTING = False
 import sys
 import numpy as np
 import math
@@ -75,7 +119,7 @@ class BloomFilter:
         - uses double hashing (h1 + i * h2) to generate multiple hash values
         - supporting adding elements and checking membership
     '''
-    def __init__(self, false_positive_rate=0.01, number_of_ngrams=10000):
+    def __init__(self, false_positive_rate=0.01, number_of_ngrams=1000):
         '''
             Constructor to initialize the Bloom filter
             false_positive_rate: desired false positive rate (between 0 and 1)
@@ -92,6 +136,7 @@ class BloomFilter:
         self.byte_array = bytearray(self.required_number_of_bits // 8 + 1)  # +1 to handle any remainder bits
         # bytes array is an efficient way to store bits in python, each byte has 8 bits, so number of bytes = ceil(number of bits / 8)
         # I could have used also boolean array, but 1 boolean = 1 byte, so it is less efficient in terms of space.
+        # number of hash functions affect the probability of false positives, less hashes = more false positives, more hashes = less false positives but slower performance.
 
 
     def _set_certain_bit(self, bit_index):
@@ -436,25 +481,25 @@ def load_and_label_data():
 def compute_bloom_weights_and_counts(train_packets, n):
     
     print("[*] Training model...")
-    if os.path.exists('bloom_filter.pkl') and os.path.exists('ngram_weights.pkl') and os.path.exists('ngram_count_training.pkl'):
+    if os.path.exists(f'bloom_filter_{n}.pkl') and os.path.exists(f'ngram_weights_{n}.pkl') and os.path.exists(f'ngram_count_training_{n}.pkl'):
         
-        with open('bloom_filter.pkl', 'rb') as f:
+        with open(f'bloom_filter_{n}.pkl', 'rb') as f:
             bloom = pickle.load(f)
-        with open('ngram_weights.pkl', 'rb') as f:
+        with open(f'ngram_weights_{n}.pkl', 'rb') as f:
             weights = pickle.load(f)
-        with open('ngram_count_training.pkl', 'rb') as f:
+        with open(f'ngram_count_training_{n}.pkl', 'rb') as f:
             ngram_count_training = pickle.load(f)
         print(f"[*] Loaded pre-trained model from disk. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
     else:
         bloom, weights, ngram_count_training = train_ngram_models(train_packets, n)
         # save the bloom filter and weights to disk for future use
-        with open('bloom_filter.pkl', 'wb') as f:
+        with open(f'bloom_filter_{n}.pkl', 'wb') as f:
             pickle.dump(bloom, f)
-        with open('ngram_weights.pkl', 'wb') as f:
+        with open(f'ngram_weights_{n}.pkl', 'wb') as f:
             pickle.dump(weights, f)
         # store ngram_count_training for future use
-        with open('ngram_count_training.pkl', 'wb') as f:
+        with open(f'ngram_count_training_{n}.pkl', 'wb') as f:
             pickle.dump(ngram_count_training, f)
         print(f"[*] Training completed. Number of n-grams in model: {len(weights)}")
         print('-------------------------------------')
@@ -508,6 +553,7 @@ def sheet3_task1():
     
     if len(sys.argv) > 1:
         n = int(sys.argv[1])
+        print(f"[*] Using n-gram size: {n}")
     else:
         # print a hint how to call it in command line
         raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
@@ -533,7 +579,7 @@ def sheet3_task1():
     validation_scores = [score_packet(pkt[0], bloom, weights, n)
                     for pkt in validation_packets]
     # save validation scores to a file
-    with open('validation_scores.txt', 'w') as f:
+    with open(f'validation_scores_{n}.txt', 'w') as f:
         f.write("Index\tScore\tLabel\n")
         for index, (_, label) in enumerate(validation_packets):
             f.write(f"{index}\t{validation_scores[index]:.6f}\t{label}\n")
@@ -543,7 +589,7 @@ def sheet3_task1():
     print("[*] Finding optimal threshold...")
     best_t, best_acc, best_prec, best_rec, best_f1 = find_best_threshold(validation_packets,scores=validation_scores)
     # save best threshold to a file
-    with open('best_metrics.txt', 'w') as f:
+    with open(f'best_metrics_{n}.txt', 'w') as f:
         f.write(f"Best Threshold: {best_t:.6f}\n")
         f.write(f"Accuracy: {best_acc:.6f}\n")
         f.write(f"Precision: {best_prec:.6f}\n")
@@ -557,12 +603,11 @@ def sheet3_task1():
     results = test_model(test_packets, bloom, weights, n, best_t) 
 
     # save results to a file
-    with open('test_results.txt', 'w') as f:
+    with open(f'test_results_{n}.txt', 'w') as f:
         f.write("Index\tScore\tLabel\n")
         for index, score, label in results:
             f.write(f"{index}\t{score:.6f}\t{label}\n")
-    print("[*] Test results saved to test_results.txt")
-
+    print(f"[*] Test results saved to test_results_{n}.txt")
 
    
 if __name__ == "__main__":

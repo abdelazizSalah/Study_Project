@@ -155,7 +155,10 @@ def extract_features_for_all_folds(
     for fold_idx in range(num_folds):
         model_path = f"models/ae_fold{fold_idx}_{model_prefix_ae}.keras"   #model trained for the specific fold (0 to k-1)
         out_path = f"{out_dir}/{model_prefix}_features_fold{fold_idx}.npy"
-
+        # check if the output already exist, if yes, skip extraction
+        if Path(out_path).exists():
+            print(f"Features for fold {fold_idx} already exist at {out_path}. Skipping extraction.")
+            continue
         extract_and_save_features_for_model(
             model_path=model_path,
             bytes_path=bytes_path,
@@ -209,6 +212,10 @@ def create_features_for_ds_task3def(num_folds: int = 5):
             )
 
         print(f"Using Autoencoder to create features for RE{i} bytes dataset\n")
+        # check if the output directory exists, if not create it.
+        if not os.path.exists(f"datasets/re_bytes_{i}/"):
+            os.makedirs(f"datasets/re_bytes_{i}/")
+        
         extract_features_for_all_folds(
             model_prefix=f"re{i}",
             bytes_path=str(re_path),
