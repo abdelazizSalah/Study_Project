@@ -3,6 +3,7 @@ import os
 import sys
 
 from cnn import run_experiment_cnn_classifier
+from resnet import run_experiment_resnet_classifier
 from ensemble_classifier import run_experiment_ec, plot_all_representations_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
 from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
@@ -554,6 +555,19 @@ def release_main_new():
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_ae_classifier()
         run_experiment_cnn_classifier(global_label_encoder,M_raw,M_re)
+    elif args.mode == 'resnet':
+        if not args.M:
+            print("ERROR: --M required for mode=resnet. Continuing with default values (M is length of longest packet in each dataset..)")
+            M_raw = 466
+            M_re = 386
+        else:
+            M_raw = args.M
+            M_re = args.M
+
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_ae_classifier()
+        run_experiment_resnet_classifier(global_label_encoder,M_raw,M_re)
 
 
 if __name__ == "__main__":
