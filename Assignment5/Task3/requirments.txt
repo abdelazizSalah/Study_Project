@@ -1,0 +1,8 @@
+pandas
+numpy
+scikit-learn
+scikit-learn-extra
+tensorflow
+keras
+scapy
+matplotlib

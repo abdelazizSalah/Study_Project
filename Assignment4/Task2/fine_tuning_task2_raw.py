@@ -17,9 +17,10 @@ Phase 0: Design Decisions:
 '''
 from sheet4_task2_utility_tools import *
 # Main function
-def task2_sheet4_main():
+def task2_sheet4_main(n,mode):
     # Main logic of the task
-    n, mode = phase1_read_arguments() 
+    # n, mode = phase1_read_arguments() 
+    print(f'calling task2_sheet4_main with n={n}, mode={mode}')
     #! finetuning parameters. 
       
     m = [10,20]  # number of packets per sample
@@ -337,5 +338,5 @@ def task2_sheet4_main():
 
 
 
-if __name__ == "__main__":
-    task2_sheet4_main()
+# if __name__ == "__main__":
+#     task2_sheet4_main()

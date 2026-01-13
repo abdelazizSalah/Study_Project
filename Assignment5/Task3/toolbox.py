@@ -56,7 +56,7 @@ def print_help():
             --epochs : Training epochs
             
             Example:
-            python task3.py -s sda --mode models --pcap-dir-control data/control_pcaps --M 100 --epochs 25
+            python toolbox.py -s sda --mode models --pcap-dir-control data/control_pcaps --M 100 --epochs 25
 
             This will:
             - Parse all .pcap files from data/control_pcaps/
@@ -69,7 +69,7 @@ def print_help():
             --output-dir-features : Output directory for features of best SDA models.
             
             Example:
-            python task3.py -s sda --mode features --pcap-dir-control data/control_pcaps --M 100 --output-dir-features data/features
+            python toolbox.py -s sda --mode features --pcap-dir-control data/control_pcaps --M 100 --output-dir-features data/features
 
             This will:
                 - Load the trained models from models_and_data/
@@ -82,7 +82,7 @@ def print_help():
             --y : Threshold γ for MSE-based classifier.
             
             Example:
-            python task3.py -s sda --mode classify --pcap-dir-control data/control_pcaps --pcap-dir-attack data/attack_pcaps --y 0.01
+            python toolbox.py -s sda --mode classify --pcap-dir-control data/control_pcaps --pcap-dir-attack data/attack_pcaps --y 0.01
 
             This will:                
                 - Ensure both dataset_control.npy and dataset_attack.npy exist (or create them if they do not exist)
@@ -94,20 +94,29 @@ def print_help():
     
     Example Usage:
     Help:
-        python task3.py -h
+        python toolbox.py -h
     Similarity Flows Analysis:
-        python task3.py -s similarity_flows
+        python toolbox.py -s similarity_flows
     Statistics Computation:
         QUT dataset: 
-                python task3.py -s statistics --task stats --dataset qut --stats-input-file /data/processed/qut_2017.csv --stats-output-dir /data/stats/qut
+                python toolbox.py -s statistics --task stats --dataset qut --stats-input-file /data/processed/qut_2017.csv --stats-output-dir /data/stats/qut
         Electra dataset:
-                python task3.py -s statistics --task stats --dataset electra --stats-input-file /data/processed/electra.parquet --stats-output-dir /data/stats/electra
+                python toolbox.py -s statistics --task stats --dataset electra --stats-input-file /data/processed/electra.parquet --stats-output-dir /data/stats/electra
     Reverse Engineering Task 1:
-        python task3.py -s reverse_1 
+         python toolbox.py -s reverse_1 --task preprocess --dataset-dir ../../DataSets/2017QUT_S7comm/LabelledDataset --output-file ../../DataSets/output/task2/preprocessQUT.csv  
 
     Reverse Engineering Task 2:
-        python task3.py -s reverse_2 (no args then defualt max_len = 4 is used)
-        python task3.py -s reverse_2 -m 6 (max_len = 6 is used)
+        python toolbox.py -s reverse_2 (no args then defualt max_len = 4 is used)
+        python toolbox.py -s reverse_2 -m 6 (max_len = 6 is used)
+    
+    GAN-based Anomaly Detection - Raw Packets:
+        python toolbox.py -s GAN_raw --n 100 --mode D
+        python toolbox.py -s GAN_raw --n 100 --mode G
+    GAN-based Anomaly Detection - Reconstructed Packets:
+        python toolbox.py -s GAN_re --n 100 --mode G
+        python toolbox.py -s GAN_re --n 100 --mode D
+    N-Gram Anomaly Detection:
+        python toolbox.py -s ngram_detection --n {n-gram size}
     """
     print(help_text)
     
@@ -248,6 +257,51 @@ def sheet2_task1_args(parser, remaining_args):
     return args
 
 
+def sheet4_task2_raw_args(parser, remaining_args):
+    """
+    Argument parser for Sheet 4 - Task 2 (GAN-based anomaly detection)
+    """
+
+    parser.add_argument(
+        "--n",
+        type=int,
+        required=True,
+        help="Number of bytes per packet (input width n)"
+    )
+
+    parser.add_argument(
+        "--mode",
+        choices=["D", "G"],
+        required=True,
+        help="Inference mode: 'D' for Discriminator-based, 'G' for Generator-based"
+    )
+
+    args = parser.parse_args(remaining_args)
+
+    print(f"N (bytes per packet) = {args.n}")
+    print(f"MODE                = {args.mode}")
+
+    return args
+
+def sheet4_task3_ngram_args(parser, remaining_args):
+    """
+    Argument parser for Sheet 4 - Task 3 (N-gram based detection)
+    """
+
+    parser.add_argument(
+        "--n",
+        type=int,
+        required=True,
+        help="N-gram size (e.g. 2, 3, 4)"
+    )
+
+    args = parser.parse_args(remaining_args)
+
+    print(f"N-GRAM SIZE = {args.n}")
+
+    return args
+
+
 
 def load_all_modules():
     
@@ -263,21 +317,36 @@ def load_all_modules():
 
         '''
     )
+    print('loading all necessary modules')
+    
+    # Adding assigment 1
+    add_module_path('../../Assignment1/Abdelaziz_Codes/Sheet1_codes')
+    add_module_path('../../Assignment1/Anna_Code')
+    add_module_path('../../Assignment1/SDA')
+    # Adding assigment 2
+    add_module_path('../../Assignment2/Task1')
+    add_module_path('../../Assignment2/Task2')
+
+    # Adding assigment 3
+    add_module_path('../../Assignment3/Task1')
+    add_module_path('../../Assignment3/Task2')
+    add_module_path('../../Assignment3/Task3')
+
+    # Adding assigment 4 => done except Anna's part
+    # add_module_path('../../Assignment4/Task1')
+    add_module_path('../../Assignment4/Task2')
+    add_module_path('../../Assignment4/Task3')
+    # Adding assigment 5
+    add_module_path('../../Assignment5/Task1')
+    # add_module_path('../../Assignment5/Task2')
 
     
-    print('loading all necessary modules')
+def add_module_path(module_path):
     curr_dir = os.path.dirname(os.path.abspath(__file__))
-    sheet1_codes_path = os.path.abspath(os.path.join(curr_dir, '..', '..','Assignment1','Abdelaziz_Codes' ,'Sheet1_codes'))
-    Anna_codes_path = os.path.abspath(os.path.join(curr_dir,  '..', '..','Assignment1','Anna_Code'))
-    sda = os.path.abspath(os.path.join(curr_dir,  '..', '..','Assignment1','SDA'))
-    reverse2 = os.path.abspath(os.path.join(curr_dir,  '..','Task2'))
-    reverse1 = os.path.abspath(os.path.join(curr_dir,  '..','Task1'))
-    sys.path.append(sheet1_codes_path)
-    sys.path.append(Anna_codes_path)
-    sys.path.append(sda)
-    sys.path.append(reverse2)
-    sys.path.append(reverse1)
-    
+    modulte_abs_path = os.path.abspath(os.path.join(curr_dir, module_path))
+    sys.path.append(modulte_abs_path)
+    # print(f'Added module path: {modulte_abs_path}')
+
 
 
 
@@ -292,6 +361,12 @@ def main():
     from sheet1_task3 import sheet1_task3_main
     # from sheet2_task1 import release_main_reverse1
     from sheet2_task2 import sheet2_task2_reverse2
+    from fine_tuning_task2_raw import task2_sheet4_main
+    from task3_sheet4_ngrams_modifications import sheet4_task3_ngrams
+    from fine_tuning_task2_re import task2_sheet4_main_finetuned_re
+    
+
+
     ########################## Finish loading #####################
 
 
@@ -333,6 +408,21 @@ def main():
             args = sheet2_task2_args(parser, remaining_args)
             sheet2_task2_reverse2(args)
             # Call relevant functions for mode 4
+        elif args.s == 'GAN_raw':
+            print("Executing functionality for reverse 2...")
+            parser = argparse.ArgumentParser()
+            args = sheet4_task2_raw_args(parser, remaining_args)
+            task2_sheet4_main(args.n, args.mode)
+        elif args.s == 'GAN_re':
+            print("Executing functionality for reverse 2...")
+            parser = argparse.ArgumentParser()
+            args = sheet4_task2_raw_args(parser, remaining_args)
+            task2_sheet4_main_finetuned_re(args.n, args.mode)
+        elif args.s == 'ngram_detection':
+            print("Executing functionality for reverse 2...")
+            parser = argparse.ArgumentParser()
+            args = sheet4_task3_ngram_args(parser, remaining_args)
+            sheet4_task3_ngrams(args.n)
         else:
             print(f"Mode {args.s} is not recognized.")
     else:

@@ -537,19 +537,19 @@ def split_data(labeled_data_normal, labeled_data_attack, train_ratio=0.6, valida
 # ----------------------------------------------------------
 # MAIN ENTRY (CLI)
 # ----------------------------------------------------------
-def sheet3_task1():
+def sheet4_task3_ngrams(n):
     # read n from command line arguments
     print('-------------------------------------')
     print("[*] Starting N-gram based Detection Method...")
     
-    if len(sys.argv) > 1:
-        n = int(sys.argv[1])
-        print(f"[*] Using n-gram size: {n}")
-    else:
-        # print a hint how to call it in command line
-        raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
-        # n = 3  # default n-gram size
-
+    # if len(sys.argv) > 1:
+    #     n = int(sys.argv[1])
+    #     print(f"[*] Using n-gram size: {n}")
+    # else:
+    #     # print a hint how to call it in command line
+    #     raise ValueError("Please provide n-gram size as a command line argument. Example: python task1_sheet3.py 3")
+    #     # n = 3  # default n-gram size
+    print(f'calling task from toolbox for ngram detection with n = {n}')
     #! I modified the code to be able to work on different values of p for re data. 
     for p in [5,10,15]:
         print(f'=====================================')
@@ -605,5 +605,5 @@ def sheet3_task1():
                 f.write(f"{index}\t{score:.6f}\t{label}\n")
         print(f"[*] Test results saved to test_results_n_{n}_p_{p}.txt")
    
-if __name__ == "__main__":
-    sheet3_task1()
+# if __name__ == "__main__":
+#     sheet4_task3_ngrams()

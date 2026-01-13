@@ -17,9 +17,10 @@ Phase 0: Design Decisions:
 '''
 from fine_tuning_sheet4_task2_utility_tools_re import *
 # Main function
-def task2_sheet4_main():
+def task2_sheet4_main_finetuned_re(n,mode):
     # Main logic of the task
-    n, mode = phase1_read_arguments() 
+    # n, mode = phase1_read_arguments() 
+    print(f'[*] Starting GAN-based Anomaly Detection on Reconstructed Packets with n={n} and mode={mode}...')
     p_vals = [5,10,15]
     #! finetuning parameters. 
     
@@ -284,4 +285,4 @@ def task2_sheet4_main():
 
 
 if __name__ == "__main__":
-    task2_sheet4_main()
+    task2_sheet4_main_finetuned_re()
