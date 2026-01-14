@@ -15,39 +15,6 @@ from handling_re_bytes_integrated import get_keep_indices_from_fold0_ae
 # ---------------------------
 # ResNet1D model definition
 # ---------------------------
-'''
-@Author: Abdelaziz Neamatallah
-@Date: 13.1.26
-@Description: This file contains the implementation for ResNet-18 architecture using PyTorch.
-
-1. Residual block (basicBlock 1D)
-   1. 2 convolution layers per block:
-      - Conv1D -> Batch Normalization (BN) -> ReLU -> conv1D -> BN     
-   2. Skip connection:
-      1. identity if shapes match
-      2. projection (1x1 Conv1d) if channels/stride changes
-2. ResNet-18 stages
-   - it should consist of 4 stages, each stage has 2 residual blocks
-   - Standard channel progression example: 
-     1. Stage1: 64
-     2. Stage2: 128
-     3. Stage3: 256
-     4. Stage4: 512
-   - Total "18 Layers" requirement: 
-     - follow the ResNet-18 pattern (counts alogn when we consider convs)
-3. Pooling
-   - We can use AdaptiveAvgPool1d(1) at the end
-     - it gives fixed-size embedding regardless of M
-4. 2 Fully connected layers
-   1. FC1 (embeddings -> hidden) + ReLU + DropOut
-   2. FC2 (hidden -> 2 logits)
-5. Sanity checks
-   - we can run on one batch to check:
-     - shapes
-     - logits shape
-     - loss runs
-
-'''
 
 import torch
 import torch.nn as nn

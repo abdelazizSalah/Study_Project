@@ -334,6 +334,14 @@ MODE DETAILS
     Executes the CNN classifier. Evaluates and creates plots.
     Prerequisites: 'k_fold' was executed.
     Note: this mode doesnt require dataset preprocessing, it's executed internally since it has a different value for 'M'.
+        - --mode cnn --M m_val
+
+
+  resnet
+    Executes the ResNet classifier. Evaluates and creates plots.
+    Prerequisites: 'k_fold' was executed.
+    Note: this mode doesnt require dataset preprocessing, it's executed internally since it has a different value for 'M'.
+        - --mode resnet --M m_val
 """
 
     parser = argparse.ArgumentParser(
@@ -346,7 +354,7 @@ MODE DETAILS
         "--mode",
         required=True,
         choices=["dataset_preprocessing_sheet345", "k_fold", "measure_runtime", "error_overlap", "feature_importance",
-                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def", "ensemble_classifier", "cnn" ],
+                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def", "ensemble_classifier", "cnn", 'resnet' ],
         help="Which pipeline step to run.",
     )
 
