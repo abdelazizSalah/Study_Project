@@ -1,0 +1,8 @@
+-scenario 3 always giving the worst results
+-scenario 2 always giving the best results
+
+-scenario 1 is between them
+
+=> multiclass performs better than single class if different attack types are in the data
+
+-experiments on raw dataset way bettern than on REX
