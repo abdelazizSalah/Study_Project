@@ -1,4 +1,5 @@
 import csv
+from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -8,6 +9,92 @@ from tensorflow.keras import layers
 from file_helper_t3 import load_k_fold_results
 from labels_helper import deduplicate_folds, encode_labels
 from handling_re_bytes_integrated import get_keep_indices_from_fold0_ae
+
+
+def grid_search_cnn(
+    scenario: int,
+    prefix_for_files: str,
+    global_label_encoder,
+    keep_indices,
+    param: int,
+    M: int,
+    # fixed training settings
+    epochs: int = 10,
+    batch_size: int = 256,
+    # grid
+    grid_dropout=(0.2, 0.3),
+    grid_lr=(1e-3, 5e-4),
+    grid_kernel_size=(5, 7),
+    grid_filters=((8,16,32,64), (16,32,64,128)),
+    grid_dense_units=(128, 256),
+):
+    """
+    Returns: best_cfg, best_scores, all_results (list of dicts)
+    """
+
+    # load labels + folds once
+    labels = np.load(f"datasets/{prefix_for_files}_labels.npy")
+    train_indices, test_indices = load_k_fold_results(
+        f"k_fold_results/k_fold_s{scenario}_{prefix_for_files}.json"
+    )
+
+    # If you keep remapping dedup, you must also align labels/ds accordingly (see note above).
+    if param != 0:
+        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
+
+    numeric_labels = encode_labels(global_label_encoder, labels)
+    y01 = np.where(numeric_labels == 0, 0, 1)
+
+    all_results = []
+    best = None
+
+    for dropout, lr, ks, filt, du in product(
+        grid_dropout, grid_lr, grid_kernel_size, grid_filters, grid_dense_units
+    ):
+        precisions, recalls, f1s = [], [], []
+
+        for fold_idx in range(len(train_indices)):
+            if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
+                continue
+
+            p, r, f1 = execute_fold_cnn(
+                fold_idx=fold_idx,
+                binary_numeric_labels=y01,
+                scenario=scenario,
+                param=param,
+                train_idx=train_indices[fold_idx],
+                test_idx=test_indices[fold_idx],
+                M=M,
+                epochs=epochs,
+                batch_size=batch_size,
+                dropout=dropout,
+                lr=lr,
+                kernel_size=ks,
+                filters=filt,
+                dense_units=du,
+            )
+            precisions.append(p); recalls.append(r); f1s.append(f1)
+
+        avg_p = float(np.mean(precisions)) if precisions else 0.0
+        avg_r = float(np.mean(recalls)) if recalls else 0.0
+        avg_f1 = float(np.mean(f1s)) if f1s else 0.0
+
+        cfg = {
+            "dropout": dropout,
+            "lr": lr,
+            "kernel_size": ks,
+            "filters": filt,
+            "dense_units": du,
+        }
+        row = {"cfg": cfg, "avg_precision": avg_p, "avg_recall": avg_r, "avg_f1": avg_f1}
+        all_results.append(row)
+
+        print(f"[grid] cfg={cfg} -> F1={avg_f1:.4f}")
+
+        if best is None or avg_f1 > best["avg_f1"]:
+            best = row
+
+    return best["cfg"], (best["avg_precision"], best["avg_recall"], best["avg_f1"]), all_results
 
 
 def build_cnn_classifier(
@@ -160,6 +247,26 @@ def split_training_and_test_cnn(ds, labels, train_indices_fold, test_indices_fol
     return X_train, X_test, y_train, y_test
 
 
+def oversample_minority(X, y01, target_pos_ratio=0.3, seed=0):
+    rng = np.random.default_rng(seed)
+    pos = np.where(y01 == 1)[0]
+    neg = np.where(y01 == 0)[0]
+    if len(pos) == 0 or len(neg) == 0:
+        return X, y01
+
+    # desired number of positives
+    n_total = len(y01)
+    n_pos_target = int(target_pos_ratio * n_total)
+    if n_pos_target <= len(pos):
+        return X, y01
+
+    extra = rng.choice(pos, size=(n_pos_target - len(pos)), replace=True)
+    idx = np.concatenate([np.arange(n_total), extra])
+    rng.shuffle(idx)
+    return X[idx], y01[idx]
+
+
+
 def execute_fold_cnn(
     fold_idx: int,
     binary_numeric_labels: np.ndarray,
@@ -186,12 +293,20 @@ def execute_fold_cnn(
     X_train, X_test, y_train, y_test = split_training_and_test_cnn(
         ds, binary_numeric_labels, np.array(train_idx), np.array(test_idx)
     )
+
+    # optional: skip fold if no attack in train
+    if np.sum(y_train == 1) == 0:
+        print(f"[Fold {fold_idx}] skipped: no attack samples in TRAIN")
+        return 0.0, 0.0, 0.0
+
+    X_train, y_train = oversample_minority(X_train, y_train, target_pos_ratio=0.3, seed=fold_idx)
+
     # run on small portion of dataset, for demonstration:
-    first_indices = np.arange(0, 1000)
-    last_indices = np.arange(len(X_train) - 1000, len(X_train))
-    selected_indices = np.concatenate((first_indices, last_indices))
-    X_train = X_train[selected_indices]
-    y_train = y_train[selected_indices]
+    #first_indices = np.arange(0, 10000)
+    #last_indices = np.arange(len(X_train) - 10000, len(X_train))
+    #selected_indices = np.concatenate((first_indices, last_indices))
+    #X_train = X_train[selected_indices]
+    #y_train = y_train[selected_indices]
 
 
     model = build_cnn_classifier(
