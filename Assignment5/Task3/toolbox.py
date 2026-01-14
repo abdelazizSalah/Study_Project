@@ -10,7 +10,7 @@
 
 import argparse
 import sys, os
-
+from pathlib import Path
 def print_help():
     help_text = """
     Tool Box Overview:
@@ -117,6 +117,10 @@ def print_help():
         python toolbox.py -s GAN_re --n 100 --mode D
     N-Gram Anomaly Detection:
         python toolbox.py -s ngram_detection --n {n-gram size}
+    pipeline: run the Sheet 3–5 pipeline (dataset_preprocessing, k_fold, classifiers, cnn/resnet, ensemble, plots).
+Example:
+  python toolbox.py -s pipeline --mode k_fold --k 5
+
     """
     print(help_text)
     
@@ -303,6 +307,9 @@ def sheet4_task3_ngram_args(parser, remaining_args):
 
 
 
+
+
+
 def load_all_modules():
     
     print(
@@ -338,13 +345,14 @@ def load_all_modules():
     add_module_path('../../Assignment4/Task3')
     # Adding assigment 5
     add_module_path('../../Assignment5/Task1')
+    add_module_path('../../Assignment5/T1CNN_EC_ResNet')
     # add_module_path('../../Assignment5/Task2')
 
     
 def add_module_path(module_path):
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     modulte_abs_path = os.path.abspath(os.path.join(curr_dir, module_path))
-    sys.path.append(modulte_abs_path)
+    sys.path.insert(0,modulte_abs_path)
     # print(f'Added module path: {modulte_abs_path}')
 
 
@@ -364,7 +372,7 @@ def main():
     from fine_tuning_task2_raw import task2_sheet4_main
     from task3_sheet4_ngrams_modifications import sheet4_task3_ngrams
     from fine_tuning_task2_re import task2_sheet4_main_finetuned_re
-
+    from main_sheet5_task1CNN_EC import release_main_new
 
 
     ########################## Finish loading #####################
@@ -375,9 +383,7 @@ def main():
     parser.add_argument('-s', type=str, help='Start toolbox in different operation modes')
     args, remaining_args = parser.parse_known_args()
 
-    if args.h:
-        print_help()
-    elif args.s:
+    if args.s:
         print(f"Starting toolbox in mode: {args.s}")
         # Add code here to handle different operation modes based on args.s
         if args.s == 'similarity_flows':
@@ -423,8 +429,14 @@ def main():
             parser = argparse.ArgumentParser()
             args = sheet4_task3_ngram_args(parser, remaining_args)
             sheet4_task3_ngrams(args.n)
+        elif args.s == 'pipeline':
+            print("Executing Sheet3–5 pipeline...")
+            # remaining_args already contains: --mode ... plus whatever else
+            release_main_new(remaining_args)
         else:
             print(f"Mode {args.s} is not recognized.")
+    elif args.h:
+        print_help()
     else:
         print("No valid arguments provided. Use -h for help.")
 

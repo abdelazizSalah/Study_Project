@@ -208,7 +208,7 @@ def run_classifiers(classifier: str | None,
 
 
 
-def parse_args():
+def parse_args(argv=None):
     description = """\
 Study Project pipeline for S7Comm intrusion detection.
 
@@ -412,7 +412,7 @@ MODE DETAILS
         ),
     )
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 # -------------------------------------------------------------------
@@ -466,8 +466,9 @@ def run_k_fold(k: int):
 
 
 # for sheet 4 task1
-def release_main_new():
-    args = parse_args()
+def release_main_new(argv=None): # this name should be changed
+    print(f'excuting from the toolbox with the following args')
+    args = parse_args(argv)
 
     if args.mode == "dataset_preprocessing_sheet345":
         run_dataset_preprocessing(args.attack_dir, args.control_dir)
