@@ -625,10 +625,10 @@ def run_resnet_for_scenario(
 
     k = len(train_indices)
 
-    epochss: int = [15, 20, 25,30],
-    batch_sizes: int = [256, 512, 1024],
-    lrs: float = [1e-3, 5e-4, 1e-4],
-    dropout_ps: float = [0.3, 0.5, 0.7],
+    epochss = [15, 20, 25,30]
+    batch_sizes = [256, 512, 1024]
+    lrs = [1e-3, 5e-4, 1e-4]
+    dropout_ps = [0.3, 0.5, 0.7]
     
     best_epoch = -1
     best_bs = -1
@@ -642,7 +642,8 @@ def run_resnet_for_scenario(
     for e in epochss:
         for bs in batch_sizes:
             for learning_rate in lrs:
-                for dp in dropout_ps:                  
+                for dp in dropout_ps:          
+                    print(f'running with current parameters: epochs={e}, batch_size={bs}, learning_rate={learning_rate}, dropout_p={dp}')        
                     precisions, recalls, f1s = [], [], []
                     for fold_idx in range(k):
                         if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
