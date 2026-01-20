@@ -116,7 +116,6 @@ def pad_or_truncate_packets(packets, target_length):
 def process_npy_file(input_source, output_file_path, p):
     """Process the .npy file as per the defined steps."""
 
-    # 🔹 NEU: entweder direkt ein Array verwenden ODER Datei laden
     if isinstance(input_source, np.ndarray):
         data = input_source
     else:

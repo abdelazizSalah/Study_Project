@@ -1,4 +1,6 @@
 import csv
+import json
+from itertools import product
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +12,9 @@ from labels_helper import deduplicate_folds, encode_labels
 from handling_re_bytes_integrated import get_keep_indices_from_fold0_ae
 
 
+
+from tensorflow.keras import regularizers
+
 def build_cnn_classifier(
     M: int,
     dropout: float = 0.25,
@@ -17,60 +22,49 @@ def build_cnn_classifier(
     filters=(8, 16, 32, 64),
     dense_units: int = 256,
     lr: float = 1e-3,
+    weight_decay: float = 0.0,   # <-- add
 ):
-    """
-    CNN with:
-      - 4 blocks: (Conv -> BN -> ReLU -> Dropout) repeated twice per block
-      - then 2 fully-connected layers (Dense + Dense softmax)
-    Uses Adam + categorical cross-entropy.
-
-    Input: (M, 1)
-    Output: (2,) softmax => [P(normal), P(attack)]
-    """
-    assert len(filters) == 4, "Need exactly 4 conv blocks."
+    reg = regularizers.l2(weight_decay) if weight_decay and weight_decay > 0 else None
 
     inp = keras.Input(shape=(M, 1), name="bytes")
-
     x = inp
+
     for bi, f in enumerate(filters, start=1):
-        # 2× (Conv -> BN -> Act -> Dropout)
-        x = layers.Conv1D(f, kernel_size, padding="same", name=f"b{bi}_conv1")(x)
+        x = layers.Conv1D(
+            f, kernel_size, padding="same",
+            kernel_regularizer=reg,  # <-- add
+            name=f"b{bi}_conv1"
+        )(x)
         x = layers.BatchNormalization(name=f"b{bi}_bn1")(x)
         x = layers.Activation("relu", name=f"b{bi}_relu1")(x)
         x = layers.Dropout(dropout, name=f"b{bi}_drop1")(x)
 
-        x = layers.Conv1D(f, kernel_size, padding="same", name=f"b{bi}_conv2")(x)
+        x = layers.Conv1D(
+            f, kernel_size, padding="same",
+            kernel_regularizer=reg,  # <-- add
+            name=f"b{bi}_conv2"
+        )(x)
         x = layers.BatchNormalization(name=f"b{bi}_bn2")(x)
         x = layers.Activation("relu", name=f"b{bi}_relu2")(x)
         x = layers.Dropout(dropout, name=f"b{bi}_drop2")(x)
 
-        # Optional but very typical: downsample
-        #x = layers.MaxPooling1D(pool_size=2, name=f"b{bi}_pool")(x)
-
-    # Reduce time dimension -> vector
     x = layers.GlobalAveragePooling1D(name="gap")(x)
 
-    # Fully-connected layer-every input neuron connected to all output layers
-    x = layers.Dense(dense_units, name="fc1")(x)
-    x = layers.BatchNormalization(name="fc1_bn")(x)   # not required by sheet, but fine
+    x = layers.Dense(dense_units, kernel_regularizer=reg, name="fc1")(x)  # <-- add
+    x = layers.BatchNormalization(name="fc1_bn")(x)
     x = layers.Activation("relu", name="fc1_relu")(x)
     x = layers.Dropout(dropout, name="fc1_drop")(x)
 
-    # Fully-connected layer 2 = output (Block 6)
-    out = layers.Dense(2, activation="softmax", name="pred")(x)
+    out = layers.Dense(2, activation="softmax", kernel_regularizer=reg, name="pred")(x)  # optional
 
     model = keras.Model(inp, out, name="cnn_classifier")
-
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=lr),
         loss="categorical_crossentropy",
-        metrics=[
-            keras.metrics.CategoricalAccuracy(name="acc"),
-            keras.metrics.Precision(name="precision"),
-            keras.metrics.Recall(name="recall"),
-        ],
+        metrics=[keras.metrics.CategoricalAccuracy(name="acc")],
     )
     return model
+
 
 
 def train_cnn(
@@ -160,6 +154,27 @@ def split_training_and_test_cnn(ds, labels, train_indices_fold, test_indices_fol
     return X_train, X_test, y_train, y_test
 
 
+#used for the RE splits
+def oversample_minority(X, y01, target_pos_ratio=0.3, seed=0):
+    rng = np.random.default_rng(seed)
+    pos = np.where(y01 == 1)[0]
+    neg = np.where(y01 == 0)[0]
+    if len(pos) == 0 or len(neg) == 0:
+        return X, y01
+
+    # desired number of positives
+    n_total = len(y01)
+    n_pos_target = int(target_pos_ratio * n_total)
+    if n_pos_target <= len(pos):
+        return X, y01
+
+    extra = rng.choice(pos, size=(n_pos_target - len(pos)), replace=True)
+    idx = np.concatenate([np.arange(n_total), extra])
+    rng.shuffle(idx)
+    return X[idx], y01[idx]
+
+
+
 def execute_fold_cnn(
     fold_idx: int,
     binary_numeric_labels: np.ndarray,
@@ -172,6 +187,10 @@ def execute_fold_cnn(
     batch_size: int = 256,
     dropout: float = 0.25,
     lr: float = 1e-3,
+    kernel_size: int = 7,
+    filters=(8, 16, 32, 64),
+    dense_units: int = 256,
+    weight_decay: float = 0.0,
 ):
 
     # ---- load dataset ----
@@ -186,22 +205,29 @@ def execute_fold_cnn(
     X_train, X_test, y_train, y_test = split_training_and_test_cnn(
         ds, binary_numeric_labels, np.array(train_idx), np.array(test_idx)
     )
-    # run on small portion of dataset, for demonstration:
-    first_indices = np.arange(0, 1000)
-    last_indices = np.arange(len(X_train) - 1000, len(X_train))
-    selected_indices = np.concatenate((first_indices, last_indices))
-    X_train = X_train[selected_indices]
-    y_train = y_train[selected_indices]
 
+    # optional: skip fold if no attack in train
+    if np.sum(y_train == 1) == 0:
+        print(f"[Fold {fold_idx}] skipped: no attack samples in TRAIN")
+        return 0.0, 0.0, 0.0
+
+    X_train, y_train = oversample_minority(X_train, y_train, target_pos_ratio=0.3, seed=fold_idx)
+
+    # run on small portion of dataset, for demonstration:
+    #first_indices = np.arange(0, 10000)
+    #last_indices = np.arange(len(X_train) - 10000, len(X_train))
+    #selected_indices = np.concatenate((first_indices, last_indices))
+    #X_train = X_train[selected_indices]
+    #y_train = y_train[selected_indices]
 
     model = build_cnn_classifier(
         M=M,
         dropout=dropout,
         lr=lr,
-        # you can expose these too if you want:
-        # kernel_size=7,
-        # filters=(32,64,128,256),
-        # dense_units=256,
+        kernel_size=kernel_size,
+        filters=filters,
+        dense_units=dense_units,
+        weight_decay=weight_decay
     )
 
 
@@ -225,6 +251,179 @@ def execute_fold_cnn(
     return prec, rec, f1
 
 
+
+def grid_search_cnn_scenario(
+    scenario: int,
+    prefix_for_files: str,  #raw or reX
+    global_label_encoder,
+    keep_indices,
+    param: int,
+    M: int,
+    # fixed training settings
+    epochs: int = 10,
+    # grid
+    grid_dropout=(0.2, 0.3),    #dropout rate ()higher means more dropouts)
+    grid_lr=(1e-3, 5e-4),   #learning rate for adam optimizer
+    grid_kernel_size=(5, 7),    #kernel size fof each Conv1D
+    grid_filters=((8,16,32,64), (16,32,64,128)),
+    grid_dense_units=(128, 256),    #numbe of neurons in the fully connected layer
+    grid_batch_size = (128, 256),
+    grid_weight_decay = (0.0, 1e-4, 1e-3)
+):
+    """
+    Runs grid-search (configs × folds) and stores:
+      1) a CSV with all tried configs + avg metrics
+      2) a JSON with the best config + best scores
+
+    Filenames include prefix_for_files, param and scenario.
+
+    Returns: best_cfg, best_scores, all_results (list of dicts)
+    """
+
+    out_dir = Path("results")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # filenames include prefix, param, scenario
+    prefix_tag = prefix_for_files  # "raw" or "re"
+    param_tag = f"p{param}"
+    scen_tag = f"s{scenario}"
+    base = f"cnn_grid_{prefix_tag}_{param_tag}_{scen_tag}"
+
+    all_csv_path = out_dir / f"{base}_all.csv"
+    best_json_path = out_dir / f"{base}_best.json"
+
+    # load labels + folds once
+    labels = np.load(f"datasets/{prefix_for_files}_labels.npy")
+    train_indices, test_indices = load_k_fold_results(
+        f"k_fold_results/k_fold_s{scenario}_{prefix_for_files}.json"
+    )
+
+    # your UPDATED deduplicate_folds: filters indices in original index space
+    if param != 0:
+        train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
+
+    numeric_labels = encode_labels(global_label_encoder, labels)
+    y01 = np.where(numeric_labels == 0, 0, 1)
+
+    all_results = []
+    best = None
+
+    # header for the "all results" CSV
+    with all_csv_path.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "scenario", "prefix_for_files", "param", "M", "epochs",
+            "dropout", "lr", "kernel_size", "filters", "dense_units",
+            "batch_size", "weight_decay",
+            "avg_precision", "avg_recall", "avg_f1",
+        ])
+
+    for dropout, lr, ks, filt, du, bs, wd in product(
+        grid_dropout, grid_lr, grid_kernel_size, grid_filters,
+        grid_dense_units, grid_batch_size, grid_weight_decay
+    ):
+        precisions, recalls, f1s = [], [], []
+
+        for fold_idx in range(len(train_indices)):
+            if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
+                continue
+
+            p, r, f1 = execute_fold_cnn(
+                fold_idx=fold_idx,
+                binary_numeric_labels=y01,
+                scenario=scenario,
+                param=param,
+                train_idx=train_indices[fold_idx],
+                test_idx=test_indices[fold_idx],
+                M=M,
+                epochs=epochs,
+                batch_size=bs,
+                dropout=dropout,
+                lr=lr,
+                kernel_size=ks,
+                filters=filt,
+                dense_units=du,
+                weight_decay=wd,
+            )
+            precisions.append(p)
+            recalls.append(r)
+            f1s.append(f1)
+
+        avg_p = float(np.mean(precisions)) if precisions else 0.0
+        avg_r = float(np.mean(recalls)) if recalls else 0.0
+        avg_f1 = float(np.mean(f1s)) if f1s else 0.0
+
+        cfg = {
+            "dropout": float(dropout),
+            "lr": float(lr),
+            "kernel_size": int(ks),
+            "filters": tuple(int(x) for x in filt),
+            "dense_units": int(du),
+            "batch_size": int(bs),
+            "weight_decay": float(wd),
+        }
+        row = {
+            "cfg": cfg,
+            "avg_precision": avg_p,
+            "avg_recall": avg_r,
+            "avg_f1": avg_f1,
+        }
+        all_results.append(row)
+
+        # append this config to CSV
+        with all_csv_path.open("a", newline="") as f:
+            w = csv.writer(f)
+            w.writerow([
+                scenario, prefix_for_files, param, M, epochs,
+                cfg["dropout"], cfg["lr"], cfg["kernel_size"], str(cfg["filters"]),
+                cfg["dense_units"], cfg["batch_size"], cfg["weight_decay"],
+                f"{avg_p:.6f}", f"{avg_r:.6f}", f"{avg_f1:.6f}",
+            ])
+
+        print(f"[grid] cfg={cfg} -> F1={avg_f1:.4f}")
+
+        if best is None or avg_f1 > best["avg_f1"]:
+            best = row
+            payload = {
+                "scenario": scenario,
+                "prefix_for_files": prefix_for_files,
+                "param": param,
+                "M": M,
+                "epochs": epochs,
+                "best_cfg": best["cfg"],
+                "best_scores": {
+                    "avg_precision": best["avg_precision"],
+                    "avg_recall": best["avg_recall"],
+                    "avg_f1": best["avg_f1"],
+                },
+            }
+            best_json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        keras.backend.clear_session()
+
+    # final write (in case it never updated inside loop due to no folds)
+    if best is None:
+        best = {"cfg": None, "avg_precision": 0.0, "avg_recall": 0.0, "avg_f1": 0.0}
+        payload = {
+            "scenario": scenario,
+            "prefix_for_files": prefix_for_files,
+            "param": param,
+            "M": M,
+            "epochs": epochs,
+            "best_cfg": None,
+            "best_scores": {"avg_precision": 0.0, "avg_recall": 0.0, "avg_f1": 0.0},
+        }
+        best_json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    return best["cfg"], (best["avg_precision"], best["avg_recall"], best["avg_f1"]), all_results
+
+
+
+
+
+
+
+
+#without grid search
 def run_cnn_for_scenario(
     scenario: int,
     prefix_for_files: str,   # "raw" or "re"
@@ -234,8 +433,15 @@ def run_cnn_for_scenario(
     M: int,
     epochs: int = 15,
     batch_size: int = 256,
+
+    # model/training hyperparams
     dropout: float = 0.25,
     lr: float = 1e-3,
+    kernel_size: int = 7,
+    filters=(8, 16, 32, 64),
+    dense_units: int = 256,
+    weight_decay: float = 0.0
+
 ):
     """
     Runs k-fold CNN evaluation for one scenario (2 or 3) and one representation (raw/re{p}).
@@ -247,7 +453,6 @@ def run_cnn_for_scenario(
     train_indices, test_indices = load_k_fold_results(
         f"k_fold_results/k_fold_s{scenario}_{prefix_for_files}.json"
     )
-
 
     if param != 0:
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
@@ -274,6 +479,10 @@ def run_cnn_for_scenario(
             batch_size=batch_size,
             dropout=dropout,
             lr=lr,
+            kernel_size=kernel_size,
+            filters=filters,
+            dense_units=dense_units,
+            weight_decay=weight_decay
         )
 
         precisions.append(p)
@@ -288,6 +497,7 @@ def run_cnn_for_scenario(
     return float(np.mean(precisions)), float(np.mean(recalls)), float(np.mean(f1s))
 
 
+
 def run_cnn_classifier_on_dataset(
     scenario: int,
     prefix: str,               # "raw", "re5", "re10", "re15" (only used for naming)
@@ -295,6 +505,7 @@ def run_cnn_classifier_on_dataset(
     global_label_encoder,
     M: int,
     out_csv: str = "results/cnn_summary.csv",
+    do_grid=True
 ):
     """
     Runs CNN for ONE scenario and ONE representation, appends to CSV.
@@ -307,14 +518,44 @@ def run_cnn_classifier_on_dataset(
         keep_indices = []
         prefix_for_files = "raw"
 
-    avg_p, avg_r, avg_f1 = run_cnn_for_scenario(
-        scenario=scenario,
-        prefix_for_files=prefix_for_files,
-        global_label_encoder=global_label_encoder,
-        keep_indices=keep_indices,
-        param=param,
-        M=M,
-    )
+    if do_grid:
+        best_cfg, best_scores, all_rows = grid_search_cnn_scenario(
+            scenario=scenario,
+            prefix_for_files=prefix_for_files,
+            global_label_encoder=global_label_encoder,
+            keep_indices=keep_indices,
+            param=param,
+            M=M,
+            epochs=10,  # smaller for search
+        )
+
+        # run once more with best config
+        avg_p, avg_r, avg_f1 = run_cnn_for_scenario(
+            scenario=scenario,
+            prefix_for_files=prefix_for_files,
+            global_label_encoder=global_label_encoder,
+            keep_indices=keep_indices,
+            param=param,
+            M=M,
+            epochs=15,
+            batch_size=best_cfg["batch_size"],
+            dropout=best_cfg["dropout"],
+            lr=best_cfg["lr"],
+            kernel_size=best_cfg["kernel_size"],
+            filters=best_cfg["filters"],
+            dense_units=best_cfg["dense_units"],
+            weight_decay=best_cfg["weight_decay"],
+        )
+    else:
+        #no grid search
+        avg_p, avg_r, avg_f1 = run_cnn_for_scenario(
+            scenario=scenario,
+            prefix_for_files=prefix_for_files,
+            global_label_encoder=global_label_encoder,
+            keep_indices=keep_indices,
+            param=param,
+            M=M,
+        )
 
     out_dir = Path("results")
     out_dir.mkdir(exist_ok=True)

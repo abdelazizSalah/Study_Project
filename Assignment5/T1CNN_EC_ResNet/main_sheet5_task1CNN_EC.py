@@ -556,7 +556,8 @@ def release_main_new(argv=None): # this name should be changed
             M_re = args.M
 
 
-        #cnn requires dataset preprocessing again, since the value for M changed
+        #cnn requires dataset preprocessing again, since the value for M potentially changed
+        #todo:
         #run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
         #create_preprocessed_re_files()
 

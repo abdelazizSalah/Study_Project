@@ -99,6 +99,7 @@ def deduplicate_folds(train_folds, test_folds, keep_indices):
         new_train_folds, new_test_folds
         (same structure as input: list of folds, each fold is a list of indices)
     """
+
     keep = set(map(int, keep_indices))
 
     new_train_folds = []
