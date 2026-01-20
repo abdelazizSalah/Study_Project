@@ -2,10 +2,12 @@ import argparse
 import os
 import sys
 
-from cnn import run_experiment_cnn_classifier, plot_cnn_summary_grouped
+from Assignment5.T1CNN_EC_ResNet.cnn import plot_cnn_summary_grouped
+from cnn import run_experiment_cnn_classifier
+from resnet import run_experiment_resnet_classifier
 from ensemble_classifier import run_experiment_ec, plot_all_representations_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
-from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
+from feature_creation_autoencoder import create_features_for_ds_raw, create_features_for_ds_re, \
     train_and_save_models_classifier
 from measure_runtime import measure_all
 from experiment_ae_classifier import run_experiment_ae_classifier, make_ae_metric_plots
@@ -34,7 +36,7 @@ def run_extract_features():
     os.makedirs("models", exist_ok=True)
 
     # Train k autoencoders
-    prefixes=["raw","re5","re10","re15"]
+    prefixes = ["raw", "re5", "re10", "re15"]
     for prefix in prefixes:
         train_and_save_models_classifier(prefix)
 
@@ -42,7 +44,6 @@ def run_extract_features():
     create_features_for_ds_raw(k)
     create_features_for_ds_re(k)
     print("[extract_features] Trained autoencoders and extracted features.")
-
 
 
 def require_file(path: str):
@@ -81,6 +82,7 @@ def check_requirements_ae_classifier():
     require_file("datasets/re_bytes_10.npy")
     return k
 
+
 def check_requirements_classifier_modes():
     require_file(f"k_fold_results/k_fold_s1_raw.json")
     training_indices_raw, test_indices_raw = load_k_fold_results(f"k_fold_results/k_fold_s1_raw.json")
@@ -114,7 +116,6 @@ def check_requirements_classifier_modes():
     return k
 
 
-
 def check_requirements_feature_extraction_mode():
     require_file("k_fold_results/k_fold_s1_raw.json")
     require_file("k_fold_results/k_fold_s1_re.json")
@@ -143,13 +144,11 @@ def check_requirements_k_fold_mode(k):
     return
 
 
-#Runs the selected classifier(s) on selected scenario(s).
+# Runs the selected classifier(s) on selected scenario(s).
 def run_classifiers(classifier: str | None,
                     scenario: int | None,
                     global_label_encoder: LabelEncoder):
-
     k = check_requirements_classifier_modes()
-
 
     # Helper to decide which scenarios are valid per classifier
     def valid_scenarios_for(clf_name: str):
@@ -206,8 +205,7 @@ def run_classifiers(classifier: str | None,
                 run_one(clf_name, scen)
 
 
-
-def parse_args():
+def parse_args(argv=None):
     description = """\
 Study Project pipeline for S7Comm intrusion detection.
 
@@ -220,7 +218,7 @@ From Sheet 3 the 2 steps are always required:
 MODE DETAILS
   Note: Modes have to be run in separate directories if they are being run simultaneously,
   since files are created in different steps that can overwrite each other.   
-  
+
   dataset_preprocessing_sheet345
     This preprocessing mode only can be used for sheets 3,4 and 5.
     All operations are performed twice: once in RAW mode and once in RE mode.
@@ -255,7 +253,7 @@ MODE DETAILS
         distributed across folds.
       * Duplicate samples in the dataset are allowed, but duplicate indices
         across folds are not.
-  
+
   extract_features
     Uses training data from k-fold splits for Scenario 1 (control-only)
     to train autoencoders k times and then extract features for the
@@ -272,7 +270,7 @@ MODE DETAILS
     Note:
       k autoencoders and feature files are created for each dataset
       (RAW and RE), with k taken from the k-fold setup.
-  
+
   ASSIGNMENT 3 - Task 2:
   use_classifiers
     Trains and evaluates a selected Machine Learning algorithm using the
@@ -290,7 +288,7 @@ MODE DETAILS
       * Random Forest        – Scenarios 2 and 3
       * k-NN                 – Scenarios 2 and 3
       * Local Outlier Factor - Scenario 1
-      
+
   ASSIGNMENT3 - Task 3:
   sheet3_run_experiments_abc:
     Run all classifiers on all appropriate scenarios, collect per-fold
@@ -303,7 +301,7 @@ MODE DETAILS
     precision/recall, and save them as CSV files in ./results.
     Runs on 3 different versions of RE dataset, preprocessed according to task d to f.
     Will run with amount of folds created by previously executed k-folds mode.     
-  
+
   ASSIGNMENT 4 - Task 1:
   measure_runtime
      Measures average runtime and peak RAM for all classifiers using the datatypes RAW and RE15 over all folds.
@@ -323,7 +321,7 @@ MODE DETAILS
   experiment_ae_classifier
     Executes experiments on all datatypes and folds, using the autoencoder as a classifier. Evaluates results and creates plots.
     Prerequisites: 'dataset_preprocessing' and 'k_fold' was executed. Autoencoder base models for RAW and RE15 in the 'models' path.
-    
+
   ASSIGNMENT 5:
   ensemble_classifier
     Exeecutes the ensemble classifier with the specified method. Choose 'all_methods' to run with all methods. Evaluates and Creates plots.
@@ -333,6 +331,14 @@ MODE DETAILS
     Executes the CNN classifier. Evaluates and creates plots.
     Prerequisites: 'k_fold' was executed.
     Note: this mode doesnt require dataset preprocessing, it's executed internally since it has a different value for 'M'.
+        - --mode cnn --M m_val
+
+
+  resnet
+    Executes the ResNet classifier. Evaluates and creates plots.
+    Prerequisites: 'k_fold' was executed.
+    Note: this mode doesnt require dataset preprocessing, it's executed internally since it has a different value for 'M'.
+        - --mode resnet --M m_val
 """
 
     parser = argparse.ArgumentParser(
@@ -345,7 +351,8 @@ MODE DETAILS
         "--mode",
         required=True,
         choices=["dataset_preprocessing_sheet345", "k_fold", "measure_runtime", "error_overlap", "feature_importance",
-                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc","sheet3_run_experiments_def", "ensemble_classifier", "cnn" ],
+                 "experiment_ae_classifier", "extract_features", "use_classifiers", "sheet3_run_experiments_abc",
+                 "sheet3_run_experiments_def", "ensemble_classifier", "cnn", 'resnet'],
         help="Which pipeline step to run.",
     )
 
@@ -381,7 +388,7 @@ MODE DETAILS
     parser.add_argument(
         "--method",
         type=str,
-        choices=["random", "majority", "all", "all_methods"], #all methods runs the previous 3
+        choices=["random", "majority", "all", "all_methods"],  # all methods runs the previous 3
         help="Mode to run for ensemble classifier..",
     )
 
@@ -403,7 +410,7 @@ MODE DETAILS
         ),
     )
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 # -------------------------------------------------------------------
@@ -419,8 +426,8 @@ def run_dataset_preprocessing(attack_dir: str, control_dir: str, M_raw=466, M_re
     # M_raw, M_re= find_M(attack_dir, control_dir)
 
     # to reduce runtime use fixed M, which was previously computed using the find_M function
-    #M_raw = 466
-    #M_re = 386
+    # M_raw = 466
+    # M_re = 386
 
     os.makedirs("datasets", exist_ok=True)
 
@@ -457,8 +464,9 @@ def run_k_fold(k: int):
 
 
 # for sheet 4 task1
-def release_main_new():
-    args = parse_args()
+def release_main_new(argv=None):  # this name should be changed
+    print(f'excuting from the toolbox with the following args')
+    args = parse_args(argv)
 
     if args.mode == "dataset_preprocessing_sheet345":
         run_dataset_preprocessing(args.attack_dir, args.control_dir)
@@ -468,7 +476,7 @@ def release_main_new():
         print_k_fold_pretty()
     elif args.mode == "extract_features":
         run_extract_features()  # needs server for RAM
-    #Assignment 3
+    # Assignment 3
     elif args.mode == "use_classifiers":
         if not args.classifier:
             print("ERROR: --classifier required for mode=use_classifiers")
@@ -501,7 +509,7 @@ def release_main_new():
         execute_experiments_def(global_label_encoder, k, "10")
         execute_experiments_def(global_label_encoder, k, "15")
 
-    #beginning Assignment 4
+    # beginning Assignment 4
     elif args.mode == "measure_runtime":
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
@@ -532,30 +540,44 @@ def release_main_new():
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_classifier_modes()
-        method=args.method
-        run_experiment_ec(method,global_label_encoder, k)
+        method = args.method
+        run_experiment_ec(method, global_label_encoder, k)
         plot_all_representations_ec()
     elif args.mode == "cnn":
 
         if not args.M:
-            print("ERROR: --M required for mode=cnn. Continuing with default values (M is length of longest packet in each dataset..)")
+            print(
+                "ERROR: --M required for mode=cnn. Continuing with default values (M is length of longest packet in each dataset..)")
             M_raw = 466
             M_re = 386
         else:
             M_raw = args.M
             M_re = args.M
 
-
-        #cnn requires dataset preprocessing again, since the value for M potentially changed
+        # cnn requires dataset preprocessing again, since the value for M potentially changed
         run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
         create_preprocessed_re_files()
 
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_ae_classifier()
-        run_experiment_cnn_classifier(global_label_encoder,M_raw,M_re)
+        run_experiment_cnn_classifier(global_label_encoder, M_raw, M_re)
+    elif args.mode == 'resnet':
+        if not args.M:
+            print(
+                "ERROR: --M required for mode=resnet. Continuing with default values (M is length of longest packet in each dataset..)")
+            M_raw = 466
+            M_re = 386
+        else:
+            M_raw = args.M
+            M_re = args.M
+
+        global_label_encoder = LabelEncoder()
+        global_label_encoder.fit(ALL_POSSIBLE_LABELS)
+        k = check_requirements_ae_classifier()
+        run_experiment_resnet_classifier(global_label_encoder, M_raw, M_re)
         plot_cnn_summary_grouped()
 
 if __name__ == "__main__":
+    # test_main()
     release_main_new()
-

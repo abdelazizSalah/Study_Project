@@ -340,7 +340,6 @@ def load_all_modules():
     add_module_path('../../Assignment3/Task2')
     add_module_path('../../Assignment3/Task3')
 
-    # Adding assigment 4 => done except Anna's part
     # add_module_path('../../Assignment4/Task1')
     add_module_path('../../Assignment4/Task2')
     add_module_path('../../Assignment4/Task3')
