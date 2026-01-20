@@ -19,5 +19,5 @@
 ## How to use
 - first install all requirements
   - >pip install -r requirements.txt
-> python task3.py -h
+> python toolbox.py -h
 - This will show in the console all available functionalities, and how to use them. 
