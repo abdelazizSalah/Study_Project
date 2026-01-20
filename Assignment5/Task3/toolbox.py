@@ -119,6 +119,7 @@ def print_help():
         python toolbox.py -s ngram_detection --n {n-gram size}
     pipeline: run the Sheet 3–5 pipeline (dataset_preprocessing, k_fold, classifiers, cnn/resnet, ensemble, plots).
 Example:
+  python toolbox.py -s pipeline --h
   python toolbox.py -s pipeline --mode k_fold --k 5
 
     """

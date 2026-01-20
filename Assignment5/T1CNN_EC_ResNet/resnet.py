@@ -623,39 +623,68 @@ def run_resnet_for_scenario(
     numeric_labels = encode_labels(global_label_encoder, labels)
     binary_numeric_labels = np.where(numeric_labels == 0, 0, 1)
 
-    precisions, recalls, f1s = [], [], []
     k = len(train_indices)
 
-    for fold_idx in range(k):
-        if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
-            continue
+    epochss: int = [15, 20, 25,30],
+    batch_sizes: int = [256, 512, 1024],
+    lrs: float = [1e-3, 5e-4, 1e-4],
+    dropout_ps: float = [0.3, 0.5, 0.7],
+    
+    best_epoch = -1
+    best_bs = -1
+    best_lr = -1
+    best_dps = -1 
 
-        p, r, f1 = execute_fold_resnet(
-            fold_idx=fold_idx,
-            binary_numeric_labels=binary_numeric_labels,
-            scenario=scenario,
-            param=param,
-            train_idx=train_indices[fold_idx],
-            test_idx=test_indices[fold_idx],
-            M=M,
-            use_stats=use_stats,
-            stats_dim=stats_dim,
-            epochs=epochs,
-            batch_size=batch_size,
-            lr=lr,
-            dropout_p=dropout_p,
-            hidden_dim=hidden_dim,
-            weight_decay=weight_decay,
-        )
+    best_f1 = 0
+    best_percision = 0
+    best_recall = 0
 
-        precisions.append(p)
-        recalls.append(r)
-        f1s.append(f1)
-        print(f"[Fold {fold_idx}] P={p:.4f} R={r:.4f} F1={f1:.4f}")
+    for e in epochss:
+        for bs in batch_sizes:
+            for learning_rate in lrs:
+                for dp in dropout_ps:                  
+                    precisions, recalls, f1s = [], [], []
+                    for fold_idx in range(k):
+                        if len(train_indices[fold_idx]) == 0 or len(test_indices[fold_idx]) == 0:
+                            continue
 
-    if len(precisions) == 0:
-        return 0.0, 0.0, 0.0
+                        p, r, f1 = execute_fold_resnet(
+                            fold_idx=fold_idx,
+                            binary_numeric_labels=binary_numeric_labels,
+                            scenario=scenario,
+                            param=param,
+                            train_idx=train_indices[fold_idx],
+                            test_idx=test_indices[fold_idx],
+                            M=M,
+                            use_stats=use_stats,
+                            stats_dim=stats_dim,
+                            epochs=e,
+                            batch_size=bs,
+                            lr=learning_rate,
+                            dropout_p=dp,
+                            hidden_dim=hidden_dim,
+                            weight_decay=weight_decay,
+                        )
 
+                        precisions.append(p)
+                        recalls.append(r)
+                        f1s.append(f1)
+                        print(f"[Fold {fold_idx}] P={p:.4f} R={r:.4f} F1={f1:.4f}")
+                    avg_f1 = float(np.mean(f1s))
+                    if avg_f1 > best_f1:
+                        best_f1 = avg_f1
+                        best_percision = float(np.mean(precisions))
+                        best_recall = float(np.mean(recalls))
+                        best_epoch = e
+                        best_bs = bs
+                        best_lr = learning_rate
+                        best_dps = dp
+    # if len(precisions) == 0:
+    #     return 0.0, 0.0, 0.0
+    print(f'best parameters are: {best_epoch}, {best_bs}, {best_lr}, {best_dps}')
+    print(f'best results: P={best_percision:.4f} R={best_recall:.4f} F1={best_f1:.4f}')
+
+    return best_percision, best_recall, best_f1  
     return float(np.mean(precisions)), float(np.mean(recalls)), float(np.mean(f1s))
 
 
