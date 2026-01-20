@@ -1,4 +1,4 @@
-N_JOBLIB = 64
+N_JOBLIB = 32
 
 from itertools import product
 import numpy as np
@@ -65,7 +65,7 @@ def grid_search_random_forest(
     X_val,
     y_val,
     scoring_metric="f1_macro",
-    n_jobs=None,
+    n_jobs=None, # number of CPU cores to use
 ):
     """
     Fast & parallel Random Forest grid search using a single train/val split.
@@ -77,30 +77,33 @@ def grid_search_random_forest(
         n_jobs = N_JOBLIB
 
     # You can shrink/enlarge this grid if needed
-    # param_grid = {
-    #     "n_estimators": [100, 200],
-    #     "max_depth": [None, 10, 20],
-    #     "min_samples_split": [2, 5],
-    #     "min_samples_leaf": [1, 2],
-    # }
-    param_grid = {
-        "n_estimators": [50],
-        "max_depth": [None],
-        "min_samples_split": [5],
-        "min_samples_leaf": [1],
+    param_grid = { # total number of combinations is 2*3*2*2 = 24
+        "n_estimators": [100, 200],
+        "max_depth": [None, 10, 20],
+        "min_samples_split": [2, 5],
+        "min_samples_leaf": [1, 2],
     }
+    # param_grid = {
+    #     "n_estimators": [50],
+    #     "max_depth": [None],
+    #     "min_samples_split": [5],
+    #     "min_samples_leaf": [1],
+    # }
 
-    scorer = _get_supervised_scorer(scoring_metric)
-    all_params = list(_iter_param_grid(param_grid))
+    scorer = _get_supervised_scorer(scoring_metric) # convert the scoring metric string to a function to be able to run it in parallel 
+    all_params = list(_iter_param_grid(param_grid)) # generate all combinations of parameters
 
+    # parallel execution of evaluations
     results = Parallel(n_jobs=n_jobs)(
+        # delayed is a wrapper in joblib to allow parallel execution of functions after copying them to suitable cpu core first.
         delayed(_eval_params_supervised)(
             rf, params, X_train, y_train, X_val, y_val, scorer
         )
         for params in all_params
     )
 
-    best_score, best_params, best_model = max(results, key=lambda tpl: tpl[0])
+    # results are in form of tuples (score, params, model)
+    best_score, best_params, best_model = max(results, key=lambda tpl: tpl[0]) 
 
     print(f"Best parameters: {best_params}")
     print(f"Validation {scoring_metric}: {best_score:.4f}")
@@ -130,9 +133,9 @@ def grid_search_svm( # 0.932, 0.937 = 1,
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "C": [10],
-        "kernel": ['linear'],
-        "gamma": ['scale'],
+        'C': [0.1, 1, 10],
+        'kernel': ['linear', 'rbf', 'poly'],
+        'gamma': ['scale', 'auto']
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -175,9 +178,9 @@ def grid_search_knn( #1.  9820,
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "n_neighbors": [3],
-        "weights": ["uniform"],
-        "metric": ["manhattan"],
+        'n_neighbors': [3, 5, 7, 9],
+        'weights': ['uniform', 'distance'],
+        'metric': ['euclidean', 'manhattan']
     }
 
     scorer = _get_supervised_scorer(scoring_metric)
@@ -314,8 +317,8 @@ def grid_search_elliptic_envelope(
         n_jobs = N_JOBLIB
 
     param_grid = {
-        "contamination": [0.05],
-        "support_fraction": [None],
+        "contamination": [0.05, 0.1, 0.2], # contamination is the proportion of outliers in the data set
+        "support_fraction": [None, 0.5, 0.75], # support_fraction is the proportion of points to be included in the support of the raw MCD estimate
     }
 
     all_params = list(_iter_param_grid(param_grid))

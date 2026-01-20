@@ -150,7 +150,11 @@ def create_preprocessed_re_files():
     input_labels = "datasets/labels.npy"
 
     for i in p:
+        # check if the file exists
         output_file_path = f"datasets/re_bytes_{i}.npy"
+        if Path(output_file_path).exists():
+            print(f"File {output_file_path} already exists. Skipping processing.")
+            continue
         process_npy_file(input_file_path, output_file_path, i)
     return
 
