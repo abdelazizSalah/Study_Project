@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from h5py.h5fd import MEM_DRAW
 from tensorflow import keras
-from tensorflow.keras import layers, regularizers
+from tensorflow.keras import layers
 from file_helper_t3 import load_k_fold_results
 from labels_helper import deduplicate_folds, encode_labels
 from handling_re_bytes_integrated import get_keep_indices_from_fold0_ae
@@ -14,127 +14,54 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+
 def build_cnn_classifier(
     M: int,
-
-    # architecture
-    n_blocks: int = 4,
-    convs_per_block: int = 2,
-    filters=(8, 16, 32, 64),
+    dropout: float = 0.25,
     kernel_size: int = 7,
-    strides: int = 1,
-    padding: str = "same",
-    activation: str = "relu",
-    use_batchnorm: bool = True,
-
-    # data reduction (important!)
-    downsample: str = "maxpool",   # "none" | "maxpool" | "stride"
-    pool_size: int = 2,
-    final_pool: str = "gap",       # "gap" | "gmp" | "flatten"
-
-    # dense head
+    filters=(8, 16, 32, 64),
     dense_units: int = 256,
-    n_dense_layers: int = 1,       # 0,1,2...
-    dense_dropout: float = 0.25,
-
-    # regularization
-    conv_dropout: float = 0.25,
-    weight_decay: float = 0.0,
-    label_smoothing: float = 0.0,
-
-    # adam (always)
     lr: float = 1e-3,
-    beta_1: float = 0.9,
-    beta_2: float = 0.999,
-    epsilon: float = 1e-7,
-    clipnorm: float | None = None,
-    clipvalue: float | None = None,
+    weight_decay: float = 0.0,
 ):
     reg = regularizers.l2(weight_decay) if weight_decay and weight_decay > 0 else None
-
-    # ensure filters length matches n_blocks
-    if isinstance(filters, (list, tuple)):
-        if len(filters) != n_blocks:
-            # allow passing base filter count as int too
-            raise ValueError(f"filters must have len={n_blocks}. Got len={len(filters)}")
-    else:
-        raise ValueError("filters must be a tuple/list like (8,16,32,64)")
 
     inp = keras.Input(shape=(M, 1), name="bytes")
     x = inp
 
-    for bi in range(n_blocks):
-        f = filters[bi]
+    for bi, f in enumerate(filters, start=1):
+        x = layers.Conv1D(
+            f, kernel_size, padding="same",
+            kernel_regularizer=reg,  # <-- add
+            name=f"b{bi}_conv1"
+        )(x)
+        x = layers.BatchNormalization(name=f"b{bi}_bn1")(x)
+        x = layers.Activation("relu", name=f"b{bi}_relu1")(x)
+        x = layers.Dropout(dropout, name=f"b{bi}_drop1")(x)
 
-        for ci in range(convs_per_block):
-            # if using stride-downsample, apply stride at first conv in block (common pattern)
-            s = strides
-            if downsample == "stride" and ci == 0 and bi > 0:
-                s = 2  # downsample between blocks
+        x = layers.Conv1D(
+            f, kernel_size, padding="same",
+            kernel_regularizer=reg,  # <-- add
+            name=f"b{bi}_conv2"
+        )(x)
+        x = layers.BatchNormalization(name=f"b{bi}_bn2")(x)
+        x = layers.Activation("relu", name=f"b{bi}_relu2")(x)
+        x = layers.Dropout(dropout, name=f"b{bi}_drop2")(x)
 
-            x = layers.Conv1D(
-                f,
-                kernel_size,
-                strides=s,
-                padding=padding,
-                kernel_regularizer=reg,
-                name=f"b{bi+1}_conv{ci+1}",
-            )(x)
+    # data reduction
+    x = layers.GlobalAveragePooling1D(name="gap")(x)
 
-            if use_batchnorm:
-                x = layers.BatchNormalization(name=f"b{bi+1}_bn{ci+1}")(x)
+    x = layers.Dense(dense_units, kernel_regularizer=reg, name="fc1")(x)
+    x = layers.BatchNormalization(name="fc1_bn")(x)
+    x = layers.Activation("relu", name="fc1_relu")(x)
+    x = layers.Dropout(dropout, name="fc1_drop")(x)
 
-            # activation choice
-            if activation.lower() == "leakyrelu":
-                x = layers.LeakyReLU(alpha=0.1, name=f"b{bi+1}_act{ci+1}")(x)
-            else:
-                x = layers.Activation(activation, name=f"b{bi+1}_act{ci+1}")(x)
+    out = layers.Dense(2, activation="softmax", kernel_regularizer=reg, name="pred")(x)  # optional
 
-            if conv_dropout and conv_dropout > 0:
-                x = layers.Dropout(conv_dropout, name=f"b{bi+1}_drop{ci+1}")(x)
-
-        # optional downsample via maxpool
-        if downsample == "maxpool":
-            x = layers.MaxPooling1D(pool_size=pool_size, name=f"b{bi+1}_pool")(x)
-
-    # final reduction
-    if final_pool == "gap":
-        x = layers.GlobalAveragePooling1D(name="gap")(x)
-    elif final_pool == "gmp":
-        x = layers.GlobalMaxPooling1D(name="gmp")(x)
-    elif final_pool == "flatten":
-        x = layers.Flatten(name="flatten")(x)
-    else:
-        raise ValueError(f"final_pool must be gap/gmp/flatten, got {final_pool}")
-
-    # dense head (optionally multiple layers)
-    for di in range(n_dense_layers):
-        x = layers.Dense(dense_units, kernel_regularizer=reg, name=f"fc{di+1}")(x)
-        if use_batchnorm:
-            x = layers.BatchNormalization(name=f"fc{di+1}_bn")(x)
-        if activation.lower() == "leakyrelu":
-            x = layers.LeakyReLU(alpha=0.1, name=f"fc{di+1}_act")(x)
-        else:
-            x = layers.Activation(activation, name=f"fc{di+1}_act")(x)
-
-        if dense_dropout and dense_dropout > 0:
-            x = layers.Dropout(dense_dropout, name=f"fc{di+1}_drop")(x)
-
-    out = layers.Dense(2, activation="softmax", kernel_regularizer=reg, name="pred")(x)
     model = keras.Model(inp, out, name="cnn_classifier")
-
-    opt = keras.optimizers.Adam(
-        learning_rate=lr,
-        beta_1=beta_1,
-        beta_2=beta_2,
-        epsilon=epsilon,
-        clipnorm=clipnorm,
-        clipvalue=clipvalue,
-    )
-
     model.compile(
-        optimizer=opt,
-        loss=keras.losses.CategoricalCrossentropy(label_smoothing=label_smoothing),
+        optimizer=keras.optimizers.Adam(learning_rate=lr),
+        loss="categorical_crossentropy",
         metrics=[keras.metrics.CategoricalAccuracy(name="acc")],
     )
     return model
@@ -259,22 +186,13 @@ def execute_fold_cnn(
     M: int,
     epochs: int = 15,
     batch_size: int = 256,
-    cfg: dict | None = None,
+    dropout: float = 0.25,
+    lr: float = 1e-3,
+    kernel_size: int = 7,
+    filters=(8, 16, 32, 64),
+    dense_units: int = 256,
+    weight_decay: float = 0.0,
 ):
-    """
-    Execute ONE fold:
-      - loads raw/re dataset depending on param
-      - splits train/test using provided indices
-      - optional oversampling using cfg["pos_ratio"]
-      - builds CNN using build_cnn_classifier(M=..., **cfg_without_pos_ratio)
-      - trains + evaluates -> returns (precision, recall, f1)
-
-    Notes:
-      - cfg is a dict of hyperparameters for build_cnn_classifier plus extras like:
-          cfg["pos_ratio"] (used for oversampling only)
-      - This assumes your build_cnn_classifier supports the keys you put into cfg.
-    """
-    cfg = cfg or {}
 
     # ---- load dataset ----
     if param != 0:
@@ -294,22 +212,26 @@ def execute_fold_cnn(
         print(f"[Fold {fold_idx}] skipped: no attack samples in TRAIN")
         return 0.0, 0.0, 0.0
 
-    # ---- imbalance handling (hyperparameter) ----
-    pos_ratio = float(cfg.get("pos_ratio", 0.3))
-    X_train, y_train = oversample_minority(
-        X_train, y_train, target_pos_ratio=pos_ratio, seed=fold_idx
-    )
+    X_train, y_train = oversample_minority(X_train, y_train, target_pos_ratio=0.3, seed=fold_idx)
 
-    # ---- build model ----
-    # pass everything except oversampling-only keys
-    model_cfg = {k: v for k, v in cfg.items() if k != "pos_ratio"}
+    # run on small portion of dataset, for demonstration:
+    #first_indices = np.arange(0, 10000)
+    #last_indices = np.arange(len(X_train) - 10000, len(X_train))
+    #selected_indices = np.concatenate((first_indices, last_indices))
+    #X_train = X_train[selected_indices]
+    #y_train = y_train[selected_indices]
 
     model = build_cnn_classifier(
         M=M,
-        **model_cfg,
+        dropout=dropout,
+        lr=lr,
+        kernel_size=kernel_size,
+        filters=filters,
+        dense_units=dense_units,
+        weight_decay=weight_decay
     )
 
-    # ---- train ----
+
     train_cnn(
         model=model,
         X_train=X_train,
@@ -319,7 +241,7 @@ def execute_fold_cnn(
         verbose=0,
     )
 
-    # ---- evaluate ----
+    # evaluate on test
     prec, rec, f1, _ = evaluate_cnn(
         model=model,
         X_test=X_test,
@@ -327,150 +249,80 @@ def execute_fold_cnn(
         batch_size=batch_size,
     )
 
-    return float(prec), float(rec), float(f1)
-
+    return prec, rec, f1
 
 
 
 def grid_search_cnn_scenario(
     scenario: int,
-    prefix_for_files: str,
+    prefix_for_files: str,  #raw or reX
     global_label_encoder,
     keep_indices,
     param: int,
     M: int,
+    # fixed training settings
     epochs: int = 10,
-
-    # EXTENSIVE GRID
-    grid_n_blocks=(3, 4, 5),
-    grid_convs_per_block=(1, 2, 3),
-    grid_filters=(
-        (8,16,32),            # for n_blocks=3
-        (16,32,64),
-        (8,16,32,64),         # for n_blocks=4
-        (16,32,64,128),
-        (8,16,32,64,128),     # for n_blocks=5
-        (16,32,64,128,256),
-    ),
-    grid_kernel_size=(3, 5, 7, 9),
-    grid_padding=("same",),
-    grid_activation=("relu", "elu", "leakyrelu"),
-    grid_use_batchnorm=(True, False),
-
-    # downsampling / data reduction
-    grid_downsample=("none", "maxpool", "stride"),
-    grid_pool_size=(2, 4),
-    grid_final_pool=("gap", "gmp", "flatten"),
-
-    # dense head
-    grid_n_dense_layers=(0, 1, 2),
-    grid_dense_units=(64, 128, 256, 512),
-    grid_dense_dropout=(0.0, 0.25, 0.5),
-
-    # regularization
-    grid_conv_dropout=(0.0, 0.1, 0.25, 0.5),
-    grid_weight_decay=(0.0, 1e-5, 1e-4, 1e-3),
-    grid_label_smoothing=(0.0, 0.05, 0.1),
-
-    # training / imbalance
-    grid_batch_size=(64, 128, 256),
-    grid_pos_ratio=(0.1, 0.2, 0.3, 0.4, 0.5),
-
-    # Adam-only knobs
-    grid_lr=(1e-2, 5e-3, 1e-3, 5e-4, 1e-4),
-    grid_beta_1=(0.9, 0.95),
-    grid_beta_2=(0.999, 0.99),
-    grid_epsilon=(1e-7, 1e-8),
-    grid_clipnorm=(None, 1.0),
-    grid_clipvalue=(None,),   # keep None unless you REALLY want it
+    # grid
+    grid_dropout=(0.2, 0.3),    #dropout rate ()higher means more dropouts)
+    grid_lr=(1e-3, 5e-4),   #learning rate for adam optimizer
+    grid_kernel_size=(5, 7),    #kernel size fof each Conv1D
+    grid_filters=((8,16,32,64), (16,32,64,128)),
+    grid_dense_units=(128, 256),    #numbe of neurons in the fully connected layer
+    grid_batch_size = (128, 256),
+    grid_weight_decay = (0.0, 1e-4, 1e-3)
 ):
+    """
+    Runs grid-search (configs × folds) and stores:
+      1) a CSV with all tried configs + avg metrics
+      2) a JSON with the best config + best scores
+
+    Filenames include prefix_for_files, param and scenario.
+
+    Returns: best_cfg, best_scores, all_results (list of dicts)
+    """
+
     out_dir = Path("results")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    base = f"cnn_grid_{prefix_for_files}_p{param}_s{scenario}"
+    # filenames include prefix, param, scenario
+    prefix_tag = prefix_for_files  # "raw" or "re"
+    param_tag = f"p{param}"
+    scen_tag = f"s{scenario}"
+    base = f"cnn_grid_{prefix_tag}_{param_tag}_{scen_tag}"
+
     all_csv_path = out_dir / f"{base}_all.csv"
     best_json_path = out_dir / f"{base}_best.json"
 
-    # load labels + folds
+    # load labels + folds once
     labels = np.load(f"datasets/{prefix_for_files}_labels.npy")
     train_indices, test_indices = load_k_fold_results(
         f"k_fold_results/k_fold_s{scenario}_{prefix_for_files}.json"
     )
 
+    # your UPDATED deduplicate_folds: filters indices in original index space
     if param != 0:
         train_indices, test_indices = deduplicate_folds(train_indices, test_indices, keep_indices)
 
     numeric_labels = encode_labels(global_label_encoder, labels)
     y01 = np.where(numeric_labels == 0, 0, 1)
 
-    # CSV header
+    all_results = []
+    best = None
+
+    # header for the "all results" CSV
     with all_csv_path.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow([
-            "scenario","prefix","param","M","epochs",
-            "n_blocks","convs_per_block","filters","kernel_size","padding",
-            "activation","use_batchnorm",
-            "downsample","pool_size","final_pool",
-            "n_dense_layers","dense_units","dense_dropout",
-            "conv_dropout","weight_decay","label_smoothing",
-            "batch_size","pos_ratio",
-            "lr","beta_1","beta_2","epsilon","clipnorm","clipvalue",
-            "avg_precision","avg_recall","avg_f1",
+            "scenario", "prefix_for_files", "param", "M", "epochs",
+            "dropout", "lr", "kernel_size", "filters", "dense_units",
+            "batch_size", "weight_decay",
+            "avg_precision", "avg_recall", "avg_f1",
         ])
 
-    best = None
-    all_results = []
-
-    for (n_blocks, convs_per_block, filt, ks, pad, act, bn,
-         down, ps, final_pool,
-         ndense, du, dd,
-         cd, wd, ls,
-         bs, pr,
-         lr, b1, b2, eps, cn, cv) in product(
-            grid_n_blocks, grid_convs_per_block, grid_filters, grid_kernel_size, grid_padding,
-            grid_activation, grid_use_batchnorm,
-            grid_downsample, grid_pool_size, grid_final_pool,
-            grid_n_dense_layers, grid_dense_units, grid_dense_dropout,
-            grid_conv_dropout, grid_weight_decay, grid_label_smoothing,
-            grid_batch_size, grid_pos_ratio,
-            grid_lr, grid_beta_1, grid_beta_2, grid_epsilon, grid_clipnorm, grid_clipvalue
+    for dropout, lr, ks, filt, du, bs, wd in product(
+        grid_dropout, grid_lr, grid_kernel_size, grid_filters,
+        grid_dense_units, grid_batch_size, grid_weight_decay
     ):
-        # skip incompatible filter lengths
-        if len(filt) != n_blocks:
-            continue
-        if down != "maxpool":
-            # pool_size irrelevant unless maxpool; keep but harmless
-            pass
-        if final_pool == "flatten" and M > 1000:
-            # optional sanity skip; remove if you want truly EVERYTHING
-            pass
-
-        cfg = dict(
-            n_blocks=int(n_blocks),
-            convs_per_block=int(convs_per_block),
-            filters=tuple(int(x) for x in filt),
-            kernel_size=int(ks),
-            padding=str(pad),
-            activation=str(act),
-            use_batchnorm=bool(bn),
-            downsample=str(down),
-            pool_size=int(ps),
-            final_pool=str(final_pool),
-            n_dense_layers=int(ndense),
-            dense_units=int(du),
-            dense_dropout=float(dd),
-            conv_dropout=float(cd),
-            weight_decay=float(wd),
-            label_smoothing=float(ls),
-            lr=float(lr),
-            beta_1=float(b1),
-            beta_2=float(b2),
-            epsilon=float(eps),
-            clipnorm=None if cn is None else float(cn),
-            clipvalue=None if cv is None else float(cv),
-            pos_ratio=float(pr),
-        )
-
         precisions, recalls, f1s = [], [], []
 
         for fold_idx in range(len(train_indices)):
@@ -487,35 +339,52 @@ def grid_search_cnn_scenario(
                 M=M,
                 epochs=epochs,
                 batch_size=bs,
-                cfg=cfg,
+                dropout=dropout,
+                lr=lr,
+                kernel_size=ks,
+                filters=filt,
+                dense_units=du,
+                weight_decay=wd,
             )
-            precisions.append(p); recalls.append(r); f1s.append(f1)
+            precisions.append(p)
+            recalls.append(r)
+            f1s.append(f1)
 
         avg_p = float(np.mean(precisions)) if precisions else 0.0
         avg_r = float(np.mean(recalls)) if recalls else 0.0
         avg_f1 = float(np.mean(f1s)) if f1s else 0.0
 
-        all_results.append({"cfg": cfg, "avg_precision": avg_p, "avg_recall": avg_r, "avg_f1": avg_f1})
+        cfg = {
+            "dropout": float(dropout),
+            "lr": float(lr),
+            "kernel_size": int(ks),
+            "filters": tuple(int(x) for x in filt),
+            "dense_units": int(du),
+            "batch_size": int(bs),
+            "weight_decay": float(wd),
+        }
+        row = {
+            "cfg": cfg,
+            "avg_precision": avg_p,
+            "avg_recall": avg_r,
+            "avg_f1": avg_f1,
+        }
+        all_results.append(row)
 
-        # append to CSV
+        # append this config to CSV
         with all_csv_path.open("a", newline="") as f:
             w = csv.writer(f)
             w.writerow([
                 scenario, prefix_for_files, param, M, epochs,
-                cfg["n_blocks"], cfg["convs_per_block"], str(cfg["filters"]), cfg["kernel_size"], cfg["padding"],
-                cfg["activation"], cfg["use_batchnorm"],
-                cfg["downsample"], cfg["pool_size"], cfg["final_pool"],
-                cfg["n_dense_layers"], cfg["dense_units"], cfg["dense_dropout"],
-                cfg["conv_dropout"], cfg["weight_decay"], cfg["label_smoothing"],
-                bs, cfg["pos_ratio"],
-                cfg["lr"], cfg["beta_1"], cfg["beta_2"], cfg["epsilon"], cfg["clipnorm"], cfg["clipvalue"],
+                cfg["dropout"], cfg["lr"], cfg["kernel_size"], str(cfg["filters"]),
+                cfg["dense_units"], cfg["batch_size"], cfg["weight_decay"],
                 f"{avg_p:.6f}", f"{avg_r:.6f}", f"{avg_f1:.6f}",
             ])
 
-        print(f"[grid] F1={avg_f1:.4f} cfg={cfg}")
+        print(f"[grid] cfg={cfg} -> F1={avg_f1:.4f}")
 
         if best is None or avg_f1 > best["avg_f1"]:
-            best = {"cfg": cfg, "avg_precision": avg_p, "avg_recall": avg_r, "avg_f1": avg_f1}
+            best = row
             payload = {
                 "scenario": scenario,
                 "prefix_for_files": prefix_for_files,
@@ -530,12 +399,21 @@ def grid_search_cnn_scenario(
                 },
             }
             best_json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
         keras.backend.clear_session()
 
+    # final write (in case it never updated inside loop due to no folds)
     if best is None:
         best = {"cfg": None, "avg_precision": 0.0, "avg_recall": 0.0, "avg_f1": 0.0}
-        best_json_path.write_text(json.dumps(best, indent=2), encoding="utf-8")
+        payload = {
+            "scenario": scenario,
+            "prefix_for_files": prefix_for_files,
+            "param": param,
+            "M": M,
+            "epochs": epochs,
+            "best_cfg": None,
+            "best_scores": {"avg_precision": 0.0, "avg_recall": 0.0, "avg_f1": 0.0},
+        }
+        best_json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     return best["cfg"], (best["avg_precision"], best["avg_recall"], best["avg_f1"]), all_results
 

@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from cnn import run_experiment_cnn_classifier
+from cnn import run_experiment_cnn_classifier, plot_cnn_summary_grouped
 from ensemble_classifier import run_experiment_ec, plot_all_representations_ec
 from use_classifiers import execute_experiments_abc, execute_experiments_def, execute_scenario
 from feature_creation_autoencoder import  create_features_for_ds_raw, create_features_for_ds_re, \
@@ -547,17 +547,15 @@ def release_main_new():
 
 
         #cnn requires dataset preprocessing again, since the value for M potentially changed
-        #todo:
-        #run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
-        #create_preprocessed_re_files()
+        run_dataset_preprocessing(args.attack_dir, args.control_dir, M_raw=M_raw, M_re=M_re)
+        create_preprocessed_re_files()
 
         global_label_encoder = LabelEncoder()
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_ae_classifier()
         run_experiment_cnn_classifier(global_label_encoder,M_raw,M_re)
-
+        plot_cnn_summary_grouped()
 
 if __name__ == "__main__":
-    #test_main()
     release_main_new()
 

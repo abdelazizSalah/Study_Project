@@ -179,7 +179,7 @@ def barplot_one_representation(csv_path: str | Path, out_dir: str | Path = "resu
     width = 0.25 if n_bars == 3 else 0.5
 
     for metric_name, cols in col_map.items():
-        plt.figure(figsize=(7, 4))
+        fig, ax = plt.subplots(figsize=(7, 4), constrained_layout=True)
 
         for i, col in enumerate(cols):
             y = pd.to_numeric(df[col], errors="coerce").to_numpy()
@@ -187,7 +187,7 @@ def barplot_one_representation(csv_path: str | Path, out_dir: str | Path = "resu
             offset = (i - (n_bars - 1) / 2) * width
             color = COLORS[i] if n_bars == 3 else None
 
-            plt.bar(
+            bars = ax.bar(
                 x + offset,
                 y,
                 width=width,
@@ -195,29 +195,23 @@ def barplot_one_representation(csv_path: str | Path, out_dir: str | Path = "resu
                 color=color,
             )
 
-            # value labels
-            for xi, yi in zip(x + offset, y):
-                if np.isfinite(yi):
-                    plt.text(
-                        xi,
-                        yi + 0.01,
-                        f"{yi:.3f}",
-                        ha="center",
-                        va="bottom",
-                        fontsize=8,
-                    )
+            # value labels (robust)
+            ax.bar_label(bars, fmt="%.3f", padding=2, fontsize=8)
 
-        plt.xticks(x, scenarios)
-        plt.ylim(0.0, 1.0)  # FIXED SCALE
-        plt.xlabel("Scenario")
-        plt.ylabel(metric_name.upper())
-        plt.title(f"Ensemble Classifier – {rep} – {metric_name.upper()}")
-        plt.legend()
-        plt.tight_layout()
+        ax.set_xticks(x)
+        ax.set_xticklabels(scenarios)
+
+        # small headroom avoids label/title collisions
+        ax.set_ylim(0.0, 1.06)
+
+        ax.set_xlabel("Scenario")
+        ax.set_ylabel(metric_name.upper())
+        ax.set_title(f"Ensemble Classifier – {rep} – {metric_name.upper()}", pad=10)
+        ax.legend()
 
         out_path = out_dir / f"ec_{rep}_{metric_name}_bar.png"
-        plt.savefig(out_path, dpi=200)
-        plt.close()
+        fig.savefig(out_path, dpi=200)
+        plt.close(fig)
 
         print(f"[OK] Saved {out_path}")
 

@@ -1,0 +1,40 @@
+CNN-based Classification with Oversampling
+
+Global Observations
+
+Across all dataset types, Scenario 2 consistently achieves very strong performance, with:
+F1-scores above 0.9 for all representations
+Near-perfect performance for the raw representation (F1 ≈ 0.999)
+
+In contrast, Scenario 3 shows substantially worse performance, especially for the reverse-engineered representations.
+
+Scenario 2 (Multiclass, Oversampled):
+All representations achieve very high F1-scores (> 0.9)
+Raw data performs best (F1 ≈ 0.999), confirming that byte-level information provides maximal discriminative power
+
+Reverse-engineered representations perform slightly worse: (re5: F1 ≈ 0.924,re10: F1 ≈ 0.943,re15: F1 ≈ 0.923)
+
+Among the reverse-engineered datasets, re10 performs marginally better than re5 and re15.
+Overall, the differences between re5, re10, and re15 are relatively small compared to the gap between raw and reverse-engineered data, indicating that the CNN can partially compensate for information loss when sufficient labeled data is available.
+
+Scenario 3 (Limited Attack Diversity, Oversampled)
+
+Performance drops significantly for all reverse-engineered representations:
+F1 ≈ 0.33–0.46
+
+Even with oversampling, the CNN struggles to generalize in this scenario
+
+A likely explanation is the lack of diversity in attack types during training, as Scenario 3 contains only a single attack class. (Oversampling increases the number of samples but does not introduce new attack characteristics.)
+
+Notably:
+The raw representation still performs very well (F1 ≈ 0.984).
+For physical / reverse-engineered representations, the CNN remains constrained by representation expressiveness rather than class imbalance alone
+
+
+Key Takeaways
+-Oversampling enables the CNN to achieve near-perfect detection in Scenario 2, even for reduced representations.
+Raw data remains the most informative representation, especially in constrained scenarios.
+
+Scenario 3 performance is limited primarily by attack diversity, not only by class imbalance.
+
+re10 offers the best performance among reverse-engineered representations in the CNN setting, indicating an effective balance between compression and feature richness.
