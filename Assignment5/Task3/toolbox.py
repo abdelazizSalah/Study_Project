@@ -121,7 +121,8 @@ def print_help():
 Example:
   python toolbox.py -s pipeline --h
   python toolbox.py -s pipeline --mode k_fold --k 5
-
+  python toolbox.py -s pipeline --mode resnet --M 100
+  python toolbox.py -s pipeline --mode cnn --M 100 --attack-dir ../../DataSets/2017QUT_S7comm/LabelledDataset/20161215163606_s7_process_attacks/ --control-dir ../../DataSets/2017QUT_S7comm/LabelledDataset/20161219132813_control_set/
     """
     print(help_text)
     

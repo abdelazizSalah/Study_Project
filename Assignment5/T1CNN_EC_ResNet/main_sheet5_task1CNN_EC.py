@@ -465,7 +465,7 @@ def run_k_fold(k: int):
 
 # for sheet 4 task1
 def release_main_new(argv=None):  # this name should be changed
-    print(f'excuting from the toolbox with the following args')
+    print(f'excuting from the toolbox with the following args: {argv}')
     args = parse_args(argv)
 
     if args.mode == "dataset_preprocessing_sheet345":
