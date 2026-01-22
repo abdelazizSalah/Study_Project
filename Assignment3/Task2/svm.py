@@ -17,9 +17,9 @@ def one_class_svm_train(X_train):
     ocsvm_clf = make_pipeline(
         StandardScaler(),
         OneClassSVM(
-            kernel="rbf",
-            gamma="scale",
-            nu=0.05
+            kernel="rbf", ## Defines the function used to map data to a high-dimensional space; "rbf" = non-linear
+            gamma="scale", ## Determines the influence of individual training samples; "scale" = self-adjusting calculation
+            nu=0.05 # An upper bound on the fraction of training errors (outliers) and a lower bound on support vectors
         )
     )
 
@@ -32,30 +32,27 @@ def one_class_svm_train(X_train):
 
 def one_class_svm_evaluate(X_test, y_test):
 
-    """Make sure that for each classifier you identify and use the optimal grid
-    parameters and compute the precision and recall for each of the experiments."""
-    #todo: grid search
-
     try:
         ocsvm_clf = joblib.load("models/ocsvm.joblib")
     except FileNotFoundError:
         print("ERROR: oscmv model not found")
         return 0.0,0.0,0.0
-    # binary labels: +1 normal, -1 attack
+
+    # convert binary labels: +1 normal, -1 attack
     y_test_binary = np.where(y_test == 0, 1, -1)
 
-    # --- 1) Scores für ROC-AUC ---
+    # --- 1)ROC-AUC ---
+    # may be better bc precision and recall depend on threshold and one class model provides anomaly score
     scores = ocsvm_clf.decision_function(X_test)
 
-    # ROC-AUC berechnen
     roc_auc = roc_auc_score(y_test_binary, scores)
     print(f"ROC-AUC: {roc_auc:.4f}")
 
-    # --- 2) Normale Klassifikation ---
+    # --- 2) normal classification ---
     y_pred_numeric = ocsvm_clf.predict(X_test)
 
     print("\n--- Classification Report ---")
-    print(classification_report(y_test_binary, y_pred_numeric))
+    print(classification_report(y_test_binary, y_pred_numeric))   #prints a nice summary for precision, recall, f1
 
     precision = precision_score(y_test_binary, y_pred_numeric, pos_label=-1)    #tp/tp+fp
     recall = recall_score(y_test_binary, y_pred_numeric, pos_label=-1)  #tp/tp+fn
@@ -69,7 +66,6 @@ def one_class_svm_predict(X_test, t_test):
     """For each set of measurements at a given time step in the
     testing set, your piece of code should print out whether this set of measurements contains
     any attack or not."""
-    #load
 
     try:
         ocsvm = joblib.load("models/ocsvm.joblib")
@@ -97,11 +93,13 @@ def one_class_svm_predict(X_test, t_test):
 def binary_svm_train(X_train, y_train):
 
 
-    # SVC-Klassifikator mit linearem Kernel erstellen
-    # C ist der Regularisierungsparameter. Kleinere Werte bedeuten stärkere Regularisierung.
-    svm_clf = SVC(kernel='linear', C=1.0, random_state=42)
+    svm_clf = SVC(
+        kernel='linear', # type of decision boundary; 'linear' fits a straight hyperplane
+        C=1.0,  # regularization strength; smaller C = more regularization (simpler model)
+        random_state=42 # controls randomness in certain internal steps
+    )
 
-    # Modell trainieren (fitten)
+    # train model
     svm_clf.fit(X_train, y_train)
     joblib.dump(svm_clf, "models/bsvm.joblib")
 
@@ -112,14 +110,8 @@ def binary_svm_evaluate(X_test, y_test):
     try:
         svm_clf = joblib.load("models/bsvm.joblib")
     except FileNotFoundError:
-        print("FEHLER: 'models/bsvm.joblib' nicht gefunden. Bitte zuerst trainieren.")
+        print("ERROR: ‘models/bsvm.joblib’ not found. Please train first.")
         return 0.0, 0.0, 0.0, 0.0
-
-    scores = svm_clf.decision_function(X_test)
-
-    # ROC-AUC berechnen (y_test_binary ist 0/1, Scores repräsentieren Klasse 1)
-    roc_auc = roc_auc_score(y_test, scores)
-    print(f"ROC-AUC: {roc_auc:.4f}")
 
     # prediction
     y_pred_binary = svm_clf.predict(X_test)
@@ -137,14 +129,14 @@ def binary_svm_evaluate(X_test, y_test):
     print(f"Recall (Attack, 1): {recall:.4f}")
     print(f"F1 Score (Attack, 1): {f1:.4f}")
 
-    return roc_auc, precision, recall, f1
+    return precision, recall, f1
 
 
 def binary_svm_predict(X_test, t_test):
     try:
         svm_clf = joblib.load("models/bsvm.joblib")
     except FileNotFoundError:
-        print("FEHLER: 'models/bsvm.joblib' nicht gefunden. Bitte zuerst trainieren.")
+        print("ERROR: ‘models/bsvm.joblib’ not found. Please train first.")
         return pd.DataFrame({
             'Timestamp (Unix)': [],
             'Predicted_Label': []

@@ -1,0 +1,33 @@
+Among all dataset types:
+-scenario 3 always giving the worst results
+-scenario 2 always giving the best results for all dataset types
+-scenario 1 is between them
+
+-for scenario 1 using "all" classifiers results in a drastic drop of recall, suggesting one of the single class classifiers performing very badly
+
+=> in general multiclass performs better than single class if different attack types are in the data
+
+-in general experiments on raw dataset way bettern than on any of the reverse egnineered
+ => raw always has f1 > 0,5 while reX always has below 0,5
+=> from the physical readings, RE15 deliveres the best results
+
+
+ Raw in detail:
+ -for single class "random" and "majority" mode perform similar, "all" mode is singificantly worse
+ => for multiclass "random mode is slightly better than the other two"
+ => for multiclass s3 is below <0,5 (significantly worse than scenario 2), which might be due to less attack packets in scenario 3 (only one attack class)
+
+
+RE5 in detail:
+-scenario 3 performs extremely bad (f1 < 0,005) (espc recall) model is being "blind" towards actual attacks(=> due to almost none attack packets)
+-scenario 2 performs the best (f1 ~ 0,2-0,25)
+-scenario 1 is somewhere between them, with mode "all" being way worse than the random and majority mode (one classifier doesnt work)
+
+Re10:
+-scenario 2 (multiclass) and scenario 1 (oneclass) perform similar (f1~0.2-0.25) (except for "all" mode in scenario 1 performing much worse again f1=0.051)
+-scenario 3 results very bad again (f1<0.05)
+
+RE15:
+-scenario 1 results comparable to the results for re10 and re5 (f1~0.0.2-0.23 and worse for "all" mode)
+-scenario 2 better than for re10 and re5 (f1~0.3-0.33)
+-scenario 3 results very bad again (f1<0.008)

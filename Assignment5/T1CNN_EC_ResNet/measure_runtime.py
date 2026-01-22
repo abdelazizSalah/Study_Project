@@ -1,0 +1,202 @@
+import os
+import threading
+import time
+from pathlib import Path
+
+import psutil
+
+from handling_re_bytes_integrated import get_keep_indices_from_fold0
+from use_classifiers import execute_scenario_rt
+from feature_creation_autoencoder import train_and_save_models_rt, create_features_for_ds_rt
+
+
+def bytes_to_mb(num_bytes):
+    return num_bytes / (1024 ** 2)
+
+#start a RAM monitor thread
+def start_ram_monitor(interval=0.1):                    # take RAM sample every `interval` seconds
+    """
+    Starts a background thread that tracks peak RSS (Resident Set Size) (physical RAM process is currently using) of process.
+    Returns a handle (dict) that must be passed to stop_ram_monitor().
+    """
+    proc = psutil.Process(os.getpid())                 # psutil Process object for the current Python process
+    stop_event = threading.Event()                   # event flag used to tell the monitor thread to stop
+    peak_holder = {"peak": 0}                          # stores peak RAM
+
+    def _monitor():                               # function that runs in the background thread
+        while not stop_event.is_set():           # keep sampling until stop_event is set
+            rss = proc.memory_info().rss     # read current RSS (resident set size) in bytes
+            if rss > peak_holder["peak"]:      # check if this sample is a new maximum
+                peak_holder["peak"] = rss              # store new peak RSS
+            time.sleep(interval)                       # waits for <interval> seconds (to not add overhead which would distort the memory measurement)
+
+        # final read
+        rss = proc.memory_info().rss                   # read RSS one final time
+        peak_holder["peak"] = max(peak_holder["peak"], rss)  # keep larger value: existing peak or final sample
+
+    thread = threading.Thread(target=_monitor, daemon=True)  # create a daemon thread that runs _monitor()
+    thread.start()                                     # start the background monitoring thread
+
+    # return a handle so the caller can stop the thread and read peak
+    return {
+        "stop_event": stop_event,
+        "thread": thread,
+        "peak_holder": peak_holder,
+    }
+
+
+def stop_ram_monitor(handle):
+    """
+    Stops the RAM monitor and returns peak RSS in bytes.
+    """
+    handle["stop_event"].set()                         # set stop flag
+    handle["thread"].join(timeout=2.0)                 # wait up to 2 seconds for the thread to finish cleanly (join blocks target thread until current thread exits)
+    return handle["peak_holder"]["peak"]               # return the recorded peak RSS
+
+
+
+# ---------- small helpers (keep near measure_all) ----------
+
+def _append(filepath: str, text: str) -> None:
+    # creates file if missing; directory must exist
+    with open(filepath, "a") as f:
+        f.write(text)
+
+
+def _block(title: str, feature_label: str, lines: list[str]) -> str:
+    # nice, consistent formatting
+    header = f"=== {title} ({feature_label}) ===\n"
+    body = "\n".join(f"  • {ln}" for ln in lines) + "\n"
+    return header + body + "-----------------------------------------------\n\n"
+
+
+def _log_ae_training(feature_label: str, out_file: str, prefix_for_training: str) -> None:
+    avg_runtime, avg_peak_ram = train_and_save_models_rt(prefix_for_training) #for RAW or RE15
+
+    #appends results to output file
+    _append(
+        out_file,
+        _block(
+            "Autoencoder Training Results",
+            feature_label,
+            [
+                "Averaged over all folds:",
+                f"Average runtime : {avg_runtime:.2f} s",
+                f"Peak RAM (max)  : {avg_peak_ram:.1f} MB",
+            ],
+        ),
+    )
+
+
+def _log_ae_feature_extraction(k: int, feature_label: str, out_file: str, prefix_for_features: str) -> None:
+    avg_runtime, avg_peak_ram = create_features_for_ds_rt(k, prefix_for_features)
+
+    _append(
+        out_file,
+        _block(
+            "Autoencoder Feature Extraction Results",
+            feature_label,
+            [
+                "Averaged over all folds:",
+                f"Average runtime : {avg_runtime:.2f} s",
+                f"Peak RAM (max)  : {avg_peak_ram:.1f} MB",
+            ],
+        ),
+    )
+
+
+def _log_classifiers_for_feature_type(
+    k: int,
+    global_label_encoder,
+    prefix: str,                # "raw" or "re" (for execute_scenario_rt)
+    feature_label: str,         # "RAW" or "RE15" (for printing)
+    out_file: str,
+    keep_indices: int = 0,
+    param: int = 0,
+):
+
+    # scenario mapping
+    scenario_models = {
+        1: ["ocsvm", "lof", "ee"],
+        2: ["rf", "knn", "bsvm"],
+        3: ["rf", "knn", "bsvm"],
+    }
+
+    for scenario, models in scenario_models.items():
+        for clf in models:
+            rt_train, ram_train, rt_test, ram_test = execute_scenario_rt(
+                global_label_encoder=global_label_encoder,
+                classifier=clf,
+                k=k,
+                prefix=prefix,
+                scenario=scenario,
+                keep_indices=keep_indices,
+                param=param,
+            )
+
+            _append(
+                out_file,
+                _block(
+                    "Classifier Results",
+                    feature_label,
+                    [
+                        f"Scenario: {scenario}",
+                        f"Classifier: {clf}",
+                        "Averaged over all folds:",
+                        f"Train avg runtime : {rt_train:.2f} s",
+                        f"Train peak RAM    : {ram_train:.1f} MB",
+                        f"Test  avg runtime : {rt_test:.2f} s",
+                        f"Test  peak RAM    : {ram_test:.1f} MB",
+                    ],
+                ),
+            )
+
+
+# ---------- main function ----------
+
+def measure_all(k: int, global_label_encoder) -> None:
+    """
+    Runs everything once for RAW and once for RE15, measures runtime and peak RAM
+      - AE training
+      - AE feature extraction
+      - Scenario 1: ocsvm, lof, ee
+      - Scenario 2 & 3: rf, knn, bsvm
+    Logs results to:
+      - results/runtime_raw.txt
+      - results/runtime_re15.txt
+    """
+    Path("results").mkdir(exist_ok=True)
+
+    # ---------------- RAW ----------------
+    raw_file = "results/runtime_raw.txt"
+    _log_ae_training(feature_label="RAW feature type", out_file=raw_file, prefix_for_training="raw")
+    _log_ae_feature_extraction(k=k, feature_label="RAW feature type", out_file=raw_file, prefix_for_features="raw")
+
+    _log_classifiers_for_feature_type(
+        k=k,
+        global_label_encoder=global_label_encoder,
+        prefix="raw",
+        feature_label="RAW feature type",
+        out_file=raw_file,
+        keep_indices=0,
+        param=0,
+    )
+
+    ## ---------------- RE15 ----------------
+    re_file = "results/runtime_re15.txt"
+
+    _log_ae_training(feature_label="RE15 feature type", out_file=re_file, prefix_for_training="re")
+    _log_ae_feature_extraction(k=k, feature_label="RE15 feature type", out_file=re_file, prefix_for_features="re")
+
+    keep_indices = get_keep_indices_from_fold0("datasets/re_bytes_15", "re15")
+#
+    _log_classifiers_for_feature_type(
+        k=k,
+        global_label_encoder=global_label_encoder,
+        prefix="re",
+        feature_label="RE15 feature type",
+        out_file=re_file,
+        keep_indices=keep_indices,
+        param=15,
+    )
+#

@@ -115,7 +115,7 @@ def grid_search_random_forest(
 # SVM
 # -------------------------------------------------------------------
 
-def grid_search_svm( # 0.932, 0.937 = 1, 
+def grid_search_svm( # 0.932, 0.937 = 1,
     svm: SVC,
     X_train,
     y_train,
@@ -160,7 +160,7 @@ def grid_search_svm( # 0.932, 0.937 = 1,
 # KNN
 # -------------------------------------------------------------------
 
-def grid_search_knn( #1.  9820,  
+def grid_search_knn( #1.  9820,
     knn: KNeighborsClassifier,
     X_train,
     y_train,
@@ -205,7 +205,7 @@ def grid_search_knn( #1.  9820,
 # One-Class SVM (anomaly detection)
 # -------------------------------------------------------------------
 
-def _eval_params_ocsvm(base_model, params, X_train, X_val, y_val): # 
+def _eval_params_ocsvm(base_model, params, X_train, X_val, y_val): #
     """
     Fit + score ONE parameter combination for One-Class SVM.
     Uses accuracy on the anomaly/normal mapping.
