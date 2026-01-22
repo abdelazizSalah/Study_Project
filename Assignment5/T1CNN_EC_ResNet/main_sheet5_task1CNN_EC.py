@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 
-from Assignment5.T1CNN_EC_ResNet.cnn import plot_cnn_summary_grouped
+from cnn import plot_cnn_summary_grouped
 from cnn import run_experiment_cnn_classifier
 from resnet import run_experiment_resnet_classifier
 from ensemble_classifier import run_experiment_ec, plot_all_representations_ec
