@@ -1,4 +1,4 @@
-## Final Takeaway from the Results (Effect of `use_stats`)
+## Final Takeaway from the Results 
 
 The results show a **clear, scenario-dependent impact** of incorporating statistical features (`use_stats = 1`) into the model.
 
@@ -16,7 +16,7 @@ Statistical features help the model become more conservative (higher precision),
 
 ### Scenario 3 (S3: Unseen-attack training)
 - **Recall:** Overall recall is **very low across all representations**, indicating the difficulty of Scenario 3. Stats provide **slight recall gains** for `re10`, but performance remains weak overall.
-- **Precision:** Statistical features **significantly improve precision** across `re10`, `re15`, and `re5`, while models without stats are near-zero.
+- **Precision:** Statistical features **improve precision** across `re10`, `re15`, and `re5`, while models without stats are near-zero.
 - **F1-score:** Only configurations with `use_stats = 1` achieve **non-trivial F1-scores**. Without stats, the model is largely ineffective.
 
 **Interpretation (S3):**  

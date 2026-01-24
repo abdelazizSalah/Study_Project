@@ -26,7 +26,7 @@ import torch.nn.functional as F
 # -----------------------------
 class BasicBlock1D(nn.Module):
     """
-    ResNet-18 BasicBlock: two Conv1d layers with BN + ReLU between,
+    ResNet-18 BasicBlock: two Conv1d layers with batch normalization (BN) + ReLU between,
     plus an identity/projection skip connection.
     """
 
@@ -269,17 +269,30 @@ def precision_recall_f1(y_true, y_pred):
 #   - Fraction of zero bytes (captures padding / sparsity patterns)
 # -----------------------------
 def _shannon_entropy_from_counts(counts: np.ndarray) -> float:
+    '''
+        This feature measures the uncertainty or randomness in the byte distribution.
+        counts: (256,) array of byte frequencies
+    '''
+
+    # total number of observed bytes in the histogram
     total = counts.sum()
+
+    # handle edge case of no bytes
     if total <= 0:
         return 0.0
+
+    # convert counts into probabilities of each byte value for non-zero bins only
     p = counts[counts > 0].astype(np.float64) / float(total)
+
+    # compute Shannon entropy -p log2(p) summed over all byte values
+    # 0 or 1 entropy if all bytes are the same, and 0.5 is complete uncertainty
     return float(-(p * np.log2(p)).sum())
 
 
 def compute_stats_features(
     X_bytes: np.ndarray,
     pad_value: int = 0,
-    assume_padded: bool = True,
+    padded: bool = True,
 ) -> np.ndarray:
     """
     X_bytes: (N, M) uint8 or int array, values in [0,255]
@@ -289,8 +302,7 @@ def compute_stats_features(
       3) count of 2nd most frequent byte
       4) Shannon entropy
       5) fraction of pad_value bytes
-    Note: If you truly have original (pre-pad/trim) lengths elsewhere, replace total_bytes accordingly.
-    """
+     """
     X = X_bytes
     if X.dtype != np.uint8:
         X = X.astype(np.uint8)
@@ -304,13 +316,12 @@ def compute_stats_features(
         # "total bytes before trimming/padding" requirement :contentReference[oaicite:2]{index=2}
         # If you only have padded arrays, best practical approximation:
         # count non-pad bytes when padding exists, else M.
-        if assume_padded:
+        if padded:
             total_bytes = int(np.sum(row != pad_value))
             if total_bytes == 0:
                 total_bytes = M
         else:
             total_bytes = M
-
         counts = np.bincount(row, minlength=256)
 
         # top-2 frequencies
@@ -319,8 +330,11 @@ def compute_stats_features(
         top2_count = int(top2[-2])
 
         ent = _shannon_entropy_from_counts(counts)
+
+        # this tells the model how much of the fixed-length input is artificial. 
         frac_pad = float(counts[pad_value]) / float(M) if M > 0 else 0.0
 
+        # store features
         feats[i, 0] = float(total_bytes)
         feats[i, 1] = float(top1_count)
         feats[i, 2] = float(top2_count)
@@ -364,7 +378,7 @@ def split_training_and_test_resnet(ds, labels, train_indices_fold, test_indices_
     X_train_raw = X_train.astype(np.uint8, copy=False)
     X_test_raw  = X_test.astype(np.uint8, copy=False)
 
-    # normalize to [0,1] and make (N,1,M)
+    # normalize to [0,1] and make (N,1,M) to be tensor
     X_train_t = (X_train.astype(np.float32) / 255.0)[:, None, :]
     X_test_t  = (X_test.astype(np.float32) / 255.0)[:, None, :]
 
@@ -387,26 +401,35 @@ def train_resnet(
     patience: int = 3,
     device: str = "cuda",
 ):
+    # using Adam optimizer
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
+    # best values tracker
     best_val = float("inf")
     best_state = None
+
+    # Counts how many consecutive epochs did not improve validation loss.
     bad = 0
 
+    # epochs excution
     for _epoch in range(epochs):
+
+        # training
         model.train()
         for batch in train_loader:
+            # unpack batch depending on whether stats features exist
             if len(batch) == 2:
                 xb, yb = batch
-                sb = None
+                sb = None # statistics features batch
             else:
                 xb, sb, yb = batch
 
+            # move to device
             xb = xb.to(device, non_blocking=True)
             yb = yb.to(device, non_blocking=True)
             if sb is not None:
                 sb = sb.to(device, non_blocking=True)
-
+            # forward + backward + optimize steps
             opt.zero_grad(set_to_none=True)
             logits = model(xb, stats=sb) if sb is not None else model(xb)
             loss = F.cross_entropy(logits, yb)
@@ -419,6 +442,7 @@ def train_resnet(
         n = 0
         with torch.no_grad():
             for batch in val_loader:
+                # same unpacking logic
                 if len(batch) == 2:
                     xb, yb = batch
                     sb = None
@@ -429,14 +453,17 @@ def train_resnet(
                 if sb is not None:
                     sb = sb.to(device, non_blocking=True)
 
+                # forward pass + loss computation
                 logits = model(xb, stats=sb) if sb is not None else model(xb)
                 loss = F.cross_entropy(logits, yb)
                 bs = xb.size(0)
                 val_loss += float(loss) * bs
                 n += bs
 
+        # average validation loss, and avoid division by zero
         val_loss = val_loss / max(n, 1)
 
+        # early stopping check 
         if val_loss < best_val:
             best_val = val_loss
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
@@ -445,10 +472,11 @@ def train_resnet(
             bad += 1
             if bad >= patience:
                 break
-
+    # restore best weights at the end from checkpoints. 
     if best_state is not None:
         model.load_state_dict(best_state)
 
+# -----------------------------
 
 def evaluate_resnet(
     model: torch.nn.Module,
@@ -461,6 +489,7 @@ def evaluate_resnet(
 
     with torch.no_grad():
         for batch in test_loader:
+            # same unpacking logic
             if len(batch) == 2:
                 xb, yb = batch
                 sb = None
@@ -476,9 +505,11 @@ def evaluate_resnet(
 
             y_pred.append(preds)
             y_true.append(yb.numpy())
-
+    # concatenate all batches
     y_true = np.concatenate(y_true)
     y_pred = np.concatenate(y_pred)
+
+    # compute metrics
     p, r, f1 = precision_recall_f1(y_true, y_pred)
     return p, r, f1, y_pred
 
@@ -625,6 +656,7 @@ def run_resnet_for_scenario(
 
     k = len(train_indices)
 
+    # Fine-tuning hyperparameters
     epochss = [15, 20, 25,30]
     batch_sizes = [256, 512, 1024]
     lrs = [1e-3, 5e-4, 1e-4]
