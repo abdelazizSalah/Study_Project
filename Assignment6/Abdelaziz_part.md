@@ -4,3 +4,5 @@
 4. GAN, how it works, what is the difference between D and G. 
 5. ResNet, how it works.
 6. Then we should show results of these stuff in order.
+
+- ReplySpike (21 euro per hour).  
