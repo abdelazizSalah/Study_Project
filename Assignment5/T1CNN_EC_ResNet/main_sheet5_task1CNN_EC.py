@@ -576,7 +576,7 @@ def release_main_new(argv=None):  # this name should be changed
         global_label_encoder.fit(ALL_POSSIBLE_LABELS)
         k = check_requirements_ae_classifier()
         run_experiment_resnet_classifier(global_label_encoder, M_raw, M_re)
-        plot_cnn_summary_grouped()
+        
 
 if __name__ == "__main__":
     # test_main()

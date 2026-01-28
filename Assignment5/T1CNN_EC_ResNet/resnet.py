@@ -1,3 +1,37 @@
+'''
+@Author: Abdelaziz Neamatallah
+@Date: 13.1.26
+@Description: This file contains the implementation for ResNet-18 architecture using PyTorch.
+
+1. Residual block (basicBlock 1D)
+   1. 2 convolution layers per block:
+      - Conv1D -> Batch Normalization (BN) -> ReLU -> conv1D -> BN     
+   2. Skip connection:
+      1. identity if shapes match
+      2. projection (1x1 Conv1d) if channels/stride changes
+2. ResNet-18 stages
+   - it should consist of 4 stages, each stage has 2 residual blocks
+   - Standard channel progression example: 
+     1. Stage1: 64
+     2. Stage2: 128
+     3. Stage3: 256
+     4. Stage4: 512
+   - Total "18 Layers" requirement: 
+     - follow the ResNet-18 pattern (counts alogn when we consider convs)
+3. Pooling
+   - We can use AdaptiveAvgPool1d(1) at the end
+     - it gives fixed-size embedding regardless of M
+4. 2 Fully connected layers
+   1. FC1 (embeddings -> hidden) + ReLU + DropOut
+   2. FC2 (hidden -> 2 logits)
+5. Sanity checks
+   - we can run on one batch to check:
+     - shapes
+     - logits shape
+     - loss runs
+
+'''
+
 # resnet_experiments.py
 import csv
 from pathlib import Path
@@ -31,6 +65,8 @@ class BasicBlock1D(nn.Module):
     """
 
     # no expansion for the output channels in BasicBlock
+    # the expansion defines how many times the block increases the number of channels at its output compared to its base chanenl count
+    # channels are the feature dimensions learned by the network.
     expansion = 1
 
     def __init__(self, in_channels: int, out_channels: int, stride: int = 1):
@@ -65,6 +101,8 @@ class BasicBlock1D(nn.Module):
         # Skip path: identity if shape matches, otherwise 1x1 projection
         self.downsample = None
         if stride != 1 or in_channels != out_channels:
+            # the idea is to correct the length of the channel count using 1x1 projection to make the output shape match
+            # the main goal is to make the output shape compatible with the identity skip connection to be able to add them up.
             self.downsample = nn.Sequential(
                 nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm1d(out_channels),
@@ -162,6 +200,7 @@ class ResNet18_1D(nn.Module):
                 - Stage 4 -> very abstract features
         '''
         self.in_planes = 64
+        # the 4 stages
         self.layer1 = self._make_layer(out_channels=64,  blocks=2, stride=1)
         self.layer2 = self._make_layer(out_channels=128, blocks=2, stride=2)
         self.layer3 = self._make_layer(out_channels=256, blocks=2, stride=2)
@@ -173,7 +212,7 @@ class ResNet18_1D(nn.Module):
 
         # FC head (2 FC layers)
         # embedding_dim = 512 after avgpool (because stage4 out_channels=512)
-        embedding_dim = 512
+        embedding_dim = 512 # the learned vector representation size after avgpool
         fc1_in = embedding_dim + (stats_dim if use_stats else 0)
 
         self.fc1 = nn.Linear(fc1_in, hidden_dim)

@@ -6,17 +6,8 @@ import numpy as np
 # ----------------------------
 # 1) Load your results file
 # ----------------------------
-# Option A: CSV
 FILE_PATH = "resnet_summary.csv"
 df = pd.read_csv(FILE_PATH)
-
-# Option B: Excel (uncomment if needed)
-# FILE_PATH = "results.xlsx"
-# df = pd.read_excel(FILE_PATH)
-
-# Expected columns:
-# scenario, representation, M, use_stats, avg_precision, avg_recall, avg_f1
-
 # ----------------------------
 # 2) Basic cleaning / ordering
 # ----------------------------
