@@ -1,0 +1,222 @@
+   \chapter{Background}
+\label{chap:background}
+
+Here we should explain some mandatory concepts that will help us to understand all upcoming approaches. 
+{\color{red} we should summarize relation to the rest of the report and what its needed for (see feedback )}
+
+\section{Random ICS Terminology}
+
+\subsection{Physical Readings}
+\subsection{S7Comm}
+\subsection{idk}
+
+
+\section{Random Networking Terminology}
+\subsection{Traffic flows}
+In context of networking, traffic flow is the study of interactions between two network components, with the aim of understanding how the communication occurs. Usually this traffic flow occur under certain time window i.e. every two minutes and should only contain the traffic exchanged between these specific communication parties over the same highest-level protocol. This traffic flow usually helps in performing some statistical analysis for the purpose of understanding the dataset. 
+
+\section{Random ML Terminology}
+\subsection{Machine learning}
+Machine learning is an evolving branch of computational algorithms that are designed to emulate human intelligence by learning from the surrounding environment. They are considered the working horse in the new era of the so-called big data. Techniques based on machine learning have been applied successfully in diverse fields ranging from pattern recognition, computer vision, spacecraft engineering, finance, entertainment, and computational biology to biomedical and medical applications. These methods can help us in creating anomaly detection systems which are able to detect outliers, or classify new network packets as malicious. Usually machine learning is split into two major methods which are \textit{Supervised learning} and \textit{Unsupervised learning}. In machine learning we usually consider set of objects O which is divided into previously seen data S, and previously unseen data U, and the goal is to build a mathematical model M-which can be seen as mapping function which convert the input into certain output- that can learn from S, and apply its knowledge on U with generalization to get the best results. 
+\subsection{Overfitting}
+This is a phenomenon happens when the model performs very good during the training phase, but the performance drops significantly during testing phase. Usually this means that the model can not generalize to previously unseen data, and it just memorizes the training data. 
+\subsection{Underfitting}
+This is a phenomenon happens when the model performs poorly during both training and testing phases. Usually this means that the underlying function is much more complex than the ability of the model to learn. 
+\subsection{Supervised learning}
+It is a method from machine learning, where we already have previously seen data S, with their corresponding labels, and we try to teach our model M based on these previous labels, in order to be able to predict the labels of U correctly. Examples are classification and regression. 
+\subsection{Unsupervised learning}
+This is another method from machine learning, where there are no labels for the training data, instead the model try to learn patterns and relations between the data. Examples are outlier detection and clustering. 
+\subsection{Distance functions}
+Usually when we are working in any feature space, we need to measure the distance between two points in this space. In order to do so, we need to define distance function that can evaluate these distances. There are some famous distance functions such as Manhattan (L1) distance function which compute the distance as the summation of the absolute difference between each feature for two different points. It can be seen as follows: for p,q \in $\mathbb{R^{n}}$   $\|dist(p,q)\|$_1 = \sum_{i=1}^{n} |p_i - q_i|. 
+
+Another famous distance function is Chebyshev distance (L_${\infty}$) which compute the maximum difference along all features attributes' values. It can be seen as follows: for p,q \in $\mathbb{R^{n}}$   \|dist(p,q)\|_${\infty}$ = \max_{i=1}^{n} |p_i - q_i|. 
+
+
+\subsection{Levels of measurements for features}
+We can categorize data types into three major types. Firstly, \textit{Nominal} data which are categorical, where we only ascertain whether value exist or not i.e. boolean, and there is no order for such data, and we can not also define distance function for them. Secondly, ordinal data where there exist an order relation (better/worse) between categories, but no uniform distance i.e. University grades (A+, B-, etc...). Finally, metric which can  both differences and ratios between the values are meaningful. The values can be discrete or continuous. i.e. weight (continuous), age classes (discrete).    
+ 
+\subsection{K-Folding}
+Usually when we do not have enough S, we try to do a trick to be able to evaluate our model, and check if we can get better results on U. We split the data S into K folds, and we iterate K iterations, in each iteration we train our model M on k-1 folds, then we evaluate it on the remaining fold. At the end we compute the average of the evaluation metric based on the results from the k iterations. Choice of k affects the whole process, the higher the value of k, the more robust the results during inference phase.   
+
+\subsection{F1-Score}
+
+In binary classification, the performance of a model can be evaluated using the 
+metrics precision and recall. Let TP denote the number of true positives, 
+FP the number of false positives, and FN the number of false negatives.
+
+Precision measures the proportion of correctly predicted positive samples 
+among all samples predicted as positive:
+\begin{equation}
+\text{Precision} = \frac{TP}{TP + FP}
+\end{equation}
+
+Recall measures the proportion of correctly detected positive samples 
+among all actual positive samples:
+\begin{equation}
+\text{Recall} = \frac{TP}{TP + FN}
+\end{equation}
+
+The F1-score combines precision and recall into a single metric using their 
+harmonic mean:
+\begin{equation}
+F1 = 2 \cdot \frac{\text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
+\end{equation}
+
+The F1-score takes values in the interval $[0,1]$, where 1 indicates perfect 
+precision and recall, and 0 indicates the worst possible performance. 
+Due to the harmonic mean, the F1-score penalizes large imbalances between 
+precision and recall. This makes it particularly suitable for anomaly detection 
+in Industrial Control Systems (ICS), where datasets are often imbalanced and 
+both false positives and false negatives are costly.
+
+\subsection{Activation functions}
+As we know, artificial neural network is high-order mathimatical model that is composed from interconnected nodes or artificial neurons. Activation functions are mathimatical functions that a neuron executes. So, it calculates the output of a neuron as per its inputs and the associated weights on individual input. It can be linear, such as unit function $f(x) = x$, however linear functions are not helpful in detecting complex features, because usually features are non-linear. Therefor, we tend to use non-linear activation functions. Famous activation functions are \textit{sigmoid} \[ 
+\sigma(x) = \frac{1}{1 + e^{-x}}
+\] But it suffers from vanishing gradient problem. Another family of non-linear activation functions are \a{ReLU} family, which tends to be much faster than Sigmoid, and they are usually used in the hidden layers of the network. \[
+\text{ReLU}(x) = \max(0, x)
+\] Here it treats all negative values as zeros. However this sometimes cause a problem which is called \textit{dead neurons}, when the neurons value stuck to zero always, and this leads to have zero gradients as well. To solve this problem, another non-linear function was introduced which is \textit{LeakyReLU}. \[
+\text{LeakyReLU}(x) =
+\begin{cases}
+\alpha x & \text{if } x < 0 \\
+x & \text{if } x \ge 0
+\end{cases}
+\] It solves the problem of ReLU by introducing very small slope in the negative area, which allows introducing small weights for them, and avoids \textit{dead neurons}
+
+\section{Python ML Frameworks}
+{\color{red} maybe we can find a better solution than explaining only one of them}
+
+\subsection{PyTorch}
+PyTorch is an open-source deep learning framework developed by Facebook's AI Research lab (FAIR) that provides a flexible and efficient platform for building, training, and deploying neural networks. It is particularly popular in research due to its dynamic computational graph mechanism, also known as ``define-by-run'', which allows the graph structure to be created dynamically during runtime. This property makes debugging easier and enables highly flexible model architectures, especially for complex deep learning tasks. The core data structure in PyTorch is the \textit{tensor}. A tensor is a multidimensional array that generalizes scalars (0D tensors), vectors (1D tensors), matrices (2D tensors), and higher-dimensional arrays (3D and beyond). Tensors are similar to NumPy arrays but extend their functionality by supporting automatic differentiation and efficient GPU acceleration. In deep learning applications, tensors are used to represent input data (e.g., raw network packet bytes), model parameters (weights and biases), intermediate feature maps in convolutional layers, and outputs of neural networks. 
+
+PyTorch provides an automatic differentiation engine called \texttt{autograd}, which automatically computes gradients of tensors with respect to a loss function. During training, the forward pass computes predictions and the loss value, while the backward pass applies backpropagation by automatically calculating partial derivatives and updating model parameters using optimization algorithms such as Adam or Stochastic Gradient Descent (SGD). This mechanism is essential for training deep neural networks such as Convolutional Neural Networks (CNNs), Residual Networks (ResNets), Autoencoders, and Generative Adversarial Networks (GANs). 
+
+One of the main advantages of using PyTorch is its seamless integration with GPUs through CUDA, which significantly accelerates tensor computations and large-scale model training. Furthermore, PyTorch provides high-level modules such as \texttt{torch.nn} for defining neural network layers, \texttt{torch.optim} for optimization algorithms, and \texttt{torch.utils.data} for efficient data handling and batching. In the context of anomaly detection in Industrial Control Systems (ICS), PyTorch enables the implementation of complex deep learning models that operate directly on raw byte sequences of network packets or extracted physical readings. Its flexibility, strong community support, and extensive ecosystem make it particularly suitable for research-oriented projects that require experimentation with different architectures, hyperparameter tuning, and custom loss functions. We utilized it for the implementation of GAN, and ResNet.
+
+\section{Detection Methods}
+\subsection{Traditional Machine Learning Detection Methods}
+
+In this work, we employ different classification approaches for detecting
+anomalous network traffic in Industrial Control Systems (ICS).
+These approaches can be divided into one-class, binary, and multi-class
+classification methods. While one-class methods are trained only on
+normal data and aim to detect deviations from learned behavior,
+binary and multi-class classifiers are trained on labeled data to
+distinguish between benign and malicious traffic.
+
+\subsubsection{Detection Methods for One-Class Classification}
+
+One-Class Classification focuses on modeling the distribution
+of normal data in order to detect abnormal instances as deviations
+from this distribution. During training, only benign samples are used.
+At test time, samples that lie outside the learned representation of
+normal behavior are classified as anomalies. OCC methods are particularly
+useful in scenarios where attack data is limited or intentionally excluded
+during training.
+
+\paragraph{One-Class Support Vector Machine (OC-SVM)}
+
+The One-Class Support Vector Machine learns a decision boundary in
+feature space that encloses the majority of the normal training samples.
+The algorithm constructs a hyperplane that separates normal data from
+low-density regions while maximizing the margin. Samples that fall
+outside the learned boundary during testing are considered anomalous.
+
+\paragraph{Elliptic Envelope}
+
+The Elliptic Envelope method assumes that normal data follows a
+multivariate Gaussian distribution. It estimates the mean vector
+and covariance matrix of the training data and defines an ellipsoidal
+confidence region around the center of the distribution. Instances
+that lie outside this region are classified as outliers.
+
+\paragraph{Local Outlier Factor (LOF)}
+
+The Local Outlier Factor evaluates the local density of a data point
+with respect to its $k$ nearest neighbors. A sample is considered
+anomalous if its local density is significantly lower than that of
+its surrounding data points. LOF is particularly suitable for datasets
+with varying density structures, as it focuses on local rather than
+global deviations.
+
+\subsubsection{Detection Methods for Binary Classification}
+
+Binary classification models are trained using labeled benign and
+attack samples. The objective is to learn a decision function that
+separates the two classes in feature space.
+
+\paragraph{Binary Support Vector Machine (SVM)}
+
+A binary Support Vector Machine constructs an optimal separating
+hyperplane between two classes by maximizing the margin between
+the closest samples of both classes, known as support vectors.
+In our setting, the binary SVM distinguishes between benign and
+malicious network traffic.
+
+\paragraph{Random Forest}
+
+Random Forest is an ensemble learning method that builds multiple
+decision trees using random subsets of training samples and features.
+Each tree produces a classification decision, and the final prediction
+is obtained by majority voting. Random Forest models are robust to
+noise, handle high-dimensional feature spaces effectively, and
+reduce overfitting compared to single decision trees.
+
+\paragraph{k-Nearest Neighbors (kNN)}
+
+The k-Nearest Neighbors algorithm is a distance-based classification
+method. It assigns a class label to a test instance based on the
+majority label among its $k$ closest training samples in feature space.
+The method does not explicitly learn model parameters during training,
+but relies on the stored training data to make predictions.
+
+\paragraph{Ensemble Classification}
+
+Ensemble classification refers to the combination of multiple
+independent classifiers to produce a single, consolidated prediction.
+Instead of relying on one model alone, several base learners are
+used in parallel, and their outputs are aggregated to determine
+the final decision.
+
+The underlying rationale is that different models may focus on
+different patterns within the data and therefore exhibit distinct
+error characteristics. By combining their predictions, it is possible
+to mitigate individual model weaknesses and achieve more stable
+performance.
+
+\subsection{\ac{DL} Detection Methods}
+\subsubsection{\ac{CNN}}  is a specialized type of deep neural network designed to automatically learn hierarchical feature representations from structured input data. Originally developed for image processing tasks, CNNs have proven effective for various domains, including sequential and network traffic data analysis. The core component of a CNN is the convolutional layer, which applies a set of learnable filters (kernels) that slide across the input data to extract local patterns. Each filter performs a convolution operation, computing feature maps that highlight important spatial or sequential structures within the data. These convolutional layers are typically followed by activation functions, such as the Rectified Linear Unit (ReLU), to introduce non-linearity, and pooling layers that reduce dimensionality while preserving essential features. Stacking multiple convolutional layers enables the network to progressively learn higher-level abstractions, transforming low-level patterns into more complex representations. In addition, fully connected layers are often used at the end of the architecture to perform classification based on the extracted features. In the context of Industrial Control Systems (ICS) anomaly detection, CNNs can operate directly on raw byte sequences of network packets using one-dimensional convolutions, allowing the model to capture local dependencies and structural patterns within packet data. Due to their ability to automatically learn discriminative features without manual feature engineering, CNNs are particularly suitable for detecting subtle deviations in high-dimensional and proprietary binary protocol traffic.
+
+
+\subsection{Other Anomaly Detection Methods}
+
+\subsubsection{\ac{SDA}} is a deep neural network architecture designed for unsupervised feature learning and robust data representation. It is constructed by stacking multiple denoising autoencoders on top of each other, where each autoencoder layer is trained to reconstruct its input from a corrupted version of it. The key idea behind an \ac{SDA} is to intentionally introduce noise into the input data and force the network to learn a compressed representation that captures the underlying structure of the data rather than memorizing it. Each individual denoising autoencoder consists of an encoder function that maps the input vector to a latent representation and a decoder function that attempts to reconstruct the original clean input. After training one layer, its encoded output is used as the input to the next layer, allowing the network to progressively learn higher-level and more abstract features. This layer-wise training strategy improves convergence and helps mitigate issues such as vanishing gradients in deeper architectures. In anomaly detection scenarios, such as in \ac{ICS}, a \ac{SDA} is typically trained only on benign (normal) data so that it learns a faithful representation of normal system behavior.
+
+\section{Provided Datasets}
+
+For our project we were presented with two different datasets.
+Eletra\footnote{http://perception.inf.um.es/ICS-datasets/csv/electra_s7comm.zip} and S7Comm\footnote{ https://github.com/qut-infosec/2017QUT_S7comm } 
+ {\color{red} todo: cite actual papers, not download links}
+The Electra S7Comm dataset and the 2017QUTS7Comm dataset differ substantially in origin, structure, and format. Electra S7Comm was published by the University of Murcia (Spain) and was collected from realistic industrial testbeds. In contrast, 2017QUTS7Comm was generated in a controlled laboratory environment by the Queensland University of Technology.
+
+
+
+\subsection{Statistical Characteristics}
+The Electra S7Comm dataset comprises approximately 387 million packets,
+with roughly two thirds benign traffic and one third attack traffic.
+All packets belong to the S7Comm protocol over TCP.
+Communication is limited to four host pairs, consisting of two benign
+communication pairs and two attack-related pairs.
+
+The 2017QUTS7Comm dataset contains approximately 10.8 million packets
+and exhibits a strong class imbalance toward attack traffic.
+While S7Comm constitutes the majority of traffic, additional
+application-layer protocols such as NTP, DHCPv6, NBNS, and mDNS are present.
+Both TCP and UDP transport protocols occur in the dataset.
+
+In total, 26 distinct host communication pairs are observed in
+2017QUTS7Comm. However, the attack traffic is generated from a limited
+set of attacker endpoints, with attack activity primarily originating
+from a single source IP address interacting with different targets.
+
+\subsection{Comparison}
+{\color{red} todo traffic flows etc}

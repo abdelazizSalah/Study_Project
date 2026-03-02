@@ -1,0 +1,105 @@
+\chapter{Conclusion}
+\label{chap:conclusion}
+
+
+
+\section{Conclusion}
+
+This study project investigated whether anomaly detection can operate
+without explicit protocol knowledge while maintaining strong
+performance on reverse-engineered traffic representations.
+
+The results show that protocol-agnostic detection is feasible,
+particularly when operating on raw packet data.
+Autoencoder-based detection, CNN models, and N-gram approaches
+achieve consistently strong performance, especially in
+Scenario~2 where sufficient attack diversity is available.
+
+Reverse engineering reduces computational cost but introduces
+representation-dependent performance trade-offs.
+While deep learning models remain comparatively robust under
+moderate compression, traditional machine learning classifiers
+experience significant degradation.
+The most aggressively compressed representation (RE15) yields
+the weakest overall results, indicating that critical structural
+information is lost.
+
+Scenario characteristics further influence performance:
+limited attack diversity (Scenario~3) in the training data consistently reduces
+generalization capability across all model families.
+
+In summary, raw packet representations provide the most reliable
+detection performance, whereas reverse-engineered representations
+offer efficiency gains at the cost of reduced robustness.
+The optimal choice therefore depends on the trade-off between
+computational constraints and detection accuracy.
+
+\section{Limitations}
+
+Several limitations should be considered when interpreting the
+results of this study project.
+
+First, a post-hoc analysis revealed structural characteristics of
+the dataset that may have influenced detection performance.
+In particular, the attacker IP address appears to remain constant
+across attack samples. Since the RAW representation includes full
+packet headers, including IP-level information, models trained on
+RAW data may have partially exploited this invariant identifier.
+In contrast, the reverse-engineered representations exclude such
+header information, which may contribute to the observed performance
+gap between RAW and RE-based datasets. Consequently, the absolute
+performance of RAW-based models should be interpreted with caution.
+
+Second, attack labels were derived from the dataset folder structure
+rather than from packet-level ground-truth annotations. As a result,
+benign server responses that occurred within attack sessions were
+also assigned the attack label. This introduces label noise and may
+have affected both training and evaluation, particularly for models
+sensitive to fine-grained traffic structure.
+
+{\color{gray} Third, the reverse-engineered representation was designed to extract
+a dynamic region within S7Comm payloads that was assumed to contain
+process-related information. However, since the dataset does not
+provide explicit ground-truth annotations for physical sensor values,
+it cannot be guaranteed that the extracted region consistently
+corresponds to actual physical readings. The extracted sequences
+should therefore be interpreted as reverse-engineered payload
+segments rather than verified process measurements.}
+{\color{red} todo: describe physical readings problem correctly }
+
+
+Finally, the evaluation was conducted on a specific dataset and
+predefined scenarios. The observed trends may vary under different
+network environments, attacker diversity, or alternative
+reverse-engineering strategies. Future work should incorporate
+datasets with greater attacker variability, stricter packet-level
+labeling, and validated process-value annotations to further
+assess robustness.
+
+\section{Future Work}
+
+The results of this study project open several avenues for further investigation.
+
+The reverse-engineered representations rely on byte-level concatenation
+of extracted payload segments. Although aggregation controlled by the
+parameter $p$ increases contextual information, it may obscure
+fine-grained temporal and structural dependencies within individual
+packets. Future work could explore sequence-aware modeling approaches
+that preserve packet boundaries or explicitly encode temporal order
+instead of relying solely on concatenation.
+
+The traditional ML classifiers operate on latent features extracted
+by the stacked denoising autoencoder. While this compact representation
+proved effective in certain settings, alternative feature extraction
+strategies may further improve performance. For example, statistical
+traffic descriptors, protocol-agnostic sequence embeddings, or
+transformer-based encoders could provide richer and more expressive
+representations for classical machine learning models.
+
+Moreover, the evaluation was conducted on a dataset with specific
+structural characteristics, including limited attacker diversity and
+coarse-grained labeling. Future studies should therefore consider
+more heterogeneous datasets with diversified attacker behavior,
+strict packet-level annotations, and validated process-value ground
+truth. Such validation would allow for a more robust assessment of
+generalization performance under realistic industrial conditions.
