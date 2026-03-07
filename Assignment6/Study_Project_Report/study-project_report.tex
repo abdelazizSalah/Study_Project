@@ -104,6 +104,12 @@
 
 % ----------------------------------------------------------------------
 % Setup To Do Notes
+\lstset{
+    breaklines=true,
+    breakatwhitespace=true,
+    basicstyle=\ttfamily\small,
+    columns=fullflexible
+}
 % ----------------------------------------------------------------------
 \RequirePackage[%
 	colorinlistoftodos,
@@ -268,13 +274,14 @@
 	\include{chapters/01_introduction}
 	\include{chapters/02_background}
 	\include{chapters/03_our_approach}
-        \include{chapters/04_evaluation}
-        \include{chapters/05_conclusion}
+       \include{chapters/04_evaluation}
+       \include{chapters/05_conclusion}
 	% add more chapters here
 
 	% --------------------------------------------------------------------------
 	% appendix after two clear pages
 	\cleardoublepage{}
+     \include{chapters/06_appendix}
 	\addtocontents{toc}{\protect\vspace*{\baselineskip}}
 	\cleardoublepage
 	\phantomsection
