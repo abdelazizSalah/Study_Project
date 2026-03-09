@@ -173,7 +173,7 @@ Firstly we identify all possible keyword candidates, by applying the following p
 
 The network traffic is divided into communication sessions.
 Sessions are identified based on the tuple
-(source IP, destination IP, source port, destination port)
+(source \ac{IP}, destination \ac{IP}, source port, destination port)
 combined with a time window derived from packet inter-arrival times.
 This grouping separates independent communication instances and
 also distinguishes between client-to-server and server-to-client
@@ -234,7 +234,7 @@ to mark a meaningful boundary in the protocol payload.
 
 Not every candidate keyword identified during the previous steps represents a valid protocol keyword. Therefore, we introduce several constraints in order to filter out unlikely candidates. 
 
-First, we define a maximum keyword length constraint. This constraint introduces a parameter \textit{L}, which represents the maximum allowed length of a keyword. Any candidate keyword whose length exceeds \textit{L} is discarded. This step reduces the number of potential candidates and removes fields that are unlikely to represent protocol keywords.
+First, we define a maximum keyword length constraint. This constraint introduces a parameter \textit{L}, which represents the maximum allowed length of a keyword. Length of a keyword is defined as the number of bytes in the keyword. Any candidate keyword whose length exceeds \textit{L} is discarded. This step reduces the number of potential candidates and removes fields that are unlikely to represent protocol keywords.
 
 For the remaining candidates, we evaluate the quality of the clustering results by computing three probability measures. These probabilities assess different structural and behavioral properties of the clusters and help determine the most likely keyword candidate.
 
@@ -323,8 +323,8 @@ Following this scheme we managed to correctly detect the best keyword in protoco
 \begin{figure}[htb]
 	\centering
 	\includegraphics[width=\linewidth]{Imgs/S7comm_Best_Candidate.png}
-     \label{fig:best_Candidate_S7comm}
-     \caption{Determining best candidate index in S7comm protocol}
+    \caption{Determining best candidate index in S7comm protocol}
+    \label{fig:best_Candidate_S7comm}
 \end{figure}
 
 \section{Evaluation Strategy}
@@ -365,7 +365,7 @@ procedure, the dataset is first partitioned into benign samples
 and separate subsets for each attack type.
 Cross-validation is then performed independently on each subset.
 
-As illustrated in \cref{fig:kfolds}, in each iteration the validation
+As illustrated in figure \ref{fig:kfolds}, in each iteration the validation
 fold of the benign subset is combined with the corresponding
 validation fold of each attack-type subset to form the test split.
 Consequently, the test split remains identical across all scenarios,
@@ -389,7 +389,7 @@ differences in test data.
 \subsection{Evaluation Methods}
 
 For each implemented model, hyperparameter tuning is performed
-to determine optimal parameter configurations.
+to determine optimal parameter configurations. It was usually performed using grid-search approach using the standard recommended values for each parameter.
 Subsequently, experiments are conducted using these optimized
 parameters within each fold and evaluation scenario.
 Performance metrics are averaged across all cross-validation runs.
@@ -468,7 +468,16 @@ learning methods.
 
 \section{Implementation of Anomaly detection methods}
 
+This subsection describes the traditional machine learning methods used for anomaly detection. 
+First, we explain how latent features are extracted from the packet data using the \ac{SDA}. These features are then used as input to our classifiers implemented in our framework.
+
 \subsection{Traditional \ac{ML} detection methods}
+
+
+To apply traditional machine learning classifiers to network packet data, a fixed-length feature 
+representation is required. Therefore, we first extract compact latent representations from the 
+raw packet data using the \ac{SDA}.
+
 
 %ToDo Anna
 \subsubsection{Feature Extraction using the \ac{SDA}}
@@ -501,7 +510,7 @@ classifiers.
 \end{figure}
 In order to reduce model-specific errors and leverage complementary strengths to achieve an overall more robust and stable detection performance we combine the traditional ML classifiers into an ensemble classifier. 
 
-As illustrated in \cref{fig:ensemble-structure} the ensemble classifier combines the predictions of three independently
+As illustrated in figure \ref{fig:ensemble-structure} the ensemble classifier combines the predictions of three independently
 trained traditional machine learning models.
  Each base classifier is
 trained separately using the corresponding training split of the
@@ -529,6 +538,21 @@ binary classifiers—we implemented two operational ensemble modes:
 \end{itemize}
 
 \subsection{\ac{DL} detection methods}
+
+
+In addition to traditional machine learning approaches, we implement deep learning based
+detection methods that can learn hierarchical feature representations directly from the
+raw byte sequences of network packets. Unlike traditional classifiers, deep neural networks
+can automatically capture complex spatial patterns and dependencies in packet data without
+relying on manually engineered features.
+
+In particular, we investigate \ac{CNN} and \ac{ResNet}. \ac{CNN}s are well suited for analyzing structured sequential data such as byte
+sequences, as convolutional filters can learn local patterns that frequently occur in
+network packets. \ac{ResNet} extends this idea by introducing residual connections that allow
+training deeper neural architectures while mitigating the vanishing gradient problem.
+These models enable the system to learn more expressive representations of the packet
+structure and improve anomaly detection performance.
+
 \subsubsection{\ac{CNN}}
 %ToDo Anna
 
@@ -575,7 +599,7 @@ grid search on the training split.
 \vspace{10px}
 
 
-\paragraph{Our implementation} We managed to implement ResNet18 which contains of 18 layers in total.  these layers are divided into four main residual blocks as shown in figure \ref{fig:resNetArch} and each block consists of two convolution blocks. Each convolution block contains two convolution layers with a batch normalzation and ReLU non-linear activation function in between. \ac{ResNet}. After the 4 residual blocks, we forward the output to two fully-connected layers, that will use the reduced data to classify the network packet using sigmoid function. We used Adam optimized to update weights, and for the loss function we used categorical cross-entropy. 
+\paragraph{Our implementation} We managed to implement ResNet18 which contains of 18 layers in total.  these layers are divided into four main residual blocks as shown in figure \ref{fig:resNetArch} and each block consists of two convolution blocks. Each convolution block contains two convolution layers with a batch normalzation and ReLU non-linear activation function in between. After the 4 residual blocks, we forward the output to two fully-connected layers, that will use the reduced data to classify the network packet using sigmoid function. We used Adam optimizer to update weights, and for the loss function we used categorical cross-entropy. 
 \paragraph{Statistical features} Along with the raw network packets, and the reverse engineered packets, we managed to extract 5 other statistical features and append them to the ResNet. 
 
 \begin{enumerate}
@@ -597,14 +621,26 @@ where ${n_b}$ is number of  occurrences of byte b in the given packet, and N is 
 
 \subsection{Other anomaly detection methods}
 
+In addition to the traditional ML and deep learning classifiers, we evaluate several alternative
+approaches for anomaly detection. These include an SDA-based reconstruction error detector,
+an n-gram statistical model that captures byte sequence patterns in network packets, and a
+\ac{GANs} based method capable of modeling the distribution of
+normal traffic. These methods provide complementary perspectives on anomaly detection by
+leveraging reconstruction errors, statistical sequence modeling, and generative learning.
+
+\begin{figure}[htb]
+	\centering
+	\includegraphics[width=\linewidth]{Imgs/Discriminator_and_Generator.png}
+	\caption{Discriminator and Generator architectures}
+    \label{fig:DandG}
+\end{figure}
+
 
 \subsubsection{\ac{SDA}-Based Reconstruction Error Detection}
 
 The implemented \ac{SDA}
 is employed as a standalone anomaly detection method based on
-reconstruction error.
-
-The \ac{SDA} is trained exclusively on benign network traffic. During training,
+reconstruction error. The \ac{SDA} is trained exclusively on benign network traffic. During training,
 the model learns a compressed latent representation of normal packets and
 optimizes its parameters to minimize the reconstruction error between the
 input and the reconstructed output. Since attack packets deviate from the
@@ -651,15 +687,7 @@ In anomaly detection scenarios, particularly in \ac{ICS}, GANs can be trained on
  
  Discriminator architecture as shown in figure \ref{fig:DandG} consists of \ac{CNN} that consists of 9 convolution layers with ReLU activation function, along with dropout layer after all convolution layers except the first and final layers. Output is passed to four fully connected layers with ReLU activation function, and the output is generated from Sigmoid function which predicts a value in range [0,1] indicating how fake the input data is, 0 means fake data, while 1 means real data. 
 
-\begin{figure}[htb]
-	\centering
-	\includegraphics[width=\linewidth]{Imgs/Discriminator_and_Generator.png}
-	\caption{Discriminator and Generator architectures}
-    \label{fig:DandG}
-\end{figure}
-
-
-\paragraph{Generator Implementation} Generator is reverse \ac{CNN}. It uses \textit{deconvolution} operation, which is he inverse operation of convolution, which is a method to transform noise into meaningful network packets with a certain degree of accuracy. Its architecture as shown in figure \ref{fig:DandG}  consists of 4 fully connected layers with a LeakyReLU activation function, then they are followed by 8 convolution layers with LeakyReLU activation function. The first 4 layers from these 8 convolution layers are preceded by upsampling layers, the main reason for that is to increase the number of data samples in the dataset, which can helps in correcting imbalances in data, enhancing the quality of generated data, and improve the model performance. This process involves creating new samples through interpolation. We mainly used LeakyReLU here because we want to be able to regenerate the network packet out of noise input, so it can help us keeping as much neurons alive as possible to participate in the generation of the network packets. Moreover, for the generator we managed to implement custom loss function, which extract features from real and fake samples, and compute the mean feature vectors, then it computes L2 loss between mean feature vectors. \begin{lstlisting}
+\paragraph{Generator Implementation} Generator is reverse \ac{CNN}. It uses \textit{deconvolution} operation, which is he inverse operation of convolution, which is a method to transform noise into meaningful network packets with a certain degree of accuracy. Its architecture as shown in figure \ref{fig:DandG}  consists of 4 fully connected layers with a LeakyReLU activation function, then they are followed by 8 convolution layers with LeakyReLU activation function. The first 4 layers from these 8 convolution layers are preceded by upsampling layers, the main reason for that is to increase the number of data samples in the dataset, which can helps in correcting imbalances in data, enhancing the quality of generated data, and improve the model performance.  We mainly used LeakyReLU here because we want to be able to regenerate the network packet out of noise input, so it can help us keeping as much neurons alive as possible to participate in the generation of the network packets. Moreover, for the generator we managed to implement custom loss function, which extract features from real and fake samples, and compute the mean feature vectors, then it computes L2 loss between mean feature vectors. \begin{lstlisting}
 def feature_matching_loss(D, x_real, x_fake):
     '''
     Input:
@@ -688,7 +716,7 @@ It is a contiguous sequence of $N$ items extracted from a larger sequence of dat
 $\text{Score} \in [0,1]$, where $N_{\text{seen}_i}$
 indicates each n-gram in the packet that was seen during training,
 wi represents its normalized weight how often this n-gram was seen during training, and T
-represents the total number of n-grams in the current packet. Packets that contain a high proportion of unseen or rarely occurring N-grams are more likely to deviate from normal behavior and can therefore be classified as anomalous, in other words, packets with low scores should be classified as malicious. N-gram-based methods are particularly suitable for anomaly detection in \ac{ICS} because proprietary binary protocols often lack publicly available specifications, making direct parsing difficult. By operating directly on raw byte sequences without requiring protocol awareness, N-grams provide a simple yet effective statistical modeling technique for detecting deviations in structured network traffic. \paragraph{Bloom Filter} is a probabilistic data structure designed for efficient set membership testing with minimal memory consumption. It allows one to determine whether an element is possibly in a set or definitely not in a set. A Bloom filter consists of a fixed-size bit array and multiple independent hash functions. When inserting an element into the filter, the element is processed by each hash function, and the corresponding bit positions in the array are set to one. To check whether an element is present, the same hash functions are applied, and the bits at the resulting positions are inspected. If at least one of these bits is zero, the element is guaranteed not to be in the set. If all bits are one, the element is assumed to be in the set; however, this may result in a false positive due to hash collisions. Importantly, Bloom filters do not produce false negatives, meaning that an inserted element will never be reported as absent. The trade-off between memory usage and false positive probability depends on the size of the bit array and the number of hash functions used. In the context of N-gram-based anomaly detection for Industrial Control Systems (ICS), Bloom filters are particularly useful for storing large numbers of observed N-grams in a space-efficient manner, enabling fast membership queries during testing without requiring storage of the full set of N-grams.
+represents the total number of n-grams in the current packet. Packets that contain a high proportion of unseen or rarely occurring N-grams are more likely to deviate from normal behavior and can therefore be classified as anomalous, in other words, packets with low scores should be classified as malicious. N-gram-based methods are particularly suitable for anomaly detection in \ac{ICS} because proprietary binary protocols often lack publicly available specifications, making direct parsing difficult. By operating directly on raw byte sequences without requiring protocol awareness, N-grams provide a simple yet effective statistical modeling technique for detecting deviations in structured network traffic. \paragraph{Bloom Filter} is a probabilistic data structure designed for efficient set membership testing with minimal memory consumption. It allows one to determine whether an element is possibly in a set or definitely not in a set. A Bloom filter consists of a fixed-size bit array and multiple independent hash functions. When inserting an element into the filter, the element is processed by each hash function, and the corresponding bit positions in the array are set to one. To check whether an element is present, the same hash functions are applied, and the bits at the resulting positions are inspected. If at least one of these bits is zero, the element is guaranteed not to be in the set. If all bits are one, the element is assumed to be in the set; however, this may result in a false positive due to hash collisions. Importantly, Bloom filters do not produce false negatives, meaning that an inserted element will never be reported as absent. The trade-off between memory usage and false positive probability depends on the size of the bit array and the number of hash functions used. In the context of N-gram-based anomaly detection for \ac{ICS}, Bloom filters are particularly useful for storing large numbers of observed N-grams in a space-efficient manner, enabling fast membership queries during testing without requiring storage of the full set of N-grams.
 
 \begin{figure}[htb]
 	\centering
@@ -711,7 +739,7 @@ h_i(x) = \left(h_1(x) + i \cdot h_2(x)\right) \bmod m
 where $m$ denotes the size of the Bloom filter in bits.
 
 This approach significantly reduces computational cost while maintaining good distribution 
-properties and minimizing correlations between generated hash values.
+properties and minimizing correlations between generated hash values. For h1 and h2 we used both a non-cryptographic and a cryptographic hash function to ensure a good balance between speed and randomness, which are MurmurHash3 and BLAKE2b respectively.
 
 \textbf{MurmurHash3} is a non-cryptographic hash function optimized for high speed and low computational overhead. 
 It produces a uniform 64-bit output and is widely used in Bloom filters and hash tables due to its strong 

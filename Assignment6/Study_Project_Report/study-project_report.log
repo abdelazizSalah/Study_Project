@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.2)  8 MAR 2026 00:36
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.3.2)  9 MAR 2026 23:24
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -2008,189 +2008,185 @@ although it is yet undefined on input line 257.
 Package acronym Info: Label `acro:FNMR' newly defined as it shall be overridden
 although it is yet undefined on input line 262.
  [19]
-
-Package caption Warning: \label without proper reference on input line 326.
-See the caption package documentation for explanation.
-
-
-LaTeX Warning: Reference `fig:best_Candidate_S7comm' on page 20 undefined on input line 322.
-
-<Imgs/S7comm_Best_Candidate.png, id=572, 1319.93124pt x 411.5375pt>
+<Imgs/S7comm_Best_Candidate.png, id=574, 1319.93124pt x 411.5375pt>
 File: Imgs/S7comm_Best_Candidate.png Graphic file (type png)
 <use Imgs/S7comm_Best_Candidate.png>
 Package pdftex.def Info: Imgs/S7comm_Best_Candidate.png  used on input line 325.
 (pdftex.def)             Requested size: 437.73479pt x 136.4797pt.
-[20 <./Imgs/S7comm_Best_Candidate.png>]
-<chapters/k_folds.png, id=580, 1354.3097pt x 595.47469pt>
+ [20 <./Imgs/S7comm_Best_Candidate.png>]
+<chapters/k_folds.png, id=582, 1354.3097pt x 595.47469pt>
 File: chapters/k_folds.png Graphic file (type png)
 <use chapters/k_folds.png>
 Package pdftex.def Info: chapters/k_folds.png  used on input line 358.
 (pdftex.def)             Requested size: 437.73479pt x 192.46388pt.
- [21 <./chapters/k_folds.png>] [22]
+ [21 <./chapters/k_folds.png>] [22] [23]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\@ac' on input line 471.
+(hyperref)                removing `\@ac' on input line 474.
 
-[23]
-<chapters/ensembleClassifier.png, id=611, 1261.71375pt x 301.125pt>
+<chapters/ensembleClassifier.png, id=615, 1261.71375pt x 301.125pt>
 File: chapters/ensembleClassifier.png Graphic file (type png)
 <use chapters/ensembleClassifier.png>
-Package pdftex.def Info: chapters/ensembleClassifier.png  used on input line 498.
+Package pdftex.def Info: chapters/ensembleClassifier.png  used on input line 507.
 (pdftex.def)             Requested size: 437.73479pt x 104.47177pt.
- [24 <./chapters/ensembleClassifier.png>]
+[24]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\@ac' on input line 531.
+(hyperref)                removing `\@ac' on input line 540.
 
-[25]
-<Imgs/ResNetArch.jpg, id=631, 353.06906pt x 189.70876pt>
+[25 <./chapters/ensembleClassifier.png>]
+<Imgs/ResNetArch.jpg, id=638, 353.06906pt x 189.70876pt>
 File: Imgs/ResNetArch.jpg Graphic file (type jpg)
 <use Imgs/ResNetArch.jpg>
-Package pdftex.def Info: Imgs/ResNetArch.jpg  used on input line 570.
+Package pdftex.def Info: Imgs/ResNetArch.jpg  used on input line 594.
 (pdftex.def)             Requested size: 437.73479pt x 235.20168pt.
- [26 <./Imgs/ResNetArch.jpg>]
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[26] [27 <./Imgs/ResNetArch.jpg>]
 Package acronym Info: Label `acro:RPB' newly defined as it shall be overridden
-although it is yet undefined on input line 593.
-Package acronym Info: Label `acro:MSE' newly defined as it shall be overridden
-although it is yet undefined on input line 616.
- [27]
-<Imgs/Discriminator_and_Generator.png, id=668, 1213.53375pt x 810.02625pt>
+although it is yet undefined on input line 617.
+<Imgs/Discriminator_and_Generator.png, id=661, 1213.53375pt x 810.02625pt>
 File: Imgs/Discriminator_and_Generator.png Graphic file (type png)
 <use Imgs/Discriminator_and_Generator.png>
-Package pdftex.def Info: Imgs/Discriminator_and_Generator.png  used on input line 656.
+Package pdftex.def Info: Imgs/Discriminator_and_Generator.png  used on input line 633.
 (pdftex.def)             Requested size: 437.73479pt x 292.19014pt.
- [28] [29 <./Imgs/Discriminator_and_Generator.png>] [30]
-<Imgs/n_grams_example.png, id=717, 998.73125pt x 383.4325pt>
+ [28 <./Imgs/Discriminator_and_Generator.png>]
+Package acronym Info: Label `acro:MSE' newly defined as it shall be overridden
+although it is yet undefined on input line 652.
+ [29] [30]
+<Imgs/n_grams_example.png, id=724, 998.73125pt x 383.4325pt>
 File: Imgs/n_grams_example.png Graphic file (type png)
 <use Imgs/n_grams_example.png>
-Package pdftex.def Info: Imgs/n_grams_example.png  used on input line 695.
+Package pdftex.def Info: Imgs/n_grams_example.png  used on input line 723.
 (pdftex.def)             Requested size: 437.73479pt x 168.05554pt.
- [31 <./Imgs/n_grams_example.png>]) [32]
+ [31] [32 <./Imgs/n_grams_example.png>]) [33]
 \openout2 = `chapters/04_evaluation.aux'.
 
- (./chapters/04_evaluation.tex
+ (./chapters/04_evaluation.tex [34
+
+
+
+
+
+]
 chapter 4.
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\@ac' on input line 5.
 
-<chapters/f1_custom_layout.png, id=750, 913.13145pt x 570.2103pt>
+<chapters/f1_custom_layout.png, id=768, 913.13145pt x 570.2103pt>
 File: chapters/f1_custom_layout.png Graphic file (type png)
 <use chapters/f1_custom_layout.png>
 Package pdftex.def Info: chapters/f1_custom_layout.png  used on input line 10.
 (pdftex.def)             Requested size: 437.73479pt x 273.34111pt.
-[33
-
-
-
-
-
- <./chapters/f1_custom_layout.png>]
-<chapters/ec_all_representations_f1.png, id=772, 1309.17105pt x 388.45125pt>
+[35 <./chapters/f1_custom_layout.png>]
+<chapters/ec_all_representations_f1.png, id=791, 1309.17105pt x 388.45125pt>
 File: chapters/ec_all_representations_f1.png Graphic file (type png)
 <use chapters/ec_all_representations_f1.png>
 Package pdftex.def Info: chapters/ec_all_representations_f1.png  used on input line 58.
 (pdftex.def)             Requested size: 437.73479pt x 129.87857pt.
- [34 <./chapters/ec_all_representations_f1.png>] [35]
-<chapters/fi_helpful_panels_raw_s1.png, id=785, 1300.86pt x 647.5392pt>
+ [36 <./chapters/ec_all_representations_f1.png>] [37]
+<chapters/fi_helpful_panels_raw_s1.png, id=805, 1300.86pt x 647.5392pt>
 File: chapters/fi_helpful_panels_raw_s1.png Graphic file (type png)
 <use chapters/fi_helpful_panels_raw_s1.png>
 Package pdftex.def Info: chapters/fi_helpful_panels_raw_s1.png  used on input line 120.
 (pdftex.def)             Requested size: 437.73479pt x 217.88786pt.
-<chapters/fi_helpful_panels_raw_s2.png, id=792, 1300.86pt x 647.5392pt>
+<chapters/fi_helpful_panels_raw_s2.png, id=812, 1300.86pt x 647.5392pt>
 File: chapters/fi_helpful_panels_raw_s2.png Graphic file (type png)
 <use chapters/fi_helpful_panels_raw_s2.png>
 Package pdftex.def Info: chapters/fi_helpful_panels_raw_s2.png  used on input line 140.
 (pdftex.def)             Requested size: 437.73479pt x 217.88786pt.
- [36
+ [38
 
  <./chapters/fi_helpful_panels_raw_s1.png>]
-<chapters/fi_helpful_panels_raw_s3.png, id=803, 1300.86pt x 647.5392pt>
+<chapters/fi_helpful_panels_raw_s3.png, id=824, 1300.86pt x 647.5392pt>
 File: chapters/fi_helpful_panels_raw_s3.png Graphic file (type png)
 <use chapters/fi_helpful_panels_raw_s3.png>
 Package pdftex.def Info: chapters/fi_helpful_panels_raw_s3.png  used on input line 159.
 (pdftex.def)             Requested size: 437.73479pt x 217.88786pt.
- [37 <./chapters/fi_helpful_panels_raw_s2.png> <./chapters/fi_helpful_panels_raw_s3.png>]
-<chapters/fi_helpful_panels_re15_s1.png, id=815, 1300.86pt x 647.5392pt>
+ [39 <./chapters/fi_helpful_panels_raw_s2.png> <./chapters/fi_helpful_panels_raw_s3.png>]
+<chapters/fi_helpful_panels_re15_s1.png, id=837, 1300.86pt x 647.5392pt>
 File: chapters/fi_helpful_panels_re15_s1.png Graphic file (type png)
 <use chapters/fi_helpful_panels_re15_s1.png>
 Package pdftex.def Info: chapters/fi_helpful_panels_re15_s1.png  used on input line 178.
 (pdftex.def)             Requested size: 437.73479pt x 217.88786pt.
-<chapters/fi_helpful_panels_re15_s2.png, id=817, 1300.86pt x 647.5392pt>
+<chapters/fi_helpful_panels_re15_s2.png, id=839, 1300.86pt x 647.5392pt>
 File: chapters/fi_helpful_panels_re15_s2.png Graphic file (type png)
 <use chapters/fi_helpful_panels_re15_s2.png>
 Package pdftex.def Info: chapters/fi_helpful_panels_re15_s2.png  used on input line 193.
 (pdftex.def)             Requested size: 437.73479pt x 217.88786pt.
-<chapters/fi_helpful_panels_re15_s3.png, id=821, 1300.86pt x 647.5392pt>
+<chapters/fi_helpful_panels_re15_s3.png, id=843, 1300.86pt x 647.5392pt>
 File: chapters/fi_helpful_panels_re15_s3.png Graphic file (type png)
 <use chapters/fi_helpful_panels_re15_s3.png>
 Package pdftex.def Info: chapters/fi_helpful_panels_re15_s3.png  used on input line 210.
 (pdftex.def)             Requested size: 437.73479pt x 217.88786pt.
- [38
+ [40
 
- <./chapters/fi_helpful_panels_re15_s1.png>] [39 <./chapters/fi_helpful_panels_re15_s2.png> <./chapters/fi_helpful_panels_re15_s3.png>]
-<chapters/venn_raw_s1.png, id=843, 430.0065pt x 364.4817pt>
+ <./chapters/fi_helpful_panels_re15_s1.png>] [41 <./chapters/fi_helpful_panels_re15_s2.png> <./chapters/fi_helpful_panels_re15_s3.png>]
+<chapters/venn_raw_s1.png, id=863, 430.0065pt x 364.4817pt>
 File: chapters/venn_raw_s1.png Graphic file (type png)
 <use chapters/venn_raw_s1.png>
 Package pdftex.def Info: chapters/venn_raw_s1.png  used on input line 242.
 (pdftex.def)             Requested size: 140.07832pt x 118.73322pt.
-<chapters/venn_raw_s2.png, id=844, 421.8159pt x 364.2408pt>
+<chapters/venn_raw_s2.png, id=864, 421.8159pt x 364.2408pt>
 File: chapters/venn_raw_s2.png Graphic file (type png)
 <use chapters/venn_raw_s2.png>
 Package pdftex.def Info: chapters/venn_raw_s2.png  used on input line 247.
 (pdftex.def)             Requested size: 140.07832pt x 120.9557pt.
-<chapters/venn_raw_s3.png, id=845, 415.0707pt x 365.9271pt>
+<chapters/venn_raw_s3.png, id=865, 415.0707pt x 365.9271pt>
 File: chapters/venn_raw_s3.png Graphic file (type png)
 <use chapters/venn_raw_s3.png>
 Package pdftex.def Info: chapters/venn_raw_s3.png  used on input line 252.
 (pdftex.def)             Requested size: 140.07832pt x 123.49226pt.
-<chapters/venn_re15_s1.png, id=847, 430.0065pt x 362.5545pt>
+<chapters/venn_re15_s1.png, id=867, 430.0065pt x 362.5545pt>
 File: chapters/venn_re15_s1.png Graphic file (type png)
 <use chapters/venn_re15_s1.png>
 Package pdftex.def Info: chapters/venn_re15_s1.png  used on input line 282.
 (pdftex.def)             Requested size: 140.07832pt x 118.10542pt.
-<chapters/venn_re15_s2.png, id=848, 421.8159pt x 351.2322pt>
+<chapters/venn_re15_s2.png, id=868, 421.8159pt x 351.2322pt>
 File: chapters/venn_re15_s2.png Graphic file (type png)
 <use chapters/venn_re15_s2.png>
 Package pdftex.def Info: chapters/venn_re15_s2.png  used on input line 287.
 (pdftex.def)             Requested size: 140.07832pt x 116.63585pt.
-<chapters/venn_re15_s3.png, id=849, 419.6478pt x 366.168pt>
+<chapters/venn_re15_s3.png, id=869, 419.6478pt x 366.168pt>
 File: chapters/venn_re15_s3.png Graphic file (type png)
 <use chapters/venn_re15_s3.png>
 Package pdftex.def Info: chapters/venn_re15_s3.png  used on input line 292.
 (pdftex.def)             Requested size: 140.07832pt x 122.22704pt.
- [40
+ [42
 
- <./chapters/venn_raw_s1.png> <./chapters/venn_raw_s2.png> <./chapters/venn_raw_s3.png>] [41 <./chapters/venn_re15_s1.png> <./chapters/venn_re15_s2.png> <./chapters/venn_re15_s3.png>]
-<chapters/runtime_raw.png, id=870, 931.0785pt x 353.6412pt>
+ <./chapters/venn_raw_s1.png> <./chapters/venn_raw_s2.png> <./chapters/venn_raw_s3.png>] [43 <./chapters/venn_re15_s1.png> <./chapters/venn_re15_s2.png> <./chapters/venn_re15_s3.png>]
+<chapters/runtime_raw.png, id=890, 931.0785pt x 353.6412pt>
 File: chapters/runtime_raw.png Graphic file (type png)
 <use chapters/runtime_raw.png>
 Package pdftex.def Info: chapters/runtime_raw.png  used on input line 334.
 (pdftex.def)             Requested size: 437.73479pt x 166.25993pt.
-<chapters/runtime_re15.png, id=879, 931.0785pt x 353.6412pt>
+<chapters/runtime_re15.png, id=899, 931.0785pt x 353.6412pt>
 File: chapters/runtime_re15.png Graphic file (type png)
 <use chapters/runtime_re15.png>
 Package pdftex.def Info: chapters/runtime_re15.png  used on input line 361.
 (pdftex.def)             Requested size: 437.73479pt x 166.25993pt.
-<chapters/ram_raw.png, id=881, 931.3194pt x 353.6412pt>
+<chapters/ram_raw.png, id=901, 931.3194pt x 353.6412pt>
 File: chapters/ram_raw.png Graphic file (type png)
 <use chapters/ram_raw.png>
 Package pdftex.def Info: chapters/ram_raw.png  used on input line 390.
 (pdftex.def)             Requested size: 437.73479pt x 166.21677pt.
- [42
+ [44
 
  <./chapters/runtime_raw.png>]
-<chapters/ram_re15.png, id=892, 931.3194pt x 353.6412pt>
+<chapters/ram_re15.png, id=912, 931.3194pt x 353.6412pt>
 File: chapters/ram_re15.png Graphic file (type png)
 <use chapters/ram_re15.png>
 Package pdftex.def Info: chapters/ram_re15.png  used on input line 419.
 (pdftex.def)             Requested size: 437.73479pt x 166.21677pt.
- [43 <./chapters/runtime_re15.png> <./chapters/ram_raw.png>]
+ [45 <./chapters/runtime_re15.png> <./chapters/ram_raw.png>]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\@ac' on input line 443.
 
-<chapters/cnn_and_resnet_side_by_side.png, id=904, 910.24065pt x 209.22165pt>
+<chapters/cnn_and_resnet_side_by_side.png, id=925, 910.24065pt x 209.22165pt>
 File: chapters/cnn_and_resnet_side_by_side.png Graphic file (type png)
 <use chapters/cnn_and_resnet_side_by_side.png>
 Package pdftex.def Info: chapters/cnn_and_resnet_side_by_side.png  used on input line 447.
@@ -2199,29 +2195,29 @@ Package pdftex.def Info: chapters/cnn_and_resnet_side_by_side.png  used on input
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `\@ac' on input line 452.
 
-[44 <./chapters/ram_re15.png> <./chapters/cnn_and_resnet_side_by_side.png>] [45]
-<chapters/ae_gan_ngram_f1_combined.png, id=924, 1081.1592pt x 406.8801pt>
+[46 <./chapters/ram_re15.png> <./chapters/cnn_and_resnet_side_by_side.png>] [47]
+<chapters/ae_gan_ngram_f1_combined.png, id=944, 1081.1592pt x 406.8801pt>
 File: chapters/ae_gan_ngram_f1_combined.png Graphic file (type png)
 <use chapters/ae_gan_ngram_f1_combined.png>
 Package pdftex.def Info: chapters/ae_gan_ngram_f1_combined.png  used on input line 511.
 (pdftex.def)             Requested size: 437.73479pt x 164.72966pt.
- [46 <./chapters/ae_gan_ngram_f1_combined.png>] [47] [48] [49]) [50]
+ [48 <./chapters/ae_gan_ngram_f1_combined.png>] [49] [50] [51]) [52]
 \openout2 = `chapters/05_conclusion.aux'.
 
  (./chapters/05_conclusion.tex
 chapter 5.
-[51
+[53
 
 
 
 
 
-]) [52]
+]) [54]
 \openout2 = `chapters/06_appendix.aux'.
 
  (./chapters/06_appendix.tex
 chapter 6.
-[53
+[55
 
 
 
@@ -2234,15 +2230,15 @@ File: lstlang1.sty 2025/11/14 1.11b listings language file
 )
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 50.
- [54] [55] [56] [57] [58] [59] [60] [61] [62] [63] [64] [65] [66] [67] [68] [69] [70] [71] [72] [73] [74] [75] [76] [77] [78] [79]
+ [56] [57] [58] [59] [60] [61] [62] [63] [64] [65] [66] [67] [68] [69] [70] [71] [72] [73] [74] [75] [76] [77] [78] [79] [80] [81]
 Overfull \hbox (26.41382pt too wide) in paragraph at lines 1296--1297
 [][][][][][][][][][][]  
  []
 
-[80] [81] [82] [83]) [84]
+[82] [83] [84] [85]) [86]
 \openout2 = `chapters/99_acronyms.aux'.
 
- (./chapters/99_acronyms.tex [85
+ (./chapters/99_acronyms.tex [87
 
 
 
@@ -2252,7 +2248,7 @@ Overfull \hbox (26.41382pt too wide) in paragraph at lines 1296--1297
 
 
 
-]) [86]
+]) [88]
 chapter without number
 
 Overfull \hbox (15.61536pt too wide) in paragraph at lines 297--297
@@ -2262,7 +2258,7 @@ Overfull \hbox (15.61536pt too wide) in paragraph at lines 297--297
 Package microtype Info: Character `029' is missing
 (microtype)             in font `T1/lmr/m/sc/10.95'.
 (microtype)             Ignoring protrusion settings for this character.
-[87
+[89
 
 
 
@@ -2272,27 +2268,23 @@ Package microtype Info: Character `029' is missing
 LaTeX2e <2025-11-01>
 L3 programming layer <2020/03/25>
  ***********
-
-
-LaTeX Warning: There were undefined references.
-
 Package logreq Info: Writing requests to 'study-project_report.run.xml'.
 \openout1 = `study-project_report.run.xml'.
 
  ) 
 Here is how much of TeX's memory you used:
- 50032 strings out of 467525
- 995111 string characters out of 5423210
- 2100204 words of memory out of 5000000
+ 50038 strings out of 467525
+ 995171 string characters out of 5423210
+ 2100175 words of memory out of 5000000
  76171 multiletter control sequences out of 15000+600000
- 730269 words of font info for 233 fonts, out of 8000000 for 9000
+ 730529 words of font info for 235 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  108i,10n,107p,11335b,3718s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmcsc10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmex10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi6.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr12.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr6.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr9.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmri10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmro10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmssbx10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmsy8.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtk10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt9.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtti10.pfb><c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on study-project_report.pdf (91 pages, 4858398 bytes).
+Output written on study-project_report.pdf (93 pages, 4861430 bytes).
 PDF statistics:
- 3155 PDF objects out of 3580 (max. 8388607)
- 2896 compressed objects within 29 object streams
- 1640 named destinations out of 1728 (max. 500000)
+ 3176 PDF objects out of 3580 (max. 8388607)
+ 2914 compressed objects within 30 object streams
+ 1642 named destinations out of 1728 (max. 500000)
  60632 words of extra memory for PDF output out of 61914 (max. 10000000)
 

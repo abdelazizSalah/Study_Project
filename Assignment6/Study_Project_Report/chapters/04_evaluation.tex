@@ -12,7 +12,7 @@ In this chapter, we present the experimental results of the implemented detectio
   \label{fig:tradML}
 \end{figure}
 
-figure 1 presents the mean F1-scores of the traditional machine learning
+figure \ref{fig:tradML} presents the mean F1-scores of the traditional machine learning
 classifiers across the three evaluation scenarios. Scenario~1 evaluates
 the one-class methods (Elliptic Envelope, \ac{LOF}, and One-Class \ac{SVM}),
 whereas Scenarios~2 and~3 evaluate the supervised classifiers
@@ -23,7 +23,7 @@ For the RAW representation, \ac{LOF} achieves the strongest performance,
 clearly outperforming Elliptic Envelope and One-Class \ac{SVM}.
 In contrast, the latter two methods achieve only moderate performance.
 
-When using the reverse-engineered (RE) representations, the performance
+When using the \ac{RE} representations, the performance
 drops substantially for all one-class methods. In particular,
 Elliptic Envelope fails to detect anomalies effectively, while
 \ac{LOF} and One-Class \ac{SVM} achieve only low F1-scores. This indicates
@@ -60,7 +60,7 @@ behavior.
  \label{fig:ec}
 \end{figure}
 
-figure 2 shows the mean F1-scores of the ensemble classifier under
+figure \ref{fig:ec} shows the mean F1-scores of the ensemble classifier under
 the three aggregation modes (random, majority, all) across all
 dataset representations and evaluation scenarios.
 
