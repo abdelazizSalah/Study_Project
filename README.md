@@ -1,59 +1,105 @@
-# Adversarial Machine Learning for ICS Anomaly Detection
+# Adversarial Machine Learning for Anomaly Detection in Industrial Control Systems
 
-## Overview
-This project is part of the **Study Project: Adversarial Machine Learning – Use of Reverse Engineering for Anomaly Detection in Industrial Control Systems (ICS)** at **Brandenburg University of Technology (BTU)**, under the supervision of **Prof. Dr.-Ing. Andriy Panchenko** and **Asya Mitseva, M.Sc.**.  
-The goal is to develop and evaluate machine learning-based intrusion detection systems (IDS) for ICS networks using datasets **Electra (S7comm)** and **QUT S7comm**. The focus lies on analyzing proprietary network protocols, extracting meaningful statistical patterns, computing flow-based similarity metrics, and implementing a **Stacked Denoising Autoencoder (SDA)** for unsupervised anomaly detection.
+This repository contains the implementation and experiments conducted
+for the study project:
 
----
+**"Adversarial Machine Learning: Use of Reverse Engineering for Anomaly
+Detection in Industrial Control Systems"**
 
-## Project Structure
-### **Task 1 – Statistical Analysis of ICS Network Traffic**
-Perform statistical analysis on PCAP-based network captures to understand:
-- Total packet counts (normal vs. attacked).  
-- Application- and transport-layer protocol distributions.  
-- Average, median, and standard deviation for packet lengths and inter-arrival times.  
-- Host-pair communication patterns and per-protocol timing characteristics.  
-- Generation of **CDF plots** for packet header and payload sizes **(without using prebuilt CDF functions)**.
+conducted at the **Chair of IT Security, Brandenburg University of
+Technology (BTU), Germany**.
 
-### **Task 2 – Similarity Between Datasets**
-Generate network **flows** for 2-, 4-, and 6-minute windows and compute similarity metrics:
-- Build flows based on packets exchanged between unique host pairs over the same highest-level protocol.  
-- Extract features: **packet size, direction, and inter-arrival time**.  
-- Compute **Chebyshev distances** manually (no external library use).  
-- Create **histograms** (custom implementation) for normal and attacked flows.  
-- Apply **t-SNE** visualization to project high-dimensional flow data, tuning hyperparameters for best clustering.  
-- Compute **packet-level Chebyshev distances** and plot histograms to compare benign vs. malicious packets.
+Authors: - Abdelaziz Neamatallah - Anna Dembowski
 
-### **Task 3 – Unsupervised Detection of Network Attacks**
-Implement and train a **Stacked Denoising Autoencoder (SDA)** for unsupervised intrusion detection:
-- Input: `m × n` packets (where `n` = number of bytes per packet).  
-- Model supports multiple **layer types** and **activation functions** (e.g., ReLU, Sigmoid, Tanh).  
-- Optimize **Mean Squared Error (MSE)** for normal operation data.  
-- Save learned **feature encodings** for further analysis.  
-- Implement a **threshold-based classifier** that flags a packet as under attack if its average reconstruction error exceeds a user-defined γ.  
+Supervised by: - Prof. Dr.-Ing. Andriy Panchenko - Asya Mitseva, M.Sc.
 
----
+------------------------------------------------------------------------
 
-## Technologies Used
-- **Python 3.10+**  
-- **NumPy, Pandas** (data handling)  
-- **Matplotlib** (for visualization)  
-- **Scikit-learn / TensorFlow / PyTorch** (for deep learning)  
-- **TShark / Scapy / Pyshark** (for PCAP processing)
+# Overview
 
----
+Industrial Control Systems (ICS) are critical infrastructures used in
+sectors such as energy, manufacturing, and transportation. Due to their
+importance, these systems are increasingly targeted by cyberattacks.
 
-## Datasets
-- [**Electra (S7comm)**](http://perception.inf.um.es/ICS-datasets/csv/electra_s7comm.zip)  
-- [**QUT S7comm**](https://github.com/qut-infosec/2017QUT_S7comm)  
-Both datasets provide **labeled ICS network traffic** with attack and normal segments, captured from different testbeds.
+This project investigates **machine learning--based anomaly detection
+techniques** for identifying malicious behavior in ICS environments. It
+also explores how **reverse engineering and adversarial machine learning
+concepts** can be used to evaluate and analyze anomaly detection
+systems.
 
----
+The goal is to understand the strengths and limitations of ML-based
+security mechanisms in industrial environments.
 
-## Expected Output
-- Statistical summaries and CDF plots (Task 1).  
-- Chebyshev-based histograms and t-SNE projections (Task 2).  
-- SDA training results, reconstruction errors, and attack classification outcomes (Task 3).  
-- Source code and plots must be submitted via **Moodle** and demonstrated in a **40-minute Q&A session**.
+------------------------------------------------------------------------
 
----
+# Project Objectives
+-   Study anomaly detection techniques used in Industrial Control
+    Systems.
+-   Apply machine learning models to detect abnormal system behavior.
+-   Analyze the robustness of these models against adversarial
+    techniques.
+-   Evaluate model performance using standard machine learning metrics.
+
+------------------------------------------------------------------------
+
+# Topics Covered
+
+-   Machine Learning fundamentals
+-   Supervised and unsupervised learning
+-   Overfitting and underfitting
+-   Distance functions for anomaly detection
+-   K-Fold cross validation
+-   Evaluation metrics (F1-score)
+-   Deep learning approaches for anomaly detection
+-   Statistical dataset analysis
+-   Security considerations for Industrial Control Systems
+
+------------------------------------------------------------------------
+
+# Technologies Used
+
+-   Python
+-   PyTorch
+-   NumPy / Pandas
+-   Scikit-learn
+-   Matplotlib / Seaborn
+
+------------------------------------------------------------------------
+
+# Procedure Overview
+![Project_Overview](Project_Overview.png)
+
+------------------------------------------------------------------------
+
+# Methodology
+
+The project follows a typical machine learning workflow:
+
+1.  Data preprocessing\
+2.  Feature engineering\
+3.  Model training\
+4.  Model evaluation using metrics such as F1-score and cross
+    validation\
+5.  Security analysis with adversarial machine learning techniques
+
+------------------------------------------------------------------------
+
+# Installation
+
+> Clone the repository:
+
+> git clone https://github.com/yourusername/ics-anomaly-detection.git 
+
+------------------------------------------------------------------------
+
+# License
+
+This project is intended for **academic and research purposes**.
+
+------------------------------------------------------------------------
+
+# Acknowledgments
+
+This project was conducted as part of a **study project at Brandenburg
+University of Technology (BTU)** under the supervision of the **Chair of
+IT Security**.
