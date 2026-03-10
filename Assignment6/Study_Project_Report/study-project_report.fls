@@ -489,9 +489,6 @@ INPUT chapters/04_evaluation.aux
 INPUT ./chapters/05_conclusion.aux
 INPUT ./chapters/05_conclusion.aux
 INPUT chapters/05_conclusion.aux
-INPUT ./chapters/06_appendix.aux
-INPUT ./chapters/06_appendix.aux
-INPUT chapters/06_appendix.aux
 INPUT ./chapters/99_acronyms.aux
 INPUT ./chapters/99_acronyms.aux
 INPUT chapters/99_acronyms.aux
@@ -628,10 +625,6 @@ INPUT c:/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc
 INPUT c:/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr8.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr6.tfm
-INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
-INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
-INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
-INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtt10.tfm
 INPUT ./Imgs/GAN_General_Arch.png
 INPUT ./Imgs/GAN_General_Arch.png
 INPUT ./Imgs/GAN_General_Arch.png
@@ -650,6 +643,9 @@ INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/rsfs/rsfs10.tfm
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/rsfs/rsfs5.tfm
+INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
+INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
+INPUT c:/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
 INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtt9.tfm
 INPUT ./chapters/03_our_approach.tex
 INPUT ./chapters/03_our_approach.tex
@@ -681,6 +677,7 @@ INPUT ./svg-inkscape/Concatenation_svg-tex.pdf
 INPUT ./svg-inkscape/Concatenation_svg-tex.pdf_tex
 INPUT ./svg-inkscape/Concatenation_svg-tex.pdf
 INPUT ./svg-inkscape/Concatenation_svg-tex.pdf
+INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtt10.tfm
 INPUT ./Imgs/S7comm_Best_Candidate.png
 INPUT ./Imgs/S7comm_Best_Candidate.png
 INPUT ./Imgs/S7comm_Best_Candidate.png
@@ -827,17 +824,6 @@ OUTPUT chapters/05_conclusion.aux
 INPUT ./chapters/05_conclusion.tex
 INPUT ./chapters/05_conclusion.tex
 INPUT chapters/05_conclusion.tex
-INPUT ./chapters/06_appendix.tex
-INPUT ./chapters/06_appendix.tex
-OUTPUT chapters/06_appendix.aux
-INPUT ./chapters/06_appendix.tex
-INPUT ./chapters/06_appendix.tex
-INPUT chapters/06_appendix.tex
-INPUT c:/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
-INPUT c:/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
-INPUT c:/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
-INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtk10.tfm
-INPUT c:/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtti10.tfm
 INPUT ./chapters/99_acronyms.tex
 INPUT ./chapters/99_acronyms.tex
 OUTPUT chapters/99_acronyms.aux
@@ -864,9 +850,6 @@ INPUT chapters/04_evaluation.aux
 INPUT ./chapters/05_conclusion.aux
 INPUT ./chapters/05_conclusion.aux
 INPUT chapters/05_conclusion.aux
-INPUT ./chapters/06_appendix.aux
-INPUT ./chapters/06_appendix.aux
-INPUT chapters/06_appendix.aux
 INPUT ./chapters/99_acronyms.aux
 INPUT ./chapters/99_acronyms.aux
 INPUT chapters/99_acronyms.aux
@@ -889,8 +872,6 @@ INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmro10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmssbx10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmsy10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmsy8.pfb
-INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtk10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt9.pfb
-INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtti10.pfb
 INPUT c:/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb

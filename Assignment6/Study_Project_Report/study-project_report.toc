@@ -12,96 +12,82 @@
 \contentsline {subsection}{\numberline {2.1.8}K-Folding}{5}{subsection.2.1.8}%
 \contentsline {subsection}{\numberline {2.1.9}F1-Score}{5}{subsection.2.1.9}%
 \contentsline {subsection}{\numberline {2.1.10}Activation functions}{6}{subsection.2.1.10}%
-\contentsline {section}{\numberline {2.2}Python ML Frameworks}{6}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}PyTorch}{6}{subsection.2.2.1}%
-\contentsline {section}{\numberline {2.3}Detection Methods}{7}{section.2.3}%
-\contentsline {subsection}{\numberline {2.3.1}Traditional Machine Learning Detection Methods}{7}{subsection.2.3.1}%
-\contentsline {subsubsection}{\numberline {2.3.1.1}Detection Methods for One-Class Classification}{7}{subsubsection.2.3.1.1}%
-\contentsline {paragraph}{\numberline {2.3.1.1.1}\ac {OCSVM}}{8}{paragraph.2.3.1.1.1}%
-\contentsline {paragraph}{\numberline {2.3.1.1.2}Elliptic Envelope}{8}{paragraph.2.3.1.1.2}%
-\contentsline {paragraph}{\numberline {2.3.1.1.3}\ac {LOF}}{8}{paragraph.2.3.1.1.3}%
-\contentsline {subsubsection}{\numberline {2.3.1.2}Detection Methods for Binary Classification}{8}{subsubsection.2.3.1.2}%
-\contentsline {paragraph}{\numberline {2.3.1.2.1}\ac {BSVM}}{8}{paragraph.2.3.1.2.1}%
-\contentsline {paragraph}{\numberline {2.3.1.2.2}Random Forest}{8}{paragraph.2.3.1.2.2}%
-\contentsline {paragraph}{\numberline {2.3.1.2.3}\ac {KNN}}{8}{paragraph.2.3.1.2.3}%
-\contentsline {paragraph}{\numberline {2.3.1.2.4}Ensemble Classification}{9}{paragraph.2.3.1.2.4}%
-\contentsline {subsection}{\numberline {2.3.2}\ac {DL} Detection Methods}{9}{subsection.2.3.2}%
-\contentsline {subsubsection}{\numberline {2.3.2.1}\ac {CNN}}{9}{subsubsection.2.3.2.1}%
-\contentsline {subsubsection}{\numberline {2.3.2.2}\ac {ResNet}}{9}{subsubsection.2.3.2.2}%
-\contentsline {subsection}{\numberline {2.3.3}Other Anomaly Detection Methods}{10}{subsection.2.3.3}%
-\contentsline {subsubsection}{\numberline {2.3.3.1}\ac {GANs}}{10}{subsubsection.2.3.3.1}%
-\contentsline {subsubsection}{\numberline {2.3.3.2}\ac {SDA}}{10}{subsubsection.2.3.3.2}%
-\contentsline {section}{\numberline {2.4}Provided Datasets}{11}{section.2.4}%
-\contentsline {subsection}{\numberline {2.4.1}Statistical Characteristics}{11}{subsection.2.4.1}%
-\contentsline {chapter}{\numberline {3}Our Approach}{13}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Procedure Overview}{13}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Dataset Pre-processing}{15}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Concatenation of Bytes to create RE5,RE10,RE15}{16}{subsection.3.2.1}%
-\contentsline {section}{\numberline {3.3}Reverse engineering}{16}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Identifying Keyword Candidates}{17}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}Cluster-Similarity Analysis for Keyword Selection}{18}{subsection.3.3.2}%
-\contentsline {subsubsection}{\numberline {3.3.2.1}Payload-Length Homogeneity within Clusters}{18}{subsubsection.3.3.2.1}%
-\contentsline {subsubsection}{\numberline {3.3.2.2}Joint Probability}{18}{subsubsection.3.3.2.2}%
-\contentsline {section}{\numberline {3.4}Evaluation Strategy}{20}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}Implementation of Evaluation Scenarios with K-Fold Cross-Validation}{21}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Evaluation Methods}{22}{subsection.3.4.2}%
-\contentsline {subsubsection}{\numberline {3.4.2.1}Feature Importance Analysis}{22}{subsubsection.3.4.2.1}%
-\contentsline {subsubsection}{\numberline {3.4.2.2}Error Overlap Analysis}{23}{subsubsection.3.4.2.2}%
-\contentsline {subsubsection}{\numberline {3.4.2.3}Runtime and Memory Consumption}{23}{subsubsection.3.4.2.3}%
-\contentsline {section}{\numberline {3.5}Implementation of Anomaly detection methods}{24}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}Traditional \ac {ML} detection methods}{24}{subsection.3.5.1}%
-\contentsline {subsubsection}{\numberline {3.5.1.1}Feature Extraction using the \ac {SDA}}{24}{subsubsection.3.5.1.1}%
-\contentsline {subsubsection}{\numberline {3.5.1.2}Ensemble Classifier Implementation}{24}{subsubsection.3.5.1.2}%
-\contentsline {subsection}{\numberline {3.5.2}\ac {DL} detection methods}{25}{subsection.3.5.2}%
-\contentsline {subsubsection}{\numberline {3.5.2.1}\ac {CNN}}{26}{subsubsection.3.5.2.1}%
-\contentsline {subsubsection}{\numberline {3.5.2.2}\ac {ResNet}}{26}{subsubsection.3.5.2.2}%
-\contentsline {paragraph}{\numberline {3.5.2.2.1}Our implementation}{27}{paragraph.3.5.2.2.1}%
-\contentsline {paragraph}{\numberline {3.5.2.2.2}Statistical features}{27}{paragraph.3.5.2.2.2}%
-\contentsline {subsection}{\numberline {3.5.3}Other anomaly detection methods}{28}{subsection.3.5.3}%
-\contentsline {subsubsection}{\numberline {3.5.3.1}\ac {SDA}-Based Reconstruction Error Detection}{29}{subsubsection.3.5.3.1}%
-\contentsline {subsubsection}{\numberline {3.5.3.2}\ac {GANs}}{29}{subsubsection.3.5.3.2}%
-\contentsline {paragraph}{\numberline {3.5.3.2.1}Discriminator Implementation}{29}{paragraph.3.5.3.2.1}%
-\contentsline {paragraph}{\numberline {3.5.3.2.2}Generator Implementation}{30}{paragraph.3.5.3.2.2}%
-\contentsline {subsubsection}{\numberline {3.5.3.3}N-Gram}{30}{subsubsection.3.5.3.3}%
-\contentsline {paragraph}{\numberline {3.5.3.3.1}Bloom Filter}{31}{paragraph.3.5.3.3.1}%
-\contentsline {paragraph}{\numberline {3.5.3.3.2}Hash Functions and Double Hashing Strategy}{31}{paragraph.3.5.3.3.2}%
-\contentsline {chapter}{\numberline {4}Evaluation}{35}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Traditional \ac {ML} Detection Methods}{35}{section.4.1}%
-\contentsline {subsection}{\numberline {4.1.1}F1-Scores}{35}{subsection.4.1.1}%
-\contentsline {subsection}{\numberline {4.1.2}Ensemble Classifier Results}{36}{subsection.4.1.2}%
-\contentsline {subsection}{\numberline {4.1.3}Feature Importance}{38}{subsection.4.1.3}%
-\contentsline {subsection}{\numberline {4.1.4}Venn Diagrams}{42}{subsection.4.1.4}%
-\contentsline {paragraph}{\numberline {4.1.4.0.1}RAW Representation}{42}{paragraph.4.1.4.0.1}%
-\contentsline {paragraph}{\numberline {4.1.4.0.2}RE15 Representation}{42}{paragraph.4.1.4.0.2}%
-\contentsline {subsection}{\numberline {4.1.5}Runtime and Memory Consumption}{44}{subsection.4.1.5}%
-\contentsline {subsubsection}{\numberline {4.1.5.1}Runtime}{44}{subsubsection.4.1.5.1}%
-\contentsline {subsubsection}{\numberline {4.1.5.2}Memory Consumption}{45}{subsubsection.4.1.5.2}%
-\contentsline {section}{\numberline {4.2}\ac {DL} Models}{46}{section.4.2}%
-\contentsline {subsection}{\numberline {4.2.1}\ac {CNN} Results}{47}{subsection.4.2.1}%
-\contentsline {subsection}{\numberline {4.2.2}ResNet}{47}{subsection.4.2.2}%
-\contentsline {section}{\numberline {4.3}Other Anomaly Detection Methods}{48}{section.4.3}%
-\contentsline {section}{\numberline {4.4}Summary}{51}{section.4.4}%
-\contentsline {subsection}{\numberline {4.4.1}Overall Model Performance}{51}{subsection.4.4.1}%
-\contentsline {subsection}{\numberline {4.4.2}Influence of Dataset Representation}{51}{subsection.4.4.2}%
-\contentsline {subsection}{\numberline {4.4.3}Impact of Reverse Engineering Across Model Families}{51}{subsection.4.4.3}%
-\contentsline {subsection}{\numberline {4.4.4}Impact of Evaluation Scenario}{52}{subsection.4.4.4}%
-\contentsline {chapter}{\numberline {5}Conclusion}{53}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Conclusion}{53}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Limitations}{53}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Future Work}{54}{section.5.3}%
-\contentsline {chapter}{\numberline {6}Appendix}{55}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Implementation of the ResNet Classifier}{55}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Implementation of the GAN-based Anomaly Detector}{70}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Discriminator Architecture}{71}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Generator Architecture}{71}{subsection.6.2.2}%
-\contentsline {subsection}{\numberline {6.2.3}Model Integration}{72}{subsection.6.2.3}%
-\contentsline {section}{\numberline {6.3}Implementation of the N-gram Based Detection Method}{75}{section.6.3}%
-\contentsline {subsection}{\numberline {6.3.1}Bloom Filter for Efficient Storage}{75}{subsection.6.3.1}%
-\contentsline {subsection}{\numberline {6.3.2}Training Phase}{75}{subsection.6.3.2}%
-\contentsline {subsection}{\numberline {6.3.3}Packet Scoring}{76}{subsection.6.3.3}%
-\contentsline {subsection}{\numberline {6.3.4}Threshold Selection}{76}{subsection.6.3.4}%
-\contentsline {subsection}{\numberline {6.3.5}Evaluation}{76}{subsection.6.3.5}%
+\contentsline {section}{\numberline {2.2}Detection Methods}{6}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Traditional Machine Learning Detection Methods}{6}{subsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.1.1}Detection Methods for One-Class Classification}{6}{subsubsection.2.2.1.1}%
+\contentsline {paragraph}{\numberline {2.2.1.1.1}\ac {OCSVM}}{7}{paragraph.2.2.1.1.1}%
+\contentsline {paragraph}{\numberline {2.2.1.1.2}Elliptic Envelope}{7}{paragraph.2.2.1.1.2}%
+\contentsline {paragraph}{\numberline {2.2.1.1.3}\ac {LOF}}{7}{paragraph.2.2.1.1.3}%
+\contentsline {subsubsection}{\numberline {2.2.1.2}Detection Methods for Binary Classification}{7}{subsubsection.2.2.1.2}%
+\contentsline {paragraph}{\numberline {2.2.1.2.1}\ac {BSVM}}{7}{paragraph.2.2.1.2.1}%
+\contentsline {paragraph}{\numberline {2.2.1.2.2}Random Forest}{7}{paragraph.2.2.1.2.2}%
+\contentsline {paragraph}{\numberline {2.2.1.2.3}\ac {KNN}}{7}{paragraph.2.2.1.2.3}%
+\contentsline {paragraph}{\numberline {2.2.1.2.4}Ensemble Classification}{8}{paragraph.2.2.1.2.4}%
+\contentsline {subsection}{\numberline {2.2.2}\ac {DL} Detection Methods}{8}{subsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.2.1}\ac {CNN}}{8}{subsubsection.2.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2.2}\ac {ResNet}}{8}{subsubsection.2.2.2.2}%
+\contentsline {subsection}{\numberline {2.2.3}Other Anomaly Detection Methods}{9}{subsection.2.2.3}%
+\contentsline {subsubsection}{\numberline {2.2.3.1}\ac {GANs}}{9}{subsubsection.2.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.2.3.2}\ac {SDA}}{9}{subsubsection.2.2.3.2}%
+\contentsline {section}{\numberline {2.3}Provided Datasets}{10}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Statistical Characteristics}{10}{subsection.2.3.1}%
+\contentsline {chapter}{\numberline {3}Our Approach}{11}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Procedure Overview}{11}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Dataset Pre-processing}{13}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Concatenation of Bytes to create RE5,RE10,RE15}{14}{subsection.3.2.1}%
+\contentsline {section}{\numberline {3.3}Reverse engineering}{14}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Identifying Keyword Candidates}{15}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Cluster-Similarity Analysis for Keyword Selection}{16}{subsection.3.3.2}%
+\contentsline {subsubsection}{\numberline {3.3.2.1}Payload-Length Homogeneity within Clusters}{16}{subsubsection.3.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.3.2.2}Joint Probability}{16}{subsubsection.3.3.2.2}%
+\contentsline {section}{\numberline {3.4}Evaluation Strategy}{18}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}Implementation of Evaluation Scenarios with K-Fold Cross-Validation}{19}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}Evaluation Methods}{20}{subsection.3.4.2}%
+\contentsline {subsubsection}{\numberline {3.4.2.1}Feature Importance Analysis}{20}{subsubsection.3.4.2.1}%
+\contentsline {subsubsection}{\numberline {3.4.2.2}Error Overlap Analysis}{21}{subsubsection.3.4.2.2}%
+\contentsline {subsubsection}{\numberline {3.4.2.3}Runtime and Memory Consumption}{21}{subsubsection.3.4.2.3}%
+\contentsline {section}{\numberline {3.5}Implementation of Anomaly detection methods}{22}{section.3.5}%
+\contentsline {subsection}{\numberline {3.5.1}Traditional \ac {ML} detection methods}{22}{subsection.3.5.1}%
+\contentsline {subsubsection}{\numberline {3.5.1.1}Feature Extraction using the \ac {SDA}}{22}{subsubsection.3.5.1.1}%
+\contentsline {subsubsection}{\numberline {3.5.1.2}Ensemble Classifier Implementation}{22}{subsubsection.3.5.1.2}%
+\contentsline {subsection}{\numberline {3.5.2}\ac {DL} detection methods}{23}{subsection.3.5.2}%
+\contentsline {subsubsection}{\numberline {3.5.2.1}\ac {CNN}}{24}{subsubsection.3.5.2.1}%
+\contentsline {subsubsection}{\numberline {3.5.2.2}\ac {ResNet}}{24}{subsubsection.3.5.2.2}%
+\contentsline {paragraph}{\numberline {3.5.2.2.1}Our implementation}{25}{paragraph.3.5.2.2.1}%
+\contentsline {paragraph}{\numberline {3.5.2.2.2}Statistical features}{25}{paragraph.3.5.2.2.2}%
+\contentsline {subsection}{\numberline {3.5.3}Other anomaly detection methods}{26}{subsection.3.5.3}%
+\contentsline {subsubsection}{\numberline {3.5.3.1}\ac {SDA}-Based Reconstruction Error Detection}{27}{subsubsection.3.5.3.1}%
+\contentsline {subsubsection}{\numberline {3.5.3.2}\ac {GANs}}{27}{subsubsection.3.5.3.2}%
+\contentsline {paragraph}{\numberline {3.5.3.2.1}Discriminator Implementation}{27}{paragraph.3.5.3.2.1}%
+\contentsline {paragraph}{\numberline {3.5.3.2.2}Generator Implementation}{28}{paragraph.3.5.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.5.3.3}N-Gram}{28}{subsubsection.3.5.3.3}%
+\contentsline {paragraph}{\numberline {3.5.3.3.1}Bloom Filter}{29}{paragraph.3.5.3.3.1}%
+\contentsline {paragraph}{\numberline {3.5.3.3.2}Hash Functions and Double Hashing Strategy}{29}{paragraph.3.5.3.3.2}%
+\contentsline {chapter}{\numberline {4}Evaluation}{33}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Traditional \ac {ML} Detection Methods}{33}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}F1-Scores}{33}{subsection.4.1.1}%
+\contentsline {subsection}{\numberline {4.1.2}Ensemble Classifier Results}{34}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}Feature Importance}{36}{subsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.1.4}Venn Diagrams}{40}{subsection.4.1.4}%
+\contentsline {paragraph}{\numberline {4.1.4.0.1}RAW Representation}{40}{paragraph.4.1.4.0.1}%
+\contentsline {paragraph}{\numberline {4.1.4.0.2}RE15 Representation}{40}{paragraph.4.1.4.0.2}%
+\contentsline {subsection}{\numberline {4.1.5}Runtime and Memory Consumption}{42}{subsection.4.1.5}%
+\contentsline {subsubsection}{\numberline {4.1.5.1}Runtime}{42}{subsubsection.4.1.5.1}%
+\contentsline {subsubsection}{\numberline {4.1.5.2}Memory Consumption}{43}{subsubsection.4.1.5.2}%
+\contentsline {section}{\numberline {4.2}\ac {DL} Models}{44}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}\ac {CNN} Results}{45}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}ResNet}{45}{subsection.4.2.2}%
+\contentsline {section}{\numberline {4.3}Other Anomaly Detection Methods}{46}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Summary}{49}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Overall Model Performance}{49}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Influence of Dataset Representation}{49}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Impact of Reverse Engineering Across Model Families}{49}{subsection.4.4.3}%
+\contentsline {subsection}{\numberline {4.4.4}Impact of Evaluation Scenario}{50}{subsection.4.4.4}%
+\contentsline {chapter}{\numberline {5}Conclusion}{51}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Conclusion}{51}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Limitations}{51}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Future Work}{52}{section.5.3}%
 \vspace *{\baselineskip }
-\contentsline {chapter}{Abbrevations and Acronyms}{87}{section*.61}%
-\contentsline {chapter}{\nonumberline Bibliography}{89}{chapter*.63}%
+\contentsline {chapter}{Abbrevations and Acronyms}{53}{section*.61}%
+\contentsline {chapter}{\nonumberline Bibliography}{55}{chapter*.63}%
 \providecommand \tocbasic@end@toc@file {}\tocbasic@end@toc@file 

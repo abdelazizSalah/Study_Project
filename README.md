@@ -88,8 +88,13 @@ The project follows a typical machine learning workflow:
 
 > Clone the repository:
 
-> git clone https://github.com/yourusername/ics-anomaly-detection.git 
+> git clone https://github.com/abdelazizSalah/Study_Project 
 
+------------------------------------------------------------------------
+
+# Project Report PDF
+
+For deeper understanding have a look on our [report pdf](./Study_Project_Final_Report.pdf)
 ------------------------------------------------------------------------
 
 # License
